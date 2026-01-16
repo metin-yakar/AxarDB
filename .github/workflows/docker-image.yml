@@ -22,26 +22,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Prepare Image Name
+      - name: Clean Username and Generate Name
         id: prep
         run: |
-          # Capturing the secret to a variable
-          RAW_USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          # Store secret in variable
+          RAW="${{ secrets.DOCKERHUB_USERNAME }}"
           
-          # Sanitize: Remove whitespace (xargs) and convert to lowercase (tr)
-          CLEAN_USER=$(echo "$RAW_USER" | xargs | tr '[:upper:]' '[:lower:]')
+          # 1. Remove ALL spaces/tabs/newlines ([:space:])
+          # 2. Convert to lowercase
+          CLEAN=$(echo "$RAW" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
           
-          # Validation
-          if [ -z "$CLEAN_USER" ]; then
-            echo "::error::DOCKERHUB_USERNAME secret appears to be empty or whitespace only."
-            exit 1
+          if [ -z "$CLEAN" ]; then
+             echo "::error::Username is empty after cleaning!"
+             exit 1
           fi
-          
-          # Construct image reference
-          IMAGE_REF="${CLEAN_USER}/unlockdb"
-          echo "image=$IMAGE_REF" >> $GITHUB_OUTPUT
-          
-          echo "Debug: Using Docker Hub namespace: $CLEAN_USER"
+
+          echo "image=${CLEAN}/unlockdb" >> $GITHUB_OUTPUT
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.prep.outputs.image }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=,format=long
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -49,4 +54,5 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.prep.outputs.image }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
