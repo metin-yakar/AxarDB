@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnlockDB Documentation</title>
+    <link rel="icon" type="image/png" href="unlockerdbLogo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --accent: #6366f1;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --code-bg: #1e1e1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            display: flex;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            position: fixed;
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 2.5rem;
+            color: var(--accent);
+        }
+
+        .nav-group {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .nav-link {
+            display: block;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        /* Main Content */
+        .content {
+            margin-left: 280px;
+            padding: 4rem 6rem;
+            max-width: 1200px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin: 3rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            margin: 2rem 0 1rem;
+            color: var(--accent);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-dim);
+        }
+
+        .method-block {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .method-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .method-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+
+        .method-type {
+            font-size: 0.75rem;
+            background: rgba(99, 102, 241, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .note {
+            background: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid #fbbf24;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .note strong {
+            color: #fbbf24;
+        }
+
+        footer {
+            margin-top: 6rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .content {
+                margin-left: 220px;
+                padding: 3rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="unlockerdbLogo.png" alt="UnlockDB" style="width: 24px; height: 24px; object-fit: contain;">
+            UnlockDB Docs
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Fundamentals</div>
+            <a href="#overview" class="nav-link">Overview</a>
+            <a href="#architecture" class="nav-link">Architecture</a>
+            <a href="#auth" class="nav-link">Authentication</a>
+            <a href="#curl-examples" class="nav-link">Curl Examples</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Database API</div>
+            <a href="#db-object" class="nav-link">The 'db' Object</a>
+            <a href="#finding" class="nav-link">Finding Data</a>
+            <a href="#inserting" class="nav-link">Inserting Data</a>
+            <a href="#updating" class="nav-link">Updating (Bulk)</a>
+            <a href="#deleting" class="nav-link">Deleting</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Aggregation & Joins</div>
+            <a href="#joining" class="nav-link">Multi-Collection Join</a>
+            <a href="#projection" class="nav-link">Projection (Select)</a>
+            <a href="#limiting" class="nav-link">Limiting (Take)</a>
+        </div>
+
+        <div class="nav-group">
+            <div class="nav-title">Performance</div>
+            <a href="#indexing" class="nav-link">Index Management</a>
+            <a href="#lazy-eval" class="nav-link">Lazy Evaluation</a>
+        </div>
+    </aside>
+
+    <main class="content">
+        <section id="overview">
+            <h1>Technical Specification</h1>
+            <p>UnlockDB is a high-performance, in-memory NoSQL database server leveraging the <strong>Jint JavaScript
+                    Engine</strong> for programmable query execution. This documentation provides a complete reference
+                for integration, training AI models, and mastering the JavaScript query interface.</p>
+        </section>
+
+        <section id="architecture">
+            <h2>Architecture</h2>
+            <p>The system operates as a stateful REST API where query sessions are independent. Each request creates a
+                fresh Jint engine scope to ensure isolation and security.</p>
+            <ul>
+                <li><strong>Engine:</strong> Jint 4.4.2 (.NET Integration)</li>
+                <li><strong>Storage:</strong> ConcurrentDictionary with disk persistence (JSON)</li>
+                <li><strong>Concurrency:</strong> Thread-safe CRUD via atomic memory operations</li>
+            </ul>
+        </section>
+
+        <section id="auth">
+            <h2>Authentication</h2>
+            <p>Access requires HTTP Basic Authentication. All management console operations are performed using these
+                credentials.</p>
+            <pre><code>Username: unlocker
+Password: unlocker</code></pre>
+            <p>Headers must include <code>Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=</code></p>
+        </section>
+
+        <section id="curl-examples">
+            <h2>Curl Examples</h2>
+            <p>You can interact with the UnlockDB API directly using <code>curl</code> or any HTTP client. All queries
+                should be sent as raw text in the request body.</p>
+
+            <h3>1. List Collections</h3>
+            <pre><code>curl -X GET http://localhost:5000/collections \
+  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI="</code></pre>
+
+            <h3>2. Simple Query (Find All)</h3>
+            <pre><code>curl -X POST http://localhost:5000/query \
+  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=" \
+  -d "db.users.findall().ToList()"</code></pre>
+
+            <h3>3. Filtered Query</h3>
+            <pre><code>curl -X POST http://localhost:5000/query \
+  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=" \
+  -d "db.users.findall(x => x.age > 20).ToList()"</code></pre>
+
+            <h3>4. Insert Record</h3>
+            <pre><code>curl -X POST http://localhost:5000/query \
+  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=" \
+  -d "db.users.insert({ name: 'External Entry', type: 'curl' })"</code></pre>
+
+            <div class="note">
+                <strong>Windows Tip:</strong> If using <code>PowerShell</code>, ensure you escape quotes properly or use
+                the <code>Invoke-RestMethod</code> cmdlet for a more native experience.
+            </div>
+        </section>
+
+        <section id="db-object">
+            <h2>The 'db' Object</h2>
+            <p>Queries are executed against the global <code>db</code> object. You can access any collection dynamically
+                using property notation.</p>
+            <pre><code>// Accessing collections
+const users = db.users; 
+const products = db.products;</code></pre>
+        </section>
+
+        <section id="finding">
+            <h2>Finding Data</h2>
+            <div class="method-block">
+                <div class="method-header">
+                    <span class="method-name">findall(predicate)</span>
+                    <span class="method-type">Returns: ResultSet</span>
+                </div>
+                <p>Retrieves records matching the predicate. If omitted, returns all records.</p>
+                <pre><code>// Get all
+db.users.findall().ToList();
+
+// Filtered
+db.users.findall(x => x.age > 25).ToList();</code></pre>
+            </div>
+
+            <div class="method-block">
+                <div class="method-header">
+                    <span class="method-name">find(predicate)</span>
+                    <span class="method-type">Returns: Document</span>
+                </div>
+                <p>Returns the first record matching the criteria (Lazy evaluation).</p>
+                <pre><code>const user = db.users.find(x => x.email == "admin@db.com");</code></pre>
+            </div>
+        </section>
+
+        <section id="inserting">
+            <h2>Inserting Data</h2>
+            <p>Every document automatically receives a unique <code>_id</code> (GUID) upon insertion.</p>
+            <pre><code>db.users.insert({
+    username: "dev_user",
+    tags: ["nosql", "fast"],
+    metadata: { lastLogin: new Date() }
+});</code></pre>
+        </section>
+
+        <section id="updating">
+            <h2>Updating Data</h2>
+            <p>Updates can be performed directly on a collection or on a <code>ResultSet</code>.</p>
+            <pre><code>// Collection-level update (Bulk)
+db.users.update(x => x.status == "pending", { status: "active" });
+
+// ResultSet-level update
+db.users.findall(x => x.points > 100).update({ level: "pro" });</code></pre>
+        </section>
+
+        <section id="deleting">
+            <h2>Deleting Data</h2>
+            <pre><code>// Bulk delete via query result
+db.users.findall(x => x.isDeleted == true).delete();</code></pre>
+        </section>
+
+        <section id="joining">
+            <h2>Aggregation & Joins</h2>
+            <p>UnlockDB supports foreign-key style joins between multiple collections based on ID matching.</p>
+            <pre><code>// Join users and their orders
+const reports = db.join(db.users, db.orders).findall().ToList();</code></pre>
+        </section>
+
+        <section id="projection">
+            <h2>Projection (Select)</h2>
+            <p>Use <code>select()</code> to transform results or extract specific fields.</p>
+            <pre><code>// Map to new schema
+const names = db.users.findall().select(x => ({ 
+    fullName: x.firstName + " " + x.lastName,
+    id: x._id 
+}));</code></pre>
+        </section>
+
+        <section id="limiting">
+            <h2>Limiting (Take)</h2>
+            <p>Limit the number of results for paginated or preview views.</p>
+            <pre><code>// Get top 5 newest records
+db.logs.findall().take(5).ToList();</code></pre>
+        </section>
+
+        <section id="custom-logic">
+            <h2>Custom JS Functions</h2>
+            <p>You can use standard JavaScript logic (functions, loops, variables) to process data. <strong>The last
+                    evaluated expression or a returned value determines what appears in the results grid.</strong></p>
+            <pre><code>// Using a functional approach
+(function() {
+    const data = db.users.findall().ToList();
+    const processed = data.map(u => {
+        return {
+            id: u._id,
+            tag: u.age > 18 ? "Adult" : "Minor",
+            raw: u
+        };
+    });
+    return processed;
+})();</code></pre>
+            <div class="note">
+                <strong>Tip:</strong> Always use <code>ToList()</code> when you need to iterate over collection data in
+                standard JavaScript arrays.
+            </div>
+        </section>
+
+        <section id="indexing">
+            <h2>Index Management</h2>
+            <p>Optimizing queries with indexes. Supported types: <code>ASC</code> (Ascending) and <code>DESC</code>
+                (Descending).</p>
+            <pre><code>// String-based creation
+db.users.index("email", "ASC");
+
+// Lambda-based creation
+db.products.index(x => x.price, "DESC");</code></pre>
+            <div class="note">
+                <strong>AI Training Note:</strong> UnlockDB uses "Text Indexing" for strings (word-based + n-grams) and
+                "Sorted Indexing" for numeric values.
+            </div>
+        </section>
+
+        <section id="lazy-eval">
+            <h2>Lazy Evaluation</h2>
+            <p>The engine defers data realization until <code>ToList()</code> or <code>first()</code> is called. This
+                minimizes memory overhead during complex logical filtering.</p>
+        </section>
+
+        <footer>
+            UnlockDB Technical Documentation &copy; 2026. Designed for Humans and AI.
+        </footer>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // Custom Smooth Scroll for In-Page navigation
+        document.querySelectorAll('.nav-link').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.offsetTop - 20,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

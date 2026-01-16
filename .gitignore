@@ -1,0 +1,115 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options directory
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+.nuget/
+
+# NuGet cache
+**/obj/*.nuget.dgspec.json
+**/obj/*.nuget.g.props
+**/obj/*.nuget.g.targets
+**/obj/project.assets.json
+**/obj/project.nuget.cache
+
+# Visual Studio cache files
+*.cache
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# Rider
+.idea/
+*.sln.iml
+
+# Data directory - contains user data and passwords
+Data/
+**/Data/
+
+# Test data and user files
+*.json
+!UnlockDB2.csproj
+!**/project.assets.json
+!**/packages/*.json
+
+# PowerShell script with hardcoded paths
+verify.ps1
+
+# User-specific paths in generated files
+**/obj/**/*.FileListAbsolute.txt
+**/obj/**/*.GeneratedMSBuildEditorConfig.editorconfig
+
+# Sensitive configuration
+appsettings.Development.json
+appsettings.Production.json
+*.secrets.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+PROJECT_PROMPT.md

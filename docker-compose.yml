@@ -1,0 +1,11 @@
+services:
+  unlockdb:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/Logging
+    environment:
+      - ASPNETCORE_URLS=http://+:5000
+    restart: unless-stopped

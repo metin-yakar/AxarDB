@@ -1,0 +1,60 @@
+# 🔓 UnlockDB - La Base de Datos NoSQL Nativa de JavaScript
+
+![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+
+[![Licencia: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](../Dockerfile)
+
+> **UnlockDB** es un servidor de base de datos NoSQL en memoria de alto rendimiento que le permite escribir consultas de base de datos directamente en **JavaScript**.
+
+<br>
+<div align="center">
+  <video src="../unlockdb1.mp4" width="100%" controls></video>
+</div>
+<br>
+
+---
+
+## 🌍 Idiomas
+
+| [English](../README.md) | [Türkçe](README.tr.md) | [Русский](README.ru.md) | [中文](README.zh.md) | [Deutsch](README.de.md) | [日本語](README.ja.md) | [العربية](README.ar.md) | [Nederlands](README.nl.md) | [Български](README.bg.md) | [Italiano](README.it.md) | [Español](README.es.md) |
+|---|---|---|---|---|---|---|---|---|---|---|
+
+---
+
+## 🚀 Características Clave
+
+| Característica | Descripción |
+|:---|:---|
+| **📜 Consultas JavaScript** | Sintaxis JS completa. `db.users.findall(x => x.age > 18)` |
+| **⚡ Alto Rendimiento** | Almacenamiento en memoria con `ConcurrentDictionary`. |
+| **🛡️ Seguro** | Autenticación básica y **prevención de inyecciones**. |
+
+---
+
+## 👨‍💻 Desarrollador
+
+**Metin YAKAR**  
+*Desarrollador de Software y Experto en .NET*  
+Estambul, Turquía 🇹🇷
+
+Experiencia **desde 2011**.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/metin-yakar/)
+
+---
+
+## 🤝 Soporte
+
+### 💖 Apoya el Proyecto
+
+| **Buy Me a Coffee** | **Ethereum** |
+|:---:|:---:|
+| <a href="https://buymeacoffee.com/metinyakar"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=metinyakar&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a> | ![QR](https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=0x1245CEB6c9A5485286975eEC1B2F9D496016761C) |
+
+**[Reserva una sesión (Cal.com)](https://cal.com/metin-yakar-dfij9e)**
+
+---
+
+## 📄 Licencia
+**Código Abierto (Restringido)** - Ver [LICENSE](../LICENSE).
