@@ -18,6 +18,8 @@
 
 ---
 
+![UnlockDB Web UI](./image.png)
+
 ## 🚀 Key Features
 
 | Feature | Description |

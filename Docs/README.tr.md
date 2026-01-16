@@ -17,6 +17,8 @@
 
 ---
 
+![UnlockDB Web UI](../image.png)
+
 ## 🚀 Temel Özellikler
 
 | Özellik | Açıklama |

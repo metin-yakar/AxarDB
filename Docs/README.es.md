@@ -16,6 +16,8 @@
 
 ---
 
+![UnlockDB Web UI](../image.png)
+
 ## 🚀 Características Clave
 
 | Característica | Descripción |

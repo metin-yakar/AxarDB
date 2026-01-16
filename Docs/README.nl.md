@@ -16,6 +16,8 @@
 
 ---
 
+![UnlockDB Web UI](../image.png)
+
 ## 🚀 Kernfuncties
 
 | Functie | Beschrijving |
