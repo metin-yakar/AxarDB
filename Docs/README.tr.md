@@ -9,10 +9,8 @@
 > **UnlockDB**, veritabanı sorgularını doğrudan **JavaScript** ile yazmanıza olanak tanıyan, yüksek performanslı, bellek içi (in-memory) bir NoSQL veritabanı sunucusudur. ASP.NET Core 8.0 üzerinde inşa edilmiştir.
 
 <br>
-<div align="center">
-  <video src="../unlockdb1.mp4" width="100%" controls></video>
-</div>
-<br>
+![unlockdb1](../unlockdb1.gif)
+</br>
 
 ---
 

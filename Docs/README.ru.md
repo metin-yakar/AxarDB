@@ -8,10 +8,8 @@
 > **UnlockDB** — это высокопроизводительная NoSQL база данных в памяти (in-memory), позволяющая писать запросы непосредственно на **JavaScript**. Построена на платформе ASP.NET Core 8.0.
 
 <br>
-<div align="center">
-  <video src="../unlockdb1.mp4" width="100%" controls></video>
-</div>
-<br>
+![unlockdb1](../unlockdb1.gif)
+</br>
 
 ---
 

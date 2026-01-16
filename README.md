@@ -10,10 +10,8 @@
 > **UnlockDB** is a high-performance, in-memory NoSQL database server that allows you to write database queries directly in **JavaScript**. Built on ASP.NET Core 8.0, it combines the flexibility of a document store with the power of a full JavaScript runtime.
 
 <br>
-<div align="center">
-  <video src="unlockdb1.mp4" width="100%" controls></video>
-</div>
-<br>
+![unlockdb1](unlockdb1.gif)
+</br>
 
 ---
 

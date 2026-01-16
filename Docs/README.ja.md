@@ -8,10 +8,8 @@
 > **UnlockDB** は、**JavaScript** で直接データベースクエリを記述できる、高性能なインメモリ NoSQL データベースサーバーです。
 
 <br>
-<div align="center">
-  <video src="../unlockdb1.mp4" width="100%" controls></video>
-</div>
-<br>
+![unlockdb1](../unlockdb1.gif)
+</br>
 
 ---
 

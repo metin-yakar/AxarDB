@@ -8,10 +8,8 @@
 > **UnlockDB** ist eine leistungsstarke In-Memory-NoSQL-Datenbank, die es Ihnen ermöglicht, Datenbankabfragen direkt in **JavaScript** zu schreiben.
 
 <br>
-<div align="center">
-  <video src="../unlockdb1.mp4" width="100%" controls></video>
-</div>
-<br>
+![unlockdb1](../unlockdb1.gif)
+</br>
 
 ---
 
