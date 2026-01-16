@@ -22,10 +22,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Prepare Image Name
+        id: prep
+        run: |
+          # Convert username to lowercase to prevent 'invalid reference format' error
+          DOCKER_USERNAME=$(echo "${{ secrets.DOCKERHUB_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=${DOCKER_USERNAME}/unlockdb" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/unlockdb:latest
+          tags: ${{ steps.prep.outputs.image }}:latest
