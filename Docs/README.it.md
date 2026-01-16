@@ -50,7 +50,7 @@ Esperienza **dal 2011**.
 
 | **Buy Me a Coffee** | **Ethereum** |
 |:---:|:---:|
-| <a href="https://buymeacoffee.com/metinyakar"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=metinyakar&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a> | ![QR](https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=0x1245CEB6c9A5485286975eEC1B2F9D496016761C) |
+| <a href="https://buymeacoffee.com/metinyakar"><img src="../buymecoffie.png" style="width:100px;height:100px;"/></a> | ![QR](https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=0x1245CEB6c9A5485286975eEC1B2F9D496016761C) |
 
 **[Prenota una consulenza (Cal.com)](https://cal.com/metin-yakar-dfij9e)**
 

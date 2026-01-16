@@ -88,7 +88,7 @@ Bu projeyi sevdiyseniz, geliştirmeyi desteklemeyi düşünün!
 
 | **Bir Kahve Ismarla** | **Ethereum** |
 |:---:|:---:|
-| <a href="https://buymeacoffee.com/metinyakar"><img src="https://img.buymeacoffee.com/button-api/?text=Kahve Ismarla&emoji=&slug=metinyakar&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff" /></a> | ![QR](https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=0x1245CEB6c9A5485286975eEC1B2F9D496016761C) <br> `` |
+| <a href="https://buymeacoffee.com/metinyakar"><img src="../buymecoffie.png" style="width:100px;height:100px;"/></a> | ![QR](https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=0x1245CEB6c9A5485286975eEC1B2F9D496016761C) |
 
 ### 📅 Danışmanlık ve Eğitim
 
