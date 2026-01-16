@@ -22,37 +22,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Clean Username and Generate Name
-        id: prep
-        run: |
-          # Store secret in variable
-          RAW="${{ secrets.DOCKERHUB_USERNAME }}"
-          
-          # 1. Remove ALL spaces/tabs/newlines ([:space:])
-          # 2. Convert to lowercase
-          CLEAN=$(echo "$RAW" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
-          
-          if [ -z "$CLEAN" ]; then
-             echo "::error::Username is empty after cleaning!"
-             exit 1
-          fi
-
-          echo "image=${CLEAN}/unlockdb" >> $GITHUB_OUTPUT
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.prep.outputs.image }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=,format=long
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/unlockdb:latest
+
