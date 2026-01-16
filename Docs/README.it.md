@@ -8,7 +8,7 @@
 > **UnlockDB** è un server database NoSQL in-memory ad alte prestazioni che consente di scrivere query direttamente in **JavaScript**.
 
 <br>
-![unlockdb1](../unlockdb1.gif)
+![unlockdb1](https://raw.githubusercontent.com/metin-yakar/UnlockDB/refs/heads/main/unlockdb1.gif)
 </br>
 
 ---

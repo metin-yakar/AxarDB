@@ -7,7 +7,7 @@
 > **UnlockDB** هو خادم قاعدة بيانات NoSQL عالي الأداء في الذاكرة يسمح لك بكتابة استعلامات قاعدة البيانات مباشرة باستخدام **JavaScript**.
 
 <br>
-![unlockdb1](../unlockdb1.gif)
+![unlockdb1](https://raw.githubusercontent.com/metin-yakar/UnlockDB/refs/heads/main/unlockdb1.gif)
 </br>
 
 ---

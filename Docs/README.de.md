@@ -8,7 +8,7 @@
 > **UnlockDB** ist eine leistungsstarke In-Memory-NoSQL-Datenbank, die es Ihnen ermöglicht, Datenbankabfragen direkt in **JavaScript** zu schreiben.
 
 <br>
-![unlockdb1](../unlockdb1.gif)
+![unlockdb1](https://raw.githubusercontent.com/metin-yakar/UnlockDB/refs/heads/main/unlockdb1.gif)
 </br>
 
 ---
