@@ -25,9 +25,23 @@ jobs:
       - name: Prepare Image Name
         id: prep
         run: |
-          # Convert username to lowercase to prevent 'invalid reference format' error
-          DOCKER_USERNAME=$(echo "${{ secrets.DOCKERHUB_USERNAME }}" | tr '[:upper:]' '[:lower:]')
-          echo "image=${DOCKER_USERNAME}/unlockdb" >> $GITHUB_OUTPUT
+          # Capturing the secret to a variable
+          RAW_USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          
+          # Sanitize: Remove whitespace (xargs) and convert to lowercase (tr)
+          CLEAN_USER=$(echo "$RAW_USER" | xargs | tr '[:upper:]' '[:lower:]')
+          
+          # Validation
+          if [ -z "$CLEAN_USER" ]; then
+            echo "::error::DOCKERHUB_USERNAME secret appears to be empty or whitespace only."
+            exit 1
+          fi
+          
+          # Construct image reference
+          IMAGE_REF="${CLEAN_USER}/unlockdb"
+          echo "image=$IMAGE_REF" >> $GITHUB_OUTPUT
+          
+          echo "Debug: Using Docker Hub namespace: $CLEAN_USER"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
