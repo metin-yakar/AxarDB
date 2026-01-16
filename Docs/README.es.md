@@ -7,9 +7,6 @@
 
 > **UnlockDB** es un servidor de base de datos NoSQL en memoria de alto rendimiento que le permite escribir consultas de base de datos directamente en **JavaScript**.
 
-<br>
-![unlockdb1](https://raw.githubusercontent.com/metin-yakar/UnlockDB/refs/heads/main/unlockdb1.gif)
-</br>
 ---
 
 ## 🌍 Idiomas

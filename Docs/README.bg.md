@@ -7,10 +7,6 @@
 
 > **UnlockDB** е високопроизводителна in-memory NoSQL база данни, която позволява писане на заявки директно на **JavaScript**.
 
-<br>
-![unlockdb1](https://raw.githubusercontent.com/metin-yakar/UnlockDB/refs/heads/main/unlockdb1.gif)
-</br>
-
 ---
 
 ## 🌍 Езици

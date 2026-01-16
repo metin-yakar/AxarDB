@@ -7,10 +7,6 @@
 
 > **UnlockDB** 是一个高性能的内存 NoSQL 数据库，允许您直接使用 **JavaScript** 编写查询。基于 ASP.NET Core 8.0 构建。
 
-<br>
-![unlockdb1](https://raw.githubusercontent.com/metin-yakar/UnlockDB/refs/heads/main/unlockdb1.gif)
-</br>
-
 ---
 
 ## 🌍 语言
