@@ -28,9 +28,9 @@ namespace UnlockDB.Helpers
             return obj?.ToString() ?? "";
         }
 
-        public static double RandomNumber(double min, double max)
+        public static int RandomNumber(int min, int max)
         {
-            return min + (Random.Shared.NextDouble() * (max - min));
+            return Random.Shared.Next(min, max);
         }
 
         public static decimal RandomDecimal(string minStr, string maxStr)
