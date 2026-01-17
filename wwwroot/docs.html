@@ -226,6 +226,12 @@
         </div>
 
         <div class="nav-group">
+            <div class="nav-title">Scripting & Utilities</div>
+            <a href="#custom-logic" class="nav-link">Custom JS Logic</a>
+            <a href="#utilities" class="nav-link">Utility Functions</a>
+        </div>
+
+        <div class="nav-group">
             <div class="nav-title">Aggregation & Joins</div>
             <a href="#joining" class="nav-link">Multi-Collection Join</a>
             <a href="#projection" class="nav-link">Projection (Select)</a>
@@ -400,6 +406,41 @@ db.logs.findall().take(5).ToList();</code></pre>
             <div class="note">
                 <strong>Tip:</strong> Always use <code>ToList()</code> when you need to iterate over collection data in
                 standard JavaScript arrays.
+            </div>
+        </section>
+
+        <section id="utilities">
+            <h2>Utility Functions</h2>
+            <p>UnlockDB includes a suite of built-in helper functions to simplify data manipulation and security tasks
+                within your scripts.</p>
+
+            <h3>Cryptography & Security</h3>
+            <ul>
+                <li><code>md5(string)</code>: Returns MD5 hash.</li>
+                <li><code>sha256(string)</code>: Returns SHA256 hash.</li>
+                <li><code>encrypt(text, salt)</code> / <code>decrypt(text, salt)</code>: Simple encryption helpers.</li>
+                <li><code>toBase64(string)</code> / <code>fromBase64(string)</code>: Text encoding.</li>
+            </ul>
+
+            <h3>Data Utilities</h3>
+            <ul>
+                <li><code>randomString(length)</code>: Generates random alphanumeric strings (great for tokens).</li>
+                <li><code>randomNumber(min, max)</code>: Generates random integers.</li>
+                <li><code>randomDecimal(minStr, maxStr)</code>: Generates random decimals.</li>
+                <li><code>split(text, separator)</code>: Splits string into array.</li>
+                <li><code>toString(obj)</code>: Safe string conversion.</li>
+            </ul>
+
+            <div class="method-block">
+                <div class="method-header">
+                    <span class="method-name">Example: Secure User Creation</span>
+                </div>
+                <pre><code>db.users.insert({
+    username: "new_user",
+    password: sha256("mySecretPass"), 
+    apiToken: randomString(64),
+    createdAt: toString(new Date())
+});</code></pre>
             </div>
         </section>
 

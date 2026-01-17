@@ -27,6 +27,7 @@
 | **🔍 Intelligente Indizierung** | ASC/DESC Indexe. |
 | **🔗 Joins** | Sammlungen verknüpfen: `db.join(users, orders)`. |
 | **🛡️ Sicher** | Basic Auth & **Injektionsschutz**. |
+| **🛠️ Hilfsprogramme** | Integrierte Hilfsfunktionen: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
 
 ---
 

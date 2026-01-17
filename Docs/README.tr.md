@@ -29,6 +29,7 @@
 | **🔗 Join Desteği** | Koleksiyonlar arası birleştirme işlemleri: `db.join(users, orders)`. |
 | **🛡️ Güvenli** | Basic Auth ve **Injection Koruması**. |
 | **🐋 Docker Uyumlu** | Tek komutla çalıştırın: `docker run`. |
+| **🛠️ Araçlar** | Dahili yardımcı fonksiyonlar: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
 | **🖥️ Yönetim Paneli** | Monaco Editör, Boyutlandırılabilir Grid ve Koyu Mod içeren Web Arayüzü. |
 
 ---

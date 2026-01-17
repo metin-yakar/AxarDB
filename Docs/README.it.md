@@ -25,6 +25,7 @@
 | **📜 Query JavaScript** | Sintassi JS completa. `db.users.findall(x => x.age > 18)` |
 | **⚡ Alte Prestazioni** | Archiviazione in-memory con `ConcurrentDictionary`. |
 | **🛡️ Sicuro** | Basic Auth & **Protezione da Injection**. |
+| **🛠️ Utilità** | Funzioni helper integrate: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
 
 ---
 

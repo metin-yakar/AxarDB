@@ -80,6 +80,20 @@ namespace UnlockDB
                 return col.Indices.Select(i => new { PropertyName = i.PropertyName, Type = i.Type }).ToList();
             }));
 
+            // --- Utility Functions ---
+            engine.SetValue("md5", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.MD5));
+            engine.SetValue("sha256", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.SHA256));
+            engine.SetValue("toString", new Func<object, string>(UnlockDB.Helpers.ScriptUtils.ToString));
+            engine.SetValue("randomNumber", new Func<double, double, double>(UnlockDB.Helpers.ScriptUtils.RandomNumber));
+            engine.SetValue("randomDecimal", new Func<string, string, decimal>(UnlockDB.Helpers.ScriptUtils.RandomDecimal));
+            engine.SetValue("randomString", new Func<int, string>(UnlockDB.Helpers.ScriptUtils.RandomString));
+            engine.SetValue("toBase64", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.ToBase64));
+            engine.SetValue("fromBase64", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.FromBase64));
+            engine.SetValue("encrypt", new Func<string, string, string>(UnlockDB.Helpers.ScriptUtils.Encrypt));
+            engine.SetValue("decrypt", new Func<string, string, string>(UnlockDB.Helpers.ScriptUtils.Decrypt));
+            engine.SetValue("split", new Func<string, string, string[]>(UnlockDB.Helpers.ScriptUtils.Split));
+            engine.SetValue("toDecimal", new Func<string, decimal>(UnlockDB.Helpers.ScriptUtils.ToDecimal));
+
             // Execute
             var result = engine.Evaluate(script);
             

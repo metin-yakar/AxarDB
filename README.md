@@ -30,6 +30,7 @@
 | **🔗 Joins** | Perform complex joins between collections directly in the query: `db.join(users, orders)`. |
 | **🛡️ Secure** | Basic Authentication & **Injection Prevention** via parameter binding. |
 | **🐋 Docker Ready** | Runs anywhere with a single `docker run` command. |
+| **🛠️ Utilities** | Built-in helper functions: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
 | **🖥️ Management Console** | Beautiful Web UI with Monaco Editor, Resizable Datagrid, and Dark Mode. |
 
 ---
