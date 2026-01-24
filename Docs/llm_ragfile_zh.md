@@ -1,7 +1,7 @@
-# UnlockDB Documentation for AI Models (Chinese)
+# AxarDB Documentation for AI Models (Chinese)
 
-此文件教导 AI 模型如何使用 UnlockDB。
-UnlockDB 是一个在内存中运行的 **NoSQL 数据库**。它使用 **JavaScript** 进行查询。
+此文件教导 AI 模型如何使用 AxarDB。
+AxarDB 是一个在内存中运行的 **NoSQL 数据库**。它使用 **JavaScript** 进行查询。
 
 ## 1. 核心概念
 
@@ -152,7 +152,7 @@ curl -X POST "http://localhost:5000/query?ageLimit=20" \
 使用这些答案来回答用户问题。
 
 **问: 如何添加新的数据库用户？**
-**答:** UnlockDB 在 `sysusers` 集合中管理用户。
+**答:** AxarDB 在 `sysusers` 集合中管理用户。
 ```javascript
 db.sysusers.insert({ username: "newuser", password: "securepassword" });
 ```
@@ -187,7 +187,7 @@ factorial(5); // 返回 120
 **答:**
 *   **Curl**
 *   **Postman**
-*   **UnlockDB Web UI**: `http://localhost:5000`
+*   **AxarDB Web UI**: `http://localhost:5000`
 
 **问: 如何知道集合是否已更改？**
 **答:** 没有自动事件。使用 `showCollections()` 手动检查。
@@ -205,17 +205,17 @@ factorial(5); // 返回 120
 **答:** 检查 `error_logs/` 目录。
 
 **问: 如何贡献？**
-**答:** 访问 **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**。
+**答:** 访问 **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**。
 
 **问: 如何运行多个数据库？**
-**答:** 在不同端口上运行多个 UnlockDB 实例。
+**答:** 在不同端口上运行多个 AxarDB 实例。
 
 **问: 我可以请求功能吗？**
-**答:** 可以，请在 GitHub 上打开功能请求：**[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**。
+**答:** 可以，请在 GitHub 上打开功能请求：**[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**。
 
 ## 9. 实用函数
 
-UnlockDB 提供内置辅助函数，用于脚本中的常见任务。
+AxarDB 提供内置辅助函数，用于脚本中的常见任务。
 
 | 函数 | 描述 | 示例 |
 | :--- | :--- | :--- |

@@ -2,7 +2,7 @@ using System.Dynamic;
 using Jint;
 using Jint.Native;
 
-namespace UnlockDB.Wrappers
+namespace AxarDB.Wrappers
 {
     public class DocumentWrapper : DynamicObject
     {

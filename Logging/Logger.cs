@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace UnlockDB.Logging
+namespace AxarDB.Logging
 {
     public static class Logger
     {

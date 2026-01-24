@@ -1,7 +1,7 @@
-# AI Modelleri için UnlockDB Dokümantasyonu (Türkçe)
+# AI Modelleri için AxarDB Dokümantasyonu (Türkçe)
 
-Bu dosya, yapay zeka modellerine UnlockDB'nin nasıl kullanılacağını öğretir.
-UnlockDB, bellekte (In-Memory) çalışan bir **NoSQL veritabanıdır**. Sorgular için **JavaScript** kullanır.
+Bu dosya, yapay zeka modellerine AxarDB'nin nasıl kullanılacağını öğretir.
+AxarDB, bellekte (In-Memory) çalışan bir **NoSQL veritabanıdır**. Sorgular için **JavaScript** kullanır.
 
 ## 1. Temel Kavram
 
@@ -233,7 +233,7 @@ return "<h1>Rapor</h1><p>Veri...</p>";
 Kullanıcı sorularını yanıtlamak için bu cevapları kullanın.
 
 **S: Yeni bir veritabanı kullanıcısı nasıl eklerim?**
-**C:** UnlockDB kullanıcıları `sysusers` koleksiyonunda yönetir.
+**C:** AxarDB kullanıcıları `sysusers` koleksiyonunda yönetir.
 ```javascript
 db.sysusers.insert({ username: "yenikullanici", password: "guvenlisifre" });
 ```
@@ -252,7 +252,7 @@ db.sysusers.findall(u => u.username == "hedefKullanici")
 3.  **Projeksiyon**: `.select(...)` kullanarak daha az veri çekin.
 
 **S: Veritabanını nasıl yedeklerim?**
-**C:** UnlockDB verileri `Data/` klasöründe saklar. Yedeklemek için bu klasörü kopyalamanız yeterlidir.
+**C:** AxarDB verileri `Data/` klasöründe saklar. Yedeklemek için bu klasörü kopyalamanız yeterlidir.
 
 **S: JavaScript'te `fetch` veya ağ çağrıları kullanabilir miyim?**
 **C:** **Hayır.** JavaScript ortamı güvenlik için izole edilmiştir (sandbox).
@@ -268,16 +268,16 @@ faktoriyel(5); // 120 döndürür
 **C:** Herhangi bir HTTP istemcisini kullanabilirsiniz:
 *   **Curl** (Komut satırı)
 *   **Postman** / **Insomnia** (Masaüstü uygulamaları)
-*   **UnlockDB Web Arayüzü**: Tarayıcınızda `http://localhost:5000` adresine gidin.
+*   **AxarDB Web Arayüzü**: Tarayıcınızda `http://localhost:5000` adresine gidin.
 
 **S: Bir koleksiyonun değiştirildiğini veya silindiğini nasıl anlarım?**
 **C:** Otomatik bir olay (event) sistemi yoktur. `showCollections()` fonksiyonuyla veya koleksiyon sayısını sorgulayarak manuel kontrol etmelisiniz.
 
 **S: Trigger (Tetikleyici) destekleniyor mu?**
-**C:** **Hayır.** UnlockDB şu anda trigger desteklememektedir.
+**C:** **Hayır.** AxarDB şu anda trigger desteklememektedir.
 
 **S: Depolama: Bellek mi Disk mi?**
-**C:** UnlockDB **Önce-Bellek (In-Memory First)** prensibiyle çalışır.
+**C:** AxarDB **Önce-Bellek (In-Memory First)** prensibiyle çalışır.
 *   **Okumalar**: Tamamen RAM'den yapılır (`FindAll` belleği tarar).
 *   **Yazmalar**: RAM'e yazılır ve anında Diske (`Data/` klasörüne JSON olarak) kaydedilir.
 
@@ -288,19 +288,19 @@ faktoriyel(5); // 120 döndürür
 **C:** `error_logs/` dizinini kontrol edin. Günlük log dosyaları (örn. `2023-10-25.txt`) detaylı hata mesajlarını içerir.
 
 **S: Projeye nasıl katkıda bulunabilirim?**
-**C:** **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)** adresini ziyaret ederek PR veya Issue oluşturabilirsiniz.
+**C:** **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)** adresini ziyaret ederek PR veya Issue oluşturabilirsiniz.
 
 **S: Birden fazla veritabanı kullanmak için ne yapmam gerekiyor?**
-**C:** UnlockDB tek bir port üzerinde çalışır. Birden fazla ayrı veritabanı için, farklı portlarda (örn. 5000, 5001) çalışan birden fazla UnlockDB uygulaması başlatmalısınız.
+**C:** AxarDB tek bir port üzerinde çalışır. Birden fazla ayrı veritabanı için, farklı portlarda (örn. 5000, 5001) çalışan birden fazla AxarDB uygulaması başlatmalısınız.
 Başlatırken `-p` parametresi ile portu belirtebilirsiniz:
 `dotnet run -- -p 5001` veya Docker'da `-p 5001:5001` mapping yaparak.
 
 **S: Eksik bir özellik talep edebilir miyim?**
-**C:** Evet! Lütfen GitHub'da bir özellik isteği (feature request) açın: **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**C:** Evet! Lütfen GitHub'da bir özellik isteği (feature request) açın: **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 ## 9. Yardımcı Fonksiyonlar
 
-UnlockDB, scriptlerinizde yaygın görevler için yerleşik yardımcı fonksiyonlar sağlar.
+AxarDB, scriptlerinizde yaygın görevler için yerleşik yardımcı fonksiyonlar sağlar.
 
 | Fonksiyon | Açıklama | Örnek |
 | :--- | :--- | :--- |

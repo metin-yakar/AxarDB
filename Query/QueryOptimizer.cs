@@ -2,7 +2,7 @@ using Jint;
 using Jint.Native;
 using System.Text.RegularExpressions;
 
-namespace UnlockDB.Query
+namespace AxarDB.Query
 {
     public class QueryOptimizer
     {

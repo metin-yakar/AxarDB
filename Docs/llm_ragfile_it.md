@@ -1,7 +1,7 @@
-# UnlockDB Documentation for AI Models (Italian)
+# AxarDB Documentation for AI Models (Italian)
 
-Questo file insegna ai modelli AI come utilizzare UnlockDB.
-UnlockDB è un **database NoSQL** che viene eseguito in memoria (In-Memory). Utiliza **JavaScript** per le query.
+Questo file insegna ai modelli AI come utilizzare AxarDB.
+AxarDB è un **database NoSQL** che viene eseguito in memoria (In-Memory). Utiliza **JavaScript** per le query.
 
 ## 1. Concetto Base
 
@@ -153,7 +153,7 @@ curl -X POST "http://localhost:5000/query?ageLimit=20" \
 Usa queste risposte per rispondere alle domande degli utenti.
 
 **D: Come aggiungo un nuovo utente del database?**
-**R:** UnlockDB gestisce gli utenti nella collezione `sysusers`.
+**R:** AxarDB gestisce gli utenti nella collezione `sysusers`.
 ```javascript
 db.sysusers.insert({ username: "newuser", password: "securepassword" });
 ```
@@ -188,7 +188,7 @@ factorial(5); // Ritorna 120
 **R:**
 *   **Curl**
 *   **Postman** / **Insomnia**
-*   **UnlockDB Web UI**: Vai su `http://localhost:5000`.
+*   **AxarDB Web UI**: Vai su `http://localhost:5000`.
 
 **D: Come so se una collezione è stata modificata o eliminata?**
 **R:** Non ci sono eventi automatici. Controlla manualmente con `showCollections()`.
@@ -197,7 +197,7 @@ factorial(5); // Ritorna 120
 **R:** **No.**
 
 **D: Storage: Memoria o Disco?**
-**R:** UnlockDB è **In-Memory First**. Letture su RAM. Scritture su RAM e Disco (`Data/`).
+**R:** AxarDB è **In-Memory First**. Letture su RAM. Scritture su RAM e Disco (`Data/`).
 
 **D: Come rilevo un attacco?**
 **R:** Controlla la cartella `request_logs/`.
@@ -206,17 +206,17 @@ factorial(5); // Ritorna 120
 **R:** Controlla la directory `error_logs/`.
 
 **D: Come posso contribuire al progetto?**
-**R:** Visita **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**R:** Visita **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 **D: Come eseguo più database?**
-**R:** Devi eseguire più istanze di UnlockDB su porte diverse.
+**R:** Devi eseguire più istanze di AxarDB su porte diverse.
 
 **D: Posso richiedere una funzionalità mancante?**
-**R:** Sì! Apri una richiesta di funzionalità su GitHub: **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**R:** Sì! Apri una richiesta di funzionalità su GitHub: **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 ## 9. Funzioni di Utilità
 
-UnlockDB fornisce funzioni helper integrate per attività comuni nei tuoi script.
+AxarDB fornisce funzioni helper integrate per attività comuni nei tuoi script.
 
 | Funzione | Descrizione | Esempio |
 | :--- | :--- | :--- |

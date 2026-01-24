@@ -1,13 +1,13 @@
-# 🔓 UnlockDB - The JavaScript-Native NoSQL Database
+# 🔓 AxarDB - The JavaScript-Native NoSQL Database
 
-![UnlockDB Logo](wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](wwwroot/AxarDBLogo.png)
 
 [![License: Custom](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![Built With .NET 8](https://img.shields.io/badge/Built_With-.NET_8.0-512BD4.svg?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![JavaScript Engine](https://img.shields.io/badge/Engine-Jint-f7df1e.svg?logo=javascript&logoColor=black)](https://github.com/sebastienros/jint)
 
-> **UnlockDB** is a high-performance, in-memory NoSQL database server that allows you to write database queries directly in **JavaScript**. Built on ASP.NET Core 8.0, it combines the flexibility of a document store with the power of a full JavaScript runtime.
+> **AxarDB** is a high-performance, in-memory NoSQL database server that allows you to write database queries directly in **JavaScript**. Built on ASP.NET Core 8.0, it combines the flexibility of a document store with the power of a full JavaScript runtime.
 
 ---
 
@@ -18,7 +18,7 @@
 
 ---
 
-![UnlockDB Web UI](./image.png)
+![AxarDB Web UI](./image.png)
 
 ## 🚀 Key Features
 
@@ -41,11 +41,11 @@
 
 ## 🏎️ Performance Benchmarks
 
-Unlike traditional databases that require complex protocols, UnlockDB executes your logic on the server.
+Unlike traditional databases that require complex protocols, AxarDB executes your logic on the server.
 
 ```mermaid
-pie title UnlockDB vs Traditional (Ops/Sec)
-    "UnlockDB (In-Memory)" : 15000
+pie title AxarDB vs Traditional (Ops/Sec)
+    "AxarDB (In-Memory)" : 15000
     "Traditional In-Memory DB" : 12000
     "File-Based DB" : 4000
 ```
@@ -59,10 +59,10 @@ Get up and running in seconds:
 
 ```bash
 # Default (Port 5000)
-docker run -d -p 5000:5000 -v $(pwd)/data:/app/data --name unlockdb unlockdb:latest
+docker run -d -p 5000:5000 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest
 
 # Custom Port (e.g., 5001)
-docker run -d -p 5001:5001 -v $(pwd)/data:/app/data --name unlockdb unlockdb:latest -- -p 5001
+docker run -d -p 5001:5001 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest -- -p 5001
 ```
 
 Or using `dotnet run` for development:
@@ -73,7 +73,7 @@ dotnet run -- -p 5001
 Or using `docker-compose`:
 ```yaml
 services:
-  unlockdb:
+  AxarDB:
     build: .
     ports: ["5000:5000"]
     volumes: ["./data:/app/data"]
@@ -95,7 +95,7 @@ Experience **since 2011** in C# and software architecture. Metin specializes in 
 
 ## 🤝 Support & Contribution
 
-We are looking for contributors to help build the future of UnlockDB!
+We are looking for contributors to help build the future of AxarDB!
 **Areas we need help with:**
 - [ ] Advanced Configuration System
 - [ ] Real-time Synchronization
@@ -113,10 +113,10 @@ If you love this project, consider supporting its development!
 
 ### 📅 Consulting & Training
 
-Need help integrating UnlockDB or want advice on AI-driven development and Code Automation?
+Need help integrating AxarDB or want advice on AI-driven development and Code Automation?
 **[Book a session on Cal.com](https://cal.com/metin-yakar-dfij9e)**
 
 ---
 
 ## 📄 License
-**Open Source (Restricted)** - You can use, modify, and learn from UnlockDB. However, you are **not allowed** to clone the repository to release a competing standalone database product. See [LICENSE](LICENSE) for details.
+**Open Source (Restricted)** - You can use, modify, and learn from AxarDB. However, you are **not allowed** to clone the repository to release a competing standalone database product. See [LICENSE](LICENSE) for details.

@@ -1,11 +1,11 @@
-# 🔓 UnlockDB - JavaScript ネイティブ NoSQL データベース
+# 🔓 AxarDB - JavaScript ネイティブ NoSQL データベース
 
-![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
 [![ライセンス: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](../Dockerfile)
 
-> **UnlockDB** は、**JavaScript** で直接データベースクエリを記述できる、高性能なインメモリ NoSQL データベースサーバーです。
+> **AxarDB** は、**JavaScript** で直接データベースクエリを記述できる、高性能なインメモリ NoSQL データベースサーバーです。
 
 ---
 
@@ -16,7 +16,7 @@
 
 ---
 
-![UnlockDB Web UI](../image.png)
+![AxarDB Web UI](../image.png)
 
 ## 🚀 主な機能
 

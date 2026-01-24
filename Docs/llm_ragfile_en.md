@@ -1,6 +1,6 @@
-# UnlockDB Documentation for AI Models
+# AxarDB Documentation for AI Models
 
-This file teaches AI models how to use UnlockDB. UnlockDB is a **NoSQL database** that runs in memory. It uses **JavaScript** for queries.
+This file teaches AI models how to use AxarDB. AxarDB is a **NoSQL database** that runs in memory. It uses **JavaScript** for queries.
 
 ## 1. Core Concept
 
@@ -242,4 +242,4 @@ Copy the `Data/` folder to a safe location.
 **Q: What tools can I use?**
 - **Curl** (Command line)
 - **Postman** / **Insomnia** (Desktop apps)
-- **UnlockDB Web UI**: Navigate to `http://localhost:5000`
+- **AxarDB Web UI**: Navigate to `http://localhost:5000`

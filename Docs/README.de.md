@@ -1,11 +1,11 @@
-# 🔓 UnlockDB - Die JavaScript-NoSQL-Datenbank
+# 🔓 AxarDB - Die JavaScript-NoSQL-Datenbank
 
-![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
 [![Lizenz: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](../Dockerfile)
 
-> **UnlockDB** ist eine leistungsstarke In-Memory-NoSQL-Datenbank, die es Ihnen ermöglicht, Datenbankabfragen direkt in **JavaScript** zu schreiben.
+> **AxarDB** ist eine leistungsstarke In-Memory-NoSQL-Datenbank, die es Ihnen ermöglicht, Datenbankabfragen direkt in **JavaScript** zu schreiben.
 
 ---
 
@@ -16,7 +16,7 @@
 
 ---
 
-![UnlockDB Web UI](../image.png)
+![AxarDB Web UI](../image.png)
 
 ## 🚀 Hauptmerkmale
 

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using UnlockDB;
+using AxarDB;
 
 public static class Verification
 {
@@ -14,16 +14,16 @@ public static class Verification
         try
         {
             var script = "return @name;";
-            var parameters = new Dictionary<string, object> { { "name", "UnlockDB" } };
+            var parameters = new Dictionary<string, object> { { "name", "AxarDB" } };
             var result = engine.ExecuteScript(script, parameters);
             
-            if (result?.ToString() == "UnlockDB")
+            if (result?.ToString() == "AxarDB")
             {
-                Console.WriteLine("PASS: 'UnlockDB' returned correctly.");
+                Console.WriteLine("PASS: 'AxarDB' returned correctly.");
             }
             else
             {
-                Console.WriteLine($"FAIL: Expected 'UnlockDB', got '{result}'");
+                Console.WriteLine($"FAIL: Expected 'AxarDB', got '{result}'");
             }
         }
         catch (Exception ex)

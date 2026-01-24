@@ -1,6 +1,6 @@
 using System.Dynamic;
 
-namespace UnlockDB.Wrappers
+namespace AxarDB.Wrappers
 {
     public class CaseInsensitiveDocumentWrapper : DynamicObject
     {

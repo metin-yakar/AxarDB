@@ -1,13 +1,13 @@
-using UnlockDB.Wrappers;
+using AxarDB.Wrappers;
 
-namespace UnlockDB
+namespace AxarDB
 {
     public class ResultSet
     {
         private readonly IEnumerable<Dictionary<string, object>> _source;
-        private readonly UnlockDB.Definitions.Collection? _collection; // Reference to update/delete
+        private readonly AxarDB.Definitions.Collection? _collection; // Reference to update/delete
 
-        public ResultSet(IEnumerable<Dictionary<string, object>> source, UnlockDB.Definitions.Collection? collection = null)
+        public ResultSet(IEnumerable<Dictionary<string, object>> source, AxarDB.Definitions.Collection? collection = null)
         {
             _source = source;
             _collection = collection;

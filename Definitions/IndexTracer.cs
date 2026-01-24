@@ -1,6 +1,6 @@
 using System.Dynamic;
 
-namespace UnlockDB.Definitions
+namespace AxarDB.Definitions
 {
     public class IndexTracer : DynamicObject
     {

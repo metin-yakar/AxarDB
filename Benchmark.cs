@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using UnlockDB;
+using AxarDB;
 
 public static class Benchmark
 {
@@ -7,7 +7,7 @@ public static class Benchmark
     {
         try
         {
-            Console.WriteLine("Starting UnlockDB Benchmark...");
+            Console.WriteLine("Starting AxarDB Benchmark...");
             // Use a separate data folder to avoid locks or corruption of main data
             if (Directory.Exists("BenchmarkData")) Directory.Delete("BenchmarkData", true);
             

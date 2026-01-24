@@ -1,6 +1,6 @@
-using UnlockDB.Definitions;
+using AxarDB.Definitions;
 
-namespace UnlockDB.Bridges
+namespace AxarDB.Bridges
 {
     public class JoinCollectionBridge
     { 

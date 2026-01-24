@@ -1,4 +1,4 @@
-UNLOCKDB2 LICENSE
+AxarDB LICENSE
 
 Copyright (c) 2024 Metin YAKAR
 
@@ -12,11 +12,11 @@ conditions:
    copies or substantial portions of the Software.
 
 2. ATRIBUTION: Any modification or redistribution of the code must explicitly 
-   reference the original "UnlockDB" project and its author, Metin YAKAR.
+   reference the original "AxarDB" project and its author, Metin YAKAR.
 
 3. RESTRICTION ON DERIVATIVE PRODUCTS: The code may NOT be used to create, 
    distribute, or sell a standalone product that is substantially similar to 
-   UnlockDB (i.e., you cannot clone the entire application to create a new 
+   AxarDB (i.e., you cannot clone the entire application to create a new 
    competing NoSQL database product). You MAY use the code to build other 
    types of applications or tools.
 

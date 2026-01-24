@@ -1,9 +1,9 @@
 using Jint;
 using Jint.Native;
-using UnlockDB.Definitions;
-using UnlockDB.Wrappers;
+using AxarDB.Definitions;
+using AxarDB.Wrappers;
 
-namespace UnlockDB.Bridges
+namespace AxarDB.Bridges
 {
     public class CollectionBridge
     {
@@ -24,11 +24,11 @@ namespace UnlockDB.Bridges
             }
             
             // Analyze Predicate
-            UnlockDB.Query.QueryOptimizer.AnalysisResult? analysis = null;
-            var optimized = UnlockDB.Query.QueryOptimizer.AnalyzePredicate(predicate);
+            AxarDB.Query.QueryOptimizer.AnalysisResult? analysis = null;
+            var optimized = AxarDB.Query.QueryOptimizer.AnalyzePredicate(predicate);
             if (optimized != null)
             {
-                analysis = new UnlockDB.Query.QueryOptimizer.AnalysisResult 
+                analysis = new AxarDB.Query.QueryOptimizer.AnalysisResult 
                 { 
                     Prop = optimized.Value.prop!, 
                     Val = optimized.Value.val!, 

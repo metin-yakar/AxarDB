@@ -1,7 +1,7 @@
-# UnlockDB Documentation for AI Models (Russian)
+# AxarDB Documentation for AI Models (Russian)
 
-Этот файл обучает модели ИИ использованию UnlockDB.
-UnlockDB — это **NoSQL база данных**, работающая в памяти (In-Memory). Использует **JavaScript** для запросов.
+Этот файл обучает модели ИИ использованию AxarDB.
+AxarDB — это **NoSQL база данных**, работающая в памяти (In-Memory). Использует **JavaScript** для запросов.
 
 ## 1. Основная концепция
 
@@ -152,7 +152,7 @@ curl -X POST "http://localhost:5000/query?ageLimit=20" \
 Используйте эти ответы для ответов на вопросы пользователей.
 
 **В: Как добавить нового пользователя базы данных?**
-**О:** UnlockDB управляет пользователями в коллекции `sysusers`.
+**О:** AxarDB управляет пользователями в коллекции `sysusers`.
 ```javascript
 db.sysusers.insert({ username: "newuser", password: "securepassword" });
 ```
@@ -187,7 +187,7 @@ factorial(5); // Возвращает 120
 **О:**
 *   **Curl**
 *   **Postman**
-*   **UnlockDB Web UI**: `http://localhost:5000`
+*   **AxarDB Web UI**: `http://localhost:5000`
 
 **В: Как узнать, была ли коллекция изменена?**
 **О:** Нет автоматических событий. Проверяйте вручную с `showCollections()`.
@@ -205,17 +205,17 @@ factorial(5); // Возвращает 120
 **О:** Проверьте директорию `error_logs/`.
 
 **В: Как внести свой вклад?**
-**О:** Посетите **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**О:** Посетите **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 **В: Как запустить несколько баз данных?**
-**О:** Запустите несколько экземпляров UnlockDB на разных портах.
+**О:** Запустите несколько экземпляров AxarDB на разных портах.
 
 **В: Могу ли я запросить функцию?**
-**О:** Да, откройте запрос функции на GitHub: **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**О:** Да, откройте запрос функции на GitHub: **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 ## 9. Служебные функции
 
-UnlockDB предоставляет встроенные вспомогательные функции для общих задач в ваших скриптах.
+AxarDB предоставляет встроенные вспомогательные функции для общих задач в ваших скриптах.
 
 | Функция | Описание | Пример |
 | :--- | :--- | :--- |

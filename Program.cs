@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Diagnostics;
-using UnlockDB;
-using UnlockDB.Logging;
+using AxarDB;
+using AxarDB.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -131,7 +131,7 @@ app.Use(async (context, next) =>
             }
         }
         
-        context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"UnlockDB\"";
+        context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"AxarDB\"";
         context.Response.StatusCode = 401;
         return;
     }
@@ -199,7 +199,7 @@ app.MapGet("/views/{viewName}", async (string viewName, HttpContext context) =>
 
         if (!authenticated)
         {
-            context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"UnlockDB Views\"";
+            context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"AxarDB Views\"";
             return Results.Unauthorized();
         }
     }

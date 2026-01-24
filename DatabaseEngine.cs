@@ -1,23 +1,23 @@
 using Jint;
 using System.Collections.Concurrent;
-using UnlockDB.Bridges;
-using UnlockDB.Definitions;
+using AxarDB.Bridges;
+using AxarDB.Definitions;
 using System.IO;
 using System.Net.Http;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace UnlockDB
+namespace AxarDB
 {
     public class DatabaseEngine
     {
         private ConcurrentDictionary<string, Collection> _collections = new();
-        private readonly UnlockDB.Storage.DiskStorage _storage;
+        private readonly AxarDB.Storage.DiskStorage _storage;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _sharedCache;
 
         public DatabaseEngine()
         {
-            _storage = new UnlockDB.Storage.DiskStorage("Data");
+            _storage = new AxarDB.Storage.DiskStorage("Data");
             
             // Dynamic Memory Limit: 70% of Total Available Memory
             var gcInfo = GC.GetGCMemoryInfo();
@@ -112,11 +112,11 @@ namespace UnlockDB
             });
 
             // Expose 'db'
-            var dbBridge = new UnlockDBBridge(this, engine);
+            var dbBridge = new AxarDBBridge(this, engine);
             engine.SetValue("db", dbBridge);
 
             // Expose 'UnlockDB' constructor: new UnlockDB("name")
-            engine.SetValue("UnlockDB", new Func<string, CollectionBridge>(name => {
+            engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => {
                 return new CollectionBridge(GetCollection(name), engine);
             }));
 
@@ -142,18 +142,18 @@ namespace UnlockDB
             }));
 
             // --- Utility Functions ---
-            engine.SetValue("md5", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.MD5));
-            engine.SetValue("sha256", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.SHA256));
-            engine.SetValue("toString", new Func<object, string>(UnlockDB.Helpers.ScriptUtils.ToString));
-            engine.SetValue("randomNumber", new Func<int, int, int>(UnlockDB.Helpers.ScriptUtils.RandomNumber));
-            engine.SetValue("randomDecimal", new Func<string, string, decimal>(UnlockDB.Helpers.ScriptUtils.RandomDecimal));
-            engine.SetValue("randomString", new Func<int, string>(UnlockDB.Helpers.ScriptUtils.RandomString));
-            engine.SetValue("toBase64", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.ToBase64));
-            engine.SetValue("fromBase64", new Func<string, string>(UnlockDB.Helpers.ScriptUtils.FromBase64));
-            engine.SetValue("encrypt", new Func<string, string, string>(UnlockDB.Helpers.ScriptUtils.Encrypt));
-            engine.SetValue("decrypt", new Func<string, string, string>(UnlockDB.Helpers.ScriptUtils.Decrypt));
-            engine.SetValue("split", new Func<string, string, string[]>(UnlockDB.Helpers.ScriptUtils.Split));
-            engine.SetValue("toDecimal", new Func<string, decimal>(UnlockDB.Helpers.ScriptUtils.ToDecimal));
+            engine.SetValue("md5", new Func<string, string>(AxarDB.Helpers.ScriptUtils.MD5));
+            engine.SetValue("sha256", new Func<string, string>(AxarDB.Helpers.ScriptUtils.SHA256));
+            engine.SetValue("toString", new Func<object, string>(AxarDB.Helpers.ScriptUtils.ToString));
+            engine.SetValue("randomNumber", new Func<int, int, int>(AxarDB.Helpers.ScriptUtils.RandomNumber));
+            engine.SetValue("randomDecimal", new Func<string, string, decimal>(AxarDB.Helpers.ScriptUtils.RandomDecimal));
+            engine.SetValue("randomString", new Func<int, string>(AxarDB.Helpers.ScriptUtils.RandomString));
+            engine.SetValue("toBase64", new Func<string, string>(AxarDB.Helpers.ScriptUtils.ToBase64));
+            engine.SetValue("fromBase64", new Func<string, string>(AxarDB.Helpers.ScriptUtils.FromBase64));
+            engine.SetValue("encrypt", new Func<string, string, string>(AxarDB.Helpers.ScriptUtils.Encrypt));
+            engine.SetValue("decrypt", new Func<string, string, string>(AxarDB.Helpers.ScriptUtils.Decrypt));
+            engine.SetValue("split", new Func<string, string, string[]>(AxarDB.Helpers.ScriptUtils.Split));
+            engine.SetValue("toDecimal", new Func<string, decimal>(AxarDB.Helpers.ScriptUtils.ToDecimal));
             engine.SetValue("guid", new Func<string>(() => Guid.NewGuid().ToString()));
 
             // Webhook Function
@@ -346,9 +346,9 @@ namespace UnlockDB
                 var engine = new Engine(options => options.AllowClr());
                 
                 // Bridges
-                var dbBridge = new UnlockDBBridge(this, engine);
+                var dbBridge = new AxarDBBridge(this, engine);
                 engine.SetValue("db", dbBridge);
-                engine.SetValue("UnlockDB", new Func<string, CollectionBridge>(name => new CollectionBridge(GetCollection(name), engine)));
+                engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(GetCollection(name), engine)));
                 engine.SetValue("showCollections", new Func<List<string>>(() => _collections.Keys.ToList())); // Simplified for view
                 // Add all utils... (omitted for brevity, assume we need them? Yes, reused commonly)
                 // Ideally ExecuteScript should be refactored. 
@@ -515,7 +515,7 @@ namespace UnlockDB
                 var engine = new Engine(options => options.AllowClr());
                 
                 // Minimal Bridge for Triggers - full db access? Yes.
-                var dbBridge = new UnlockDBBridge(this, engine);
+                var dbBridge = new AxarDBBridge(this, engine);
                 engine.SetValue("db", dbBridge);
                 engine.SetValue("webhook", new Func<string, object, object?, object>((url, data, headers) => {
                      // Webhook reuse logic needed. Copy-paste or extract? 

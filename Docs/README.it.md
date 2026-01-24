@@ -1,11 +1,11 @@
-# 🔓 UnlockDB - Il Database NoSQL Nativo JavaScript
+# 🔓 AxarDB - Il Database NoSQL Nativo JavaScript
 
-![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
 [![Licenza: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](../Dockerfile)
 
-> **UnlockDB** è un server database NoSQL in-memory ad alte prestazioni che consente di scrivere query direttamente in **JavaScript**.
+> **AxarDB** è un server database NoSQL in-memory ad alte prestazioni che consente di scrivere query direttamente in **JavaScript**.
 
 ---
 
@@ -16,7 +16,7 @@
 
 ---
 
-![UnlockDB Web UI](../image.png)
+![AxarDB Web UI](../image.png)
 
 ## 🚀 Caratteristiche Principali
 

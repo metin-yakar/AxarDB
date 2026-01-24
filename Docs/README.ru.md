@@ -1,11 +1,11 @@
-# 🔓 UnlockDB - NoSQL База данных на JavaScript
+# 🔓 AxarDB - NoSQL База данных на JavaScript
 
-![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
 [![Лицензия: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](../Dockerfile)
 
-> **UnlockDB** — это высокопроизводительная NoSQL база данных в памяти (in-memory), позволяющая писать запросы непосредственно на **JavaScript**. Построена на платформе ASP.NET Core 8.0.
+> **AxarDB** — это высокопроизводительная NoSQL база данных в памяти (in-memory), позволяющая писать запросы непосредственно на **JavaScript**. Построена на платформе ASP.NET Core 8.0.
 
 ---
 
@@ -16,7 +16,7 @@
 
 ---
 
-![UnlockDB Web UI](../image.png)
+![AxarDB Web UI](../image.png)
 
 ## 🚀 Ключевые Возможности
 

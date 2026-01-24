@@ -1,7 +1,7 @@
-# UnlockDB Documentation for AI Models (Dutch)
+# AxarDB Documentation for AI Models (Dutch)
 
-Dit bestand leert AI-modellen hoe ze UnlockDB moeten gebruiken.
-UnlockDB is een **NoSQL-database** die in het geheugen (In-Memory) draait. Het gebruikt **JavaScript** voor queries.
+Dit bestand leert AI-modellen hoe ze AxarDB moeten gebruiken.
+AxarDB is een **NoSQL-database** die in het geheugen (In-Memory) draait. Het gebruikt **JavaScript** voor queries.
 
 ## 1. Kernconcept
 
@@ -152,7 +152,7 @@ curl -X POST "http://localhost:5000/query?ageLimit=20" \
 Gebruik deze antwoorden om gebruikersvragen te beantwoorden.
 
 **V: Hoe voeg ik een nieuwe gebruiker toe?**
-**A:** UnlockDB beheert gebruikers in de `sysusers` collectie.
+**A:** AxarDB beheert gebruikers in de `sysusers` collectie.
 ```javascript
 db.sysusers.insert({ username: "newuser", password: "securepassword" });
 ```
@@ -187,7 +187,7 @@ factorial(5); // Geeft 120
 **A:**
 *   **Curl**
 *   **Postman**
-*   **UnlockDB Web UI**: `http://localhost:5000`
+*   **AxarDB Web UI**: `http://localhost:5000`
 
 **V: Hoe weet ik of een collectie is gewijzigd?**
 **A:** Er zijn geen automatische events. Controleer handmatig met `showCollections()`.
@@ -205,17 +205,17 @@ factorial(5); // Geeft 120
 **A:** Controleer de map `error_logs/`.
 
 **V: Hoe kan ik bijdragen?**
-**A:** Bezoek **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**A:** Bezoek **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 **V: Hoe draai ik meerdere databases?**
-**A:** Draai meerdere UnlockDB-instanties op verschillende poorten.
+**A:** Draai meerdere AxarDB-instanties op verschillende poorten.
 
 **V: Kan ik een functie aanvragen?**
-**A:** Ja, open een feature request op GitHub: **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**A:** Ja, open een feature request op GitHub: **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 ## 9. Hulpfuncties
 
-UnlockDB biedt ingebouwde hulpfuncties voor veelvoorkomende taken in je scripts.
+AxarDB biedt ingebouwde hulpfuncties voor veelvoorkomende taken in je scripts.
 
 | Functie | Beschrijving | Voorbeeld |
 | :--- | :--- | :--- |

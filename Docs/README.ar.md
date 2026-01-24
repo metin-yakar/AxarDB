@@ -1,10 +1,10 @@
-# 🔓 UnlockDB - قاعدة بيانات NoSQL تعتمد على JavaScript
+# 🔓 AxarDB - قاعدة بيانات NoSQL تعتمد على JavaScript
 
-![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
 [![الرخصة: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
 
-> **UnlockDB** هو خادم قاعدة بيانات NoSQL عالي الأداء في الذاكرة يسمح لك بكتابة استعلامات قاعدة البيانات مباشرة باستخدام **JavaScript**.
+> **AxarDB** هو خادم قاعدة بيانات NoSQL عالي الأداء في الذاكرة يسمح لك بكتابة استعلامات قاعدة البيانات مباشرة باستخدام **JavaScript**.
 
 ---
 
@@ -15,7 +15,7 @@
 
 ---
 
-![UnlockDB Web UI](../image.png)
+![AxarDB Web UI](../image.png)
 
 ## 🚀 الميزات الرئيسية
 

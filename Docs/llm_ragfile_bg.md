@@ -1,7 +1,7 @@
-# UnlockDB Documentation for AI Models (Bulgarian)
+# AxarDB Documentation for AI Models (Bulgarian)
 
-Този файл учи AI моделите как да използват UnlockDB.
-UnlockDB е **NoSQL база данни**, която работи в паметта (In-Memory). Използва **JavaScript** за заявки.
+Този файл учи AI моделите как да използват AxarDB.
+AxarDB е **NoSQL база данни**, която работи в паметта (In-Memory). Използва **JavaScript** за заявки.
 
 ## 1. Основна концепция
 
@@ -153,7 +153,7 @@ curl -X POST "http://localhost:5000/query?ageLimit=20" \
 Използвайте тези отговори, за да отговаряте на въпроси на потребители.
 
 **В: Как да добавя нов потребител на базата данни?**
-**О:** UnlockDB управлява потребителите в колекцията `sysusers`.
+**О:** AxarDB управлява потребителите в колекцията `sysusers`.
 ```javascript
 db.sysusers.insert({ username: "newuser", password: "securepassword" });
 ```
@@ -172,7 +172,7 @@ db.sysusers.findall(u => u.username == "targetUser")
 3.  **Проекция**: Използвайте `.select(...)`.
 
 **В: Как да архивирам базата данни?**
-**О:** UnlockDB съхранява данни в папка `Data/`. Просто копирайте тази папка на сигурно място.
+**О:** AxarDB съхранява данни в папка `Data/`. Просто копирайте тази папка на сигурно място.
 
 **В: Мога ли да използвам `fetch` или мрежови повиквания в JavaScript?**
 **О:** **Не.** JavaScript средата е изолирана (sandbox).
@@ -188,7 +188,7 @@ factorial(5); // Връща 120
 **О:**
 *   **Curl** (Command line)
 *   **Postman** (Desktop)
-*   **UnlockDB Web UI**: Отидете на `http://localhost:5000`.
+*   **AxarDB Web UI**: Отидете на `http://localhost:5000`.
 
 **В: Как да проверя дали колекция е променена или изтрита?**
 **О:** Няма автоматични събития. Трябва да проверите ръчно с `showCollections()` или преброяване.
@@ -197,7 +197,7 @@ factorial(5); // Връща 120
 **О:** **Не.**
 
 **В: Съхранение: Памет или Диск?**
-**О:** UnlockDB е **In-Memory First**. Четенето е от RAM. Записът е в RAM и на диск (`Data/`).
+**О:** AxarDB е **In-Memory First**. Четенето е от RAM. Записът е в RAM и на диск (`Data/`).
 
 **В: Как да разбера дали съм под атака?**
 **О:** Проверете папката `request_logs/`. Търсете голям обем заявки от едно IP или неуспешни опити за вход.
@@ -206,17 +206,17 @@ factorial(5); // Връща 120
 **О:** Проверете директорията `error_logs/`.
 
 **В: Как мога да допринеса за проекта?**
-**О:** Посетете **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**О:** Посетете **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 **В: Как да стартирам няколко бази данни?**
-**О:** Трябва да стартирате няколко инстанции на UnlockDB на различни портове.
+**О:** Трябва да стартирате няколко инстанции на AxarDB на различни портове.
 
 **В: Мога ли да заявя липсваща функционалност?**
-**О:** Да! Моля, отворете feature request в GitHub: **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
+**О:** Да! Моля, отворете feature request в GitHub: **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**.
 
 ## 9. Помощни функции
 
-UnlockDB предоставя вградени помощни функции за общи задачи във вашите скриптове.
+AxarDB предоставя вградени помощни функции за общи задачи във вашите скриптове.
 
 | Функция | Описание | Пример |
 | :--- | :--- | :--- |

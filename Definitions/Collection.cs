@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using UnlockDB.Storage;
+using AxarDB.Storage;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace UnlockDB.Definitions
+namespace AxarDB.Definitions
 {
     public class Collection
     {
@@ -149,7 +149,7 @@ namespace UnlockDB.Definitions
             return results;
         }
 
-        public IEnumerable<Dictionary<string, object>> FindAll(Func<Dictionary<string, object>, bool> predicate, UnlockDB.Query.QueryOptimizer.AnalysisResult? analysis = null)
+        public IEnumerable<Dictionary<string, object>> FindAll(Func<Dictionary<string, object>, bool> predicate, AxarDB.Query.QueryOptimizer.AnalysisResult? analysis = null)
         {
              // Optimization: If analyzed and index available, use it
              if (analysis != null && analysis.Value.Prop != null)

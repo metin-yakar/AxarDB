@@ -1,7 +1,7 @@
-# UnlockDB Documentation for AI Models (Japanese)
+# AxarDB Documentation for AI Models (Japanese)
 
-このファイルは、AIモデルにUnlockDBの使用方法を教えるためのものです。
-UnlockDBは、インメモリ（In-Memory）で動作する**NoSQLデータベース**です。クエリには**JavaScript**を使用します。
+このファイルは、AIモデルにAxarDBの使用方法を教えるためのものです。
+AxarDBは、インメモリ（In-Memory）で動作する**NoSQLデータベース**です。クエリには**JavaScript**を使用します。
 
 ## 1. 基本コンセプト
 
@@ -187,7 +187,7 @@ factorial(5); // 120を返す
 **A:**
 *   **Curl**
 *   **Postman** / **Insomnia**
-*   **UnlockDB Web UI**: `http://localhost:5000`
+*   **AxarDB Web UI**: `http://localhost:5000`
 
 **Q: コレクションが変更または削除されたことを確認するには？**
 **A:** 自動イベントはありません。`showCollections()`で手動で確認してください。
@@ -205,17 +205,17 @@ factorial(5); // 120を返す
 **A:** `error_logs/` ディレクトリを確認してください。
 
 **Q: プロジェクトに貢献するには？**
-**A:** **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)** にアクセスしてください。
+**A:** **[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)** にアクセスしてください。
 
 **Q: 複数のデータベースを実行するには？**
-**A:** 異なるポートで複数のUnlockDBインスタンスを実行してください。
+**A:** 異なるポートで複数のAxarDBインスタンスを実行してください。
 
 **Q: 機能のリクエストはできますか？**
-**A:** はい、GitHubで機能リクエストを開いてください：**[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**。
+**A:** はい、GitHubで機能リクエストを開いてください：**[https://github.com/metin-yakar/AxarDB/](https://github.com/metin-yakar/AxarDB/)**。
 
 ## 9. ユーティリティ関数
 
-UnlockDBは、スクリプト内の一般的なタスクのための組み込みヘルパー関数を提供します。
+AxarDBは、スクリプト内の一般的なタスクのための組み込みヘルパー関数を提供します。
 
 | 関数 | 説明 | 例 |
 | :--- | :--- | :--- |

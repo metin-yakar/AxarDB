@@ -1,12 +1,12 @@
-# 🔓 UnlockDB - JavaScript Tabanlı NoSQL Veritabanı
+# 🔓 AxarDB - JavaScript Tabanlı NoSQL Veritabanı
 
-![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
 [![Lisans: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](../Dockerfile)
 [![.NET 8 ile Geliştirildi](https://img.shields.io/badge/Built_With-.NET_8.0-512BD4.svg?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 
-> **UnlockDB**, veritabanı sorgularını doğrudan **JavaScript** ile yazmanıza olanak tanıyan, yüksek performanslı, bellek içi (in-memory) bir NoSQL veritabanı sunucusudur. ASP.NET Core 8.0 üzerinde inşa edilmiştir.
+> **AxarDB**, veritabanı sorgularını doğrudan **JavaScript** ile yazmanıza olanak tanıyan, yüksek performanslı, bellek içi (in-memory) bir NoSQL veritabanı sunucusudur. ASP.NET Core 8.0 üzerinde inşa edilmiştir.
 
 ---
 
@@ -17,7 +17,7 @@
 
 ---
 
-![UnlockDB Web UI](../image.png)
+![AxarDB Web UI](../image.png)
 
 ## 🚀 Temel Özellikler
 
@@ -36,11 +36,11 @@
 
 ## 🏎️ Performans
 
-UnlockDB, karmaşık protokoller yerine mantığınızı sunucu tarafında çalıştırır.
+AxarDB, karmaşık protokoller yerine mantığınızı sunucu tarafında çalıştırır.
 
 ```mermaid
-pie title UnlockDB vs Geleneksel (İşlem/Sn)
-    "UnlockDB (Bellek İçi)" : 15000
+pie title AxarDB vs Geleneksel (İşlem/Sn)
+    "AxarDB (Bellek İçi)" : 15000
     "Geleneksel Bellek İçi VT" : 12000
     "Dosya Tabanlı VT" : 4000
 ```
@@ -52,7 +52,7 @@ pie title UnlockDB vs Geleneksel (İşlem/Sn)
 Saniyeler içinde ayağa kaldırın:
 
 ```bash
-docker run -d -p 5000:5000 -v $(pwd)/data:/app/data --name unlockdb unlockdb:latest
+docker run -d -p 5000:5000 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest
 ```
 
 ---
@@ -71,7 +71,7 @@ C# ve yazılım mimarisi üzerine **2011'den bu güne** tecrübesiyle Metin, yü
 
 ## 🤝 Destek ve Katkı
 
-UnlockDB'nin geleceğini inşa etmek için katkılarınızı bekliyoruz!
+AxarDB'nin geleceğini inşa etmek için katkılarınızı bekliyoruz!
 **İhtiyaç Duyulan Alanlar:**
 - [ ] Gelişmiş Konfigürasyon Sistemi
 - [ ] Gerçek Zamanlı Senkronizasyon (Real-time Sync)
@@ -95,4 +95,4 @@ Yapay zeka destekli geliştirme ve Kod Otomasyonu konusunda danışmanlık mı g
 ---
 
 ## 📄 Lisans
-**Açık Kaynak (Kısıtlı)** - UnlockDB'yi kullanabilir, inceleyebilir ve geliştirebilirsiniz. Ancak projeyi kopyalayıp rakip bir ticari ürün olarak sunamazsınız. Detaylar için [LICENSE](../LICENSE) dosyasına bakın.
+**Açık Kaynak (Kısıtlı)** - AxarDB'yi kullanabilir, inceleyebilir ve geliştirebilirsiniz. Ancak projeyi kopyalayıp rakip bir ticari ürün olarak sunamazsınız. Detaylar için [LICENSE](../LICENSE) dosyasına bakın.

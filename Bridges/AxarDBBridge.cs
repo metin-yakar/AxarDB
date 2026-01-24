@@ -1,14 +1,14 @@
 using System.Dynamic;
-using UnlockDB.Definitions;
+using AxarDB.Definitions;
 
-namespace UnlockDB.Bridges
+namespace AxarDB.Bridges
 {
-    public class UnlockDBBridge : DynamicObject
+    public class AxarDBBridge : DynamicObject
     {
         private readonly DatabaseEngine _dbEngine;
         private readonly Jint.Engine _jintEngine;
 
-        public UnlockDBBridge(DatabaseEngine dbEngine, Jint.Engine jintEngine)
+        public AxarDBBridge(DatabaseEngine dbEngine, Jint.Engine jintEngine)
         {
             _dbEngine = dbEngine;
             _jintEngine = jintEngine;

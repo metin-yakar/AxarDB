@@ -1,4 +1,4 @@
-// UnlockDB Web Interface - Refined Logic Phase 6 (Educational Fix)
+// AxarDB Web Interface - Refined Logic Phase 6 (Educational Fix)
 let editor;
 let currentCollections = [];
 let queryResults = [];
@@ -28,7 +28,7 @@ function initLogin() {
         try {
             const res = await fetch('/collections', { headers: { 'Authorization': `Basic ${auth}` } });
             if (res.ok) {
-                localStorage.setItem('unlockdb_auth', auth);
+                localStorage.setItem('AxarDB_auth', auth);
                 document.getElementById('loginModal').style.display = 'none';
                 loadCollections();
             } else {
@@ -47,7 +47,7 @@ function showLoginError(msg = 'Invalid credentials') {
 }
 
 function checkAuthAndLoad() {
-    if (!localStorage.getItem('unlockdb_auth')) {
+    if (!localStorage.getItem('AxarDB_auth')) {
         document.getElementById('loginModal').style.display = 'flex';
     } else {
         loadCollections();
@@ -561,14 +561,14 @@ function exportData(data, format) {
 }
 
 async function fetchWithAuth(url, options = {}) {
-    const auth = localStorage.getItem('unlockdb_auth');
+    const auth = localStorage.getItem('AxarDB_auth');
     if (!auth) {
         document.getElementById('loginModal').style.display = 'flex';
         throw new Error('Auth failed');
     }
     const res = await fetch(url, { ...options, headers: { 'Authorization': `Basic ${auth}`, ...options.headers } });
     if (res.status === 401) {
-        localStorage.removeItem('unlockdb_auth');
+        localStorage.removeItem('AxarDB_auth');
         document.getElementById('loginModal').style.display = 'flex';
         throw new Error('Auth failed');
     }

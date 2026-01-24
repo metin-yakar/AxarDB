@@ -1,11 +1,11 @@
-# 🔓 UnlockDB - NoSQL база данни на JavaScript
+# 🔓 AxarDB - NoSQL база данни на JavaScript
 
-![UnlockDB Logo](../wwwroot/unlockerdbLogo.png)
+![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
 [![Лиценз: Metin YAKAR](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](../LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](../Dockerfile)
 
-> **UnlockDB** е високопроизводителна in-memory NoSQL база данни, която позволява писане на заявки директно на **JavaScript**.
+> **AxarDB** е високопроизводителна in-memory NoSQL база данни, която позволява писане на заявки директно на **JavaScript**.
 
 ---
 
@@ -16,7 +16,7 @@
 
 ---
 
-![UnlockDB Web UI](../image.png)
+![AxarDB Web UI](../image.png)
 
 ## 🚀 Основни характеристики
 

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-namespace UnlockDB.Storage
+namespace AxarDB.Storage
 {
     public class DiskStorage
     {

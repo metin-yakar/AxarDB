@@ -3,7 +3,7 @@ using Jint.Native;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-namespace UnlockDB.Definitions
+namespace AxarDB.Definitions
 {
     public class IndexDefinition
     {
