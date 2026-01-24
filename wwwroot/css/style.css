@@ -34,12 +34,14 @@ body {
 .sidebar {
     width: 250px;
     min-width: 150px;
+    max-width: 600px;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     position: relative;
     user-select: none;
+    flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -47,8 +49,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
-    /* Modified from original border-bottom to margin-bottom */
 }
 
 .brand {
@@ -89,7 +89,29 @@ body {
 .tree-container {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 1rem;
+    padding-top: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* Hidden scrollbar that shows on hover */
+.tree-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tree-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tree-container::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 3px;
+}
+
+.tree-container:hover::-webkit-scrollbar-thumb {
+    background: var(--border);
 }
 
 .sidebar-footer {
@@ -152,19 +174,25 @@ body {
 
 /* Vertical Splitter for Sidebar */
 .resizer-v {
-    width: 6px;
+    width: 8px;
     cursor: col-resize;
     position: absolute;
-    right: -3px;
+    right: -4px;
     top: 0;
     bottom: 0;
     z-index: 100;
     transition: background 0.2s;
+    background: transparent;
 }
 
-.resizer-v:hover,
+.resizer-v:hover {
+    background: var(--accent);
+    opacity: 0.5;
+}
+
 .resizer-v.active {
     background: var(--accent);
+    opacity: 1;
 }
 
 /* Row Action Buttons */
@@ -303,18 +331,36 @@ body {
 .grid-container {
     flex: 1;
     overflow: auto;
+    /* Handles both X and Y scrolling */
     position: relative;
     padding: 1rem;
+    display: block;
+    /* Ensure it behaves as a block for scrolling */
+}
+
+/* iframe for HTML/non-table results */
+.grid-container iframe {
+    width: 100%;
+    height: calc(100% - 2rem);
+    min-height: 300px;
+    border: none;
+    background: white;
+    border-radius: 8px;
 }
 
 .results-table {
-    width: 100%;
+    width: auto;
+    /* Allow table to grow based on content/resizing */
+    min-width: 100%;
+    /* Ensure it fills at least the container */
     border-spacing: 0;
     border-collapse: separate;
     font-size: 0.875rem;
     border-radius: 8px;
-    overflow: hidden;
+    /* overflow: hidden; Removed to allow sticky headers to work better with scroll */
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    table-layout: fixed;
+    /* Important for reliable column resizing */
 }
 
 .results-table th {
@@ -337,6 +383,10 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    white-space: nowrap;
+    /* Prevent header text wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .results-table td {
@@ -480,7 +530,10 @@ input[type="checkbox"]:checked::after {
 /* Login Modal */
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(5px);
     display: none;
@@ -574,12 +627,14 @@ input[type="checkbox"]:checked::after {
     transition: background 0.2s;
 }
 
-.col-resizer:hover, .col-resizer.active {
+.col-resizer:hover,
+.col-resizer.active {
     background: var(--accent);
 }
 
 /* Ensure TH has relative positioning for resizer */
 .results-table th {
-    position: relative; /* Overrides previous if necessary, but sticky needs to be handled carefully. Sticky + Relative works mostly. */
+    position: relative;
+    /* Overrides previous if necessary, but sticky needs to be handled carefully. Sticky + Relative works mostly. */
     /* Resizers need to be clickable, so high z-index */
 }

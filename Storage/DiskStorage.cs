@@ -28,8 +28,11 @@ namespace UnlockDB.Storage
             string id = document["_id"].ToString()!;
             
             var path = Path.Combine(_basePath, collectionName, $"{id}.json");
-            var json = JsonSerializer.Serialize(document, _jsonOptions);
-            File.WriteAllText(path, json);
+            // Write: Share Read to allow others to read while we write (if OS permits atomic swap or short lock)
+            // But usually Write requires exclusive or Share.Read. 
+            // We'll use Share.Read to be friendly to readers.
+            using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read);
+            JsonSerializer.Serialize(fs, document, _jsonOptions);
         }
 
         public Dictionary<string, object>? LoadDocument(string collectionName, string id)
@@ -37,18 +40,26 @@ namespace UnlockDB.Storage
             var path = Path.Combine(_basePath, collectionName, $"{id}.json");
             if (!File.Exists(path)) return null;
 
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+            try 
+            {
+                // Read: Share ReadWrite to allow writers to write while we read
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                return JsonSerializer.Deserialize<Dictionary<string, object>>(fs);
+            }
+            catch (IOException) { return null; } // File locked or busy
+            catch (JsonException) { return null; }
         }
 
         public void DeleteDocument(string collectionName, string id)
         {
             var path = Path.Combine(_basePath, collectionName, $"{id}.json");
             if (File.Exists(path))
-                File.Delete(path);
+            {
+                try { File.Delete(path); } catch { /* Ignore if locked, maybe retry? */ }
+            }
         }
 
-        // Lazy loading of documents
+        // Lazy loading of documents with optimized streaming
         public IEnumerable<Dictionary<string, object>> StreamDocuments(string collectionName)
         {
             var path = Path.Combine(_basePath, collectionName);
@@ -62,11 +73,11 @@ namespace UnlockDB.Storage
                 Dictionary<string, object>? doc = null;
                 try 
                 {
-                    // Basic read - optimization: could use FileStream + System.Text.Json.DeserializeAsync
-                    var json = File.ReadAllText(file);
-                    doc = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                    // Stream Read
+                    using var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    doc = JsonSerializer.Deserialize<Dictionary<string, object>>(fs);
                 }
-                catch { /* corrupted file? skip */ }
+                catch { /* Skip generic errors/locks for resilience during stream */ }
 
                 if (doc != null) yield return doc;
             }
@@ -79,6 +90,7 @@ namespace UnlockDB.Storage
              
              foreach(var file in Directory.EnumerateFiles(path, "*.json"))
              {
+                 if (Path.GetFileName(file).StartsWith("idx_")) continue;
                  yield return Path.GetFileNameWithoutExtension(file);
              }
         }

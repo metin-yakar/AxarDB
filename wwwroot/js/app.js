@@ -23,7 +23,7 @@ function initLogin() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
         const auth = btoa(`${u}:${p}`);
-        
+
         // Quick verify
         try {
             const res = await fetch('/collections', { headers: { 'Authorization': `Basic ${auth}` } });
@@ -116,46 +116,220 @@ function initResizers() {
 async function loadCollections() {
     const tree = document.getElementById('collectionTree');
     try {
-        const response = await fetchWithAuth('/collections');
-        if (!response.ok) throw new Error('Auth failed');
-        const collections = await response.json();
+        // Fetch collections, views, and triggers in parallel
+        const [colRes, viewRes, trigRes] = await Promise.all([
+            fetchWithAuth('/collections'),
+            fetchWithAuth('/query', { method: 'POST', body: 'db.listViews()' }),
+            fetchWithAuth('/query', { method: 'POST', body: 'db.listTriggers()' })
+        ]);
+
+        if (!colRes.ok) throw new Error('Auth failed');
+        const collections = await colRes.json();
         currentCollections = collections;
+
+        let views = [];
+        if (viewRes.ok) {
+            views = await viewRes.json();
+            if (!Array.isArray(views)) views = [];
+        }
+
+        let triggers = [];
+        if (trigRes.ok) {
+            triggers = await trigRes.json();
+            if (!Array.isArray(triggers)) triggers = [];
+        }
+
+        // Render Tree Atomically
         tree.innerHTML = '';
+
+        // 1. DATA HEADER
+        const dataHeader = document.createElement('div');
+        dataHeader.className = 'tree-header';
+        dataHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 10px 0 5px 5px; display:block">DATA</span>';
+        tree.appendChild(dataHeader);
+
+        // 2. COLLECTIONS
         collections.forEach(name => {
             const item = document.createElement('div');
             item.className = 'tree-item';
-            item.innerHTML = `<i data-lucide="database"></i> <span>${name}</span>`;
+
+            if (name.startsWith('sys')) {
+                item.style.color = 'var(--accent)';
+                item.innerHTML = `<i data-lucide="shield"></i> <span>${name}</span>`;
+            } else {
+                item.innerHTML = `<i data-lucide="database"></i> <span>${name}</span>`;
+            }
+
             item.onclick = () => {
                 lastCollectionName = name;
-                editor.setValue(`// Find, Filter, Limit and List\ndb.${name}.findall(x => true).take(10).ToList()`);
+                editor.setValue(`// Find, Filter, Limit and List for '${name}'
+// Returns top 10 documents
+db.${name}
+  .findall(x => true) // No filter
+  .take(10)
+  .ToList()`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    {
-                        label: `Default Query (${name})`, action: () => {
-                            lastCollectionName = name;
-                            editor.setValue(`// Educational Query Example\ndb.${name}.findall(x => true)\n  .take(5)\n  .ToList()`);
-                            executeSelectedQuery();
-                        }
-                    },
-                    {
-                        label: `Projection (select)`, action: () => {
-                            lastCollectionName = name;
-                            editor.setValue(`// Select specific fields\ndb.${name}.findall().select(x => ({ \n  id: x._id, \n  name: x.name \n}))`);
-                        }
-                    },
-                    { label: `Add Record to ${name}`, action: () => { lastCollectionName = name; editor.setValue(`db.${name}.insert({ \n  created: "${new Date().toISOString()}"\n});`); } },
-                    { label: `Show Indexes`, action: () => { editor.setValue(`getIndexes("${name}")`); executeSelectedQuery(); } },
-                    { label: `Clear ${name}`, action: () => { lastCollectionName = name; editor.setValue(`db.${name}.findall().delete()`); } }
+                    { label: `Default Query`, action: () => { editor.setValue(`db.${name}.findall(x => true).take(5).ToList()`); executeSelectedQuery(); } },
+                    { label: `Clear ${name}`, action: () => { editor.setValue(`db.${name}.findall().delete()`); } }
                 ]);
             };
             tree.appendChild(item);
         });
+
+        // 3. VIEWS HEADER
+        const vHeader = document.createElement('div');
+        vHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 15px 0 5px 5px; display:block">VIEWS</span>';
+        tree.appendChild(vHeader);
+
+        // 4. ADD VIEW BUTTON
+        const btnAddView = document.createElement('div');
+        btnAddView.className = 'tree-item';
+        btnAddView.style.opacity = '0.7';
+        btnAddView.innerHTML = '<i data-lucide="plus-circle"></i> <span>New View</span>';
+        btnAddView.onclick = () => {
+            editor.setValue(`// Create/Update View with Projection, Filtering, and Parameters
+// @access private
+db.saveView("ActiveUsers", \`
+    // Example: Find active users older than 'minAge' param
+    var minAge = parameters.minAge || 18;
+    var limit = parameters.limit || 50;
+
+    // Use a Vault secret if needed (e.g. for external API enrichment)
+    // var apiKey = $API_KEY; 
+
+    return db.sysusers
+        .findall(u => u.active == true && u.age >= minAge)
+        .select(u => ({ 
+            id: u._id, 
+            fullName: u.firstName + " " + u.lastName, 
+            role: u.role 
+        }))
+        .take(limit)
+        .ToList();
+\`);`);
+        };
+        tree.appendChild(btnAddView);
+
+        // 5. VIEWS LIST
+        views.forEach(vName => {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.innerHTML = `<i data-lucide="file-code"></i> <span>${vName}</span>`;
+            item.onclick = async () => {
+                // Fetch code on click? Or Execute default?
+                // Prompt implied "view and trigger code visualization option".
+                // Left click -> Execute usage example. Right click -> View Code?
+                // Or Left click -> Load Code into Editor to edit?
+                // Editors usually load code. Let's load code by default or provide easy wrapper.
+                // Let's do: Left click = Template to Run. Right Click = View/Edit Code (Raw).
+                editor.setValue(`db.view("${vName}", { param: "value" })`);
+                executeSelectedQuery();
+            };
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e, [
+                    { label: 'Run View', action: () => { editor.setValue(`db.view("${vName}")`); executeSelectedQuery(); } },
+                    {
+                        label: 'Edit/View Code', action: async () => {
+                            const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getView("${vName}")` });
+                            if (res.ok) editor.setValue(`db.saveView("${vName}", ${JSON.stringify(await res.json())})`);
+                        }
+                    },
+                    { label: 'Delete View', action: () => { editor.setValue(`db.deleteView("${vName}")`); executeSelectedQuery(); loadCollections(); } }
+                ]);
+            };
+            tree.appendChild(item);
+        });
+
+        // 6. TRIGGERS HEADER
+        const tHeader = document.createElement('div');
+        tHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 15px 0 5px 5px; display:block">TRIGGERS</span>';
+        tree.appendChild(tHeader);
+
+        // 7. ADD TRIGGER BUTTON
+        const btnAddTrig = document.createElement('div');
+        btnAddTrig.className = 'tree-item';
+        btnAddTrig.style.opacity = '0.7';
+        btnAddTrig.innerHTML = '<i data-lucide="zap"></i> <span>New Trigger</span>';
+        btnAddTrig.onclick = () => {
+            // New signature: saveTrigger(name, target, code)
+            editor.setValue(`// Create Trigger - Responds to data changes
+// Defines an async event listener for 'sysusers' collection
+db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
+    // Event object contains: type (created/changed/deleted), collection, documentId
+    console.log("Trigger [" + event.type + "] on " + event.collection + ": " + event.documentId);
+
+    // Example logic:
+    if (event.type == "created") {
+        // Log to a specialized collection or call generic webhook
+        // db.audit_logs.insert({ action: "user_created", targetId: event.documentId, time: new Date() });
+    }
+\`);`);
+        };
+        tree.appendChild(btnAddTrig);
+
+        // 8. TRIGGERS LIST
+        triggers.forEach(tName => {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.innerHTML = `<i data-lucide="zap" style="color:red"></i> <span>${tName}</span>`;
+            item.onclick = async () => {
+                // View Code
+                try {
+                    const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getTrigger("${tName}")` });
+                    if (res.ok) {
+                        const code = await res.json();
+                        if (code) {
+                            // Format for editing: We wrap it in saveTrigger
+                            // Extract target? Regex?
+                            // Simple: Just let user edit body and re-save
+                            // Or show full wrapper command
+                            editor.setValue(`// Update Trigger\ndb.saveTrigger("${tName}", "sysusers", ${JSON.stringify(code)});\n// Note: Update "sysusers" to your target parameter if changed.`);
+                        }
+                    }
+                } catch (e) { console.error(e); }
+            };
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e, [
+                    {
+                        label: 'View Code', action: async () => {
+                            const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getTrigger("${tName}")` });
+                            if (res.ok) editor.setValue(await res.json());
+                        }
+                    },
+                    { label: 'Delete Trigger', action: () => { editor.setValue(`db.deleteTrigger("${tName}")`); executeSelectedQuery(); loadCollections(); } }
+                ]);
+            };
+            tree.appendChild(item);
+        });
+
+        // 9. FILTER LOGIC
+        const filterInput = document.getElementById('sidebarFilter');
+        filterInput.oninput = () => {
+            const val = filterInput.value.toLowerCase();
+            const items = tree.querySelectorAll('.tree-item');
+            const headers = tree.querySelectorAll('.tree-header');
+
+            items.forEach(el => {
+                const txt = el.textContent.toLowerCase();
+                el.style.display = txt.includes(val) ? 'flex' : 'none';
+            });
+
+            // Optional: Hide headers if all children are hidden? 
+            // That's complex because we flattened structure. 
+            // Simple version: just hide items.
+        };
+
+        // Re-apply filter if value exists (e.g. after refresh)
+        if (filterInput.value) filterInput.oninput();
+
         initIcons();
-    } catch (err) { 
-        // If auth failed, verify 401
+    } catch (err) {
         if (err.message === 'Auth failed') document.getElementById('loginModal').style.display = 'flex';
     }
 }
@@ -178,9 +352,19 @@ async function executeSelectedQuery() {
         try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
 
         if (response.ok) {
-            queryResults = Array.isArray(data) ? data : (data === null || data === undefined ? [] : (typeof data === 'object' ? [data] : []));
+            // Handle all response types properly
+            if (Array.isArray(data)) {
+                queryResults = data;
+            } else if (data === null || data === undefined) {
+                queryResults = [];
+            } else {
+                // Wrap string, number, boolean, or object in array
+                queryResults = [data];
+            }
             filters = {};
             renderGrid();
+            // Auto-refresh sidebar to show new collections/views/vaults
+            loadCollections();
         } else {
             alert('Error: ' + (data?.detail || data?.error || data || 'Query failed'));
         }
@@ -198,18 +382,76 @@ function renderGrid() {
     const tableBody = document.getElementById('tableBody');
     const table = document.getElementById('resultsTable');
     const noResults = document.getElementById('noResults');
+    const container = document.getElementById('gridContainer');
 
-    table.className = 'results-table';
+    // Clear previous view
+    tableHead.innerHTML = '';
+    tableBody.innerHTML = '';
+    noResults.style.display = 'none';
+
+    // Clean up any existing iframe if present
+    const existingFrame = container.querySelector('iframe');
+    if (existingFrame) existingFrame.remove();
+    table.style.display = 'table';
 
     if (!queryResults || queryResults.length === 0) {
-        tableHead.innerHTML = '';
-        tableBody.innerHTML = '';
         noResults.style.display = 'block';
         return;
     }
 
-    noResults.style.display = 'none';
-    const keys = [...new Set(queryResults.flatMap(obj => Object.keys(obj || {})))];
+    // Check if data should be rendered as HTML in iframe
+    // Conditions for iframe rendering:
+    // 1. Single string result (e.g. "<h1>test</h1>")
+    // 2. Single primitive (number, boolean)
+    // 3. All items are not objects (non-table data)
+
+    const isTableData = queryResults.length > 0 &&
+        queryResults.every(item => item !== null && typeof item === 'object' && !Array.isArray(item));
+
+    if (!isTableData) {
+        // Render in iframe - convert to string representation
+        table.style.display = 'none';
+        const frame = document.createElement('iframe');
+        frame.style.width = '100%';
+        frame.style.height = '100%';
+        frame.style.border = 'none';
+        frame.style.background = 'white';
+        container.appendChild(frame);
+
+        let content = '';
+        if (queryResults.length === 1) {
+            content = String(queryResults[0]);
+        } else {
+            // Multiple non-object items
+            content = queryResults.map(item => String(item)).join('<br>');
+        }
+
+        const doc = frame.contentWindow.document;
+        doc.open();
+        doc.write(content);
+        doc.close();
+        return;
+    }
+
+    // Table data - get all unique keys from objects
+    const keys = [];
+    const keySet = new Set();
+    for (const obj of queryResults) {
+        if (obj && typeof obj === 'object') {
+            for (const key of Object.keys(obj)) {
+                if (!keySet.has(key)) {
+                    keySet.add(key);
+                    keys.push(key);
+                }
+            }
+        }
+    }
+
+    if (keys.length === 0) {
+        noResults.style.display = 'block';
+        noResults.textContent = 'No displayable columns found';
+        return;
+    }
 
     let displayData = [...queryResults];
     if (sortCol) {
@@ -339,13 +581,17 @@ function initColResize(e, resizer) {
     const th = resizer.parentElement;
     const startX = e.pageX;
     const startWidth = th.offsetWidth;
-    
+
     resizer.classList.add('active');
     document.body.style.cursor = 'col-resize';
 
     const onMove = (moveEvent) => {
         const width = startWidth + (moveEvent.pageX - startX);
-        if (width > 50) th.style.width = width + 'px';
+        if (width > 50) {
+            th.style.width = width + 'px';
+            th.style.minWidth = width + 'px'; // Enforce min-width
+            th.style.maxWidth = width + 'px'; // Enforce max-width for fixed layout
+        }
     };
 
     const onUp = () => {
@@ -365,7 +611,16 @@ function initButtons() {
     document.getElementById('btnExecute').onclick = executeSelectedQuery;
     document.getElementById('btnAddDb').onclick = () => {
         const name = prompt("Enter new collection name:");
-        if (name) editor.setValue(`UnlockDB("${name}").insert({ created: "${new Date().toISOString()}" });`);
+        if (name) {
+            editor.setValue(`// Create Collection '${name}' by inserting a document
+// Collections are created automatically on first write
+db.${name}.insert({ 
+    created: new Date(), 
+    desc: "Initial document" 
+});
+// List collections to confirm
+showCollections();`);
+        }
     };
 
     // Export buttons

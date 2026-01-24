@@ -6,483 +6,854 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UnlockDB Documentation</title>
     <link rel="icon" type="image/png" href="unlockerdbLogo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --bg: #0f172a;
-            --sidebar-bg: #1e293b;
             --accent: #6366f1;
-            --text: #f8fafc;
-            --text-dim: #94a3b8;
-            --border: rgba(255, 255, 255, 0.1);
-            --code-bg: #1e1e1e;
+            --accent-hover: #818cf8;
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #252526;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --border: #333;
+            --sidebar-width: 280px;
         }
 
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.7;
             display: flex;
         }
 
-        /* Sidebar Navigation */
+        /* Sidebar */
         .sidebar {
-            width: 280px;
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
             height: 100vh;
-            background: var(--sidebar-bg);
+            background: var(--bg-secondary);
             border-right: 1px solid var(--border);
-            position: fixed;
-            padding: 2rem 1.5rem;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        .logo {
+        .sidebar-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header .brand {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-weight: 700;
-            font-size: 1.25rem;
-            margin-bottom: 2.5rem;
-            color: var(--accent);
+            margin-bottom: 1rem;
         }
 
-        .nav-group {
-            margin-bottom: 2rem;
+        .sidebar-header img {
+            width: 32px;
+            height: 32px;
         }
 
-        .nav-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-dim);
-            margin-bottom: 0.75rem;
+        .sidebar-header h2 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
             font-weight: 600;
         }
 
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+
         .nav-link {
-            display: block;
-            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            color: var(--text-secondary);
             text-decoration: none;
-            font-size: 0.9rem;
-            padding: 0.5rem 0;
-            transition: color 0.2s;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+            cursor: pointer;
         }
 
         .nav-link:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-link i {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .sidebar-footer a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             color: var(--accent);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .sidebar-footer a:hover {
+            color: var(--accent-hover);
         }
 
         /* Main Content */
-        .content {
-            margin-left: 280px;
-            padding: 4rem 6rem;
-            max-width: 1200px;
+        .main-content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .content-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 3rem 4rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+            padding-top: 1rem;
         }
 
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
         }
 
         h2 {
-            font-size: 1.75rem;
-            margin: 3rem 0 1rem;
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
             padding-bottom: 0.5rem;
             border-bottom: 1px solid var(--border);
         }
 
         h3 {
-            font-size: 1.25rem;
-            margin: 2rem 0 1rem;
-            color: var(--accent);
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
         }
 
         p {
-            margin-bottom: 1.25rem;
-            color: var(--text-dim);
-        }
-
-        .method-block {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .method-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
             margin-bottom: 1rem;
         }
 
-        .method-name {
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: var(--accent);
-        }
-
-        .method-type {
-            font-size: 0.75rem;
-            background: rgba(99, 102, 241, 0.1);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-        }
-
         code {
-            font-family: 'JetBrains Mono', monospace;
-            background: var(--code-bg);
-            padding: 0.2rem 0.4rem;
+            background: var(--bg-card);
+            padding: 2px 6px;
             border-radius: 4px;
-            font-size: 0.9em;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875em;
+            color: #e879f9;
         }
 
         pre {
-            background: var(--code-bg);
-            padding: 1.5rem;
-            border-radius: 12px;
-            overflow-x: auto;
-            margin-bottom: 1.5rem;
+            background: var(--bg-secondary);
             border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
         }
 
         pre code {
             background: none;
             padding: 0;
+            color: #d4d4d4;
         }
 
-        .note {
-            background: rgba(251, 191, 36, 0.1);
-            border-left: 4px solid #fbbf24;
-            padding: 1rem 1.5rem;
+        .comment {
+            color: #6a9955;
+        }
+
+        .keyword {
+            color: #c586c0;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .function {
+            color: #dcdcaa;
+        }
+
+        .number {
+            color: #b5cea8;
+        }
+
+        ul,
+        ol {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
             margin: 1.5rem 0;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .feature-card h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+
+        .endpoint-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .endpoint-table th,
+        .endpoint-table td {
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        .endpoint-table th {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .method-get {
+            background: #22c55e20;
+            color: #22c55e;
+        }
+
+        .method-post {
+            background: #3b82f620;
+            color: #3b82f6;
+        }
+
+        .info-box {
+            background: #3b82f610;
+            border: 1px solid #3b82f640;
+            border-left: 3px solid #3b82f6;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .warning-box {
+            background: #f59e0b10;
+            border: 1px solid #f59e0b40;
+            border-left: 3px solid #f59e0b;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
             border-radius: 4px;
         }
 
-        .note strong {
-            color: #fbbf24;
-        }
-
-        footer {
-            margin-top: 6rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border);
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            text-align: center;
-        }
-
-        @media (max-width: 1024px) {
-            .sidebar {
-                width: 220px;
-            }
-
-            .content {
-                margin-left: 220px;
-                padding: 3rem;
-            }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
 
 <body>
+    <!-- Sidebar -->
     <aside class="sidebar">
-        <div class="logo">
-            <img src="unlockerdbLogo.png" alt="UnlockDB" style="width: 24px; height: 24px; object-fit: contain;">
-            UnlockDB Docs
+        <div class="sidebar-header">
+            <div class="brand">
+                <img src="unlockerdbLogo.png" alt="UnlockDB">
+                <h2>Documentation</h2>
+            </div>
+            <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="searchInput" placeholder="Search...">
+            </div>
         </div>
 
-        <div class="nav-group">
-            <div class="nav-title">Fundamentals</div>
-            <a href="#overview" class="nav-link">Overview</a>
-            <a href="#architecture" class="nav-link">Architecture</a>
-            <a href="#auth" class="nav-link">Authentication</a>
-            <a href="#curl-examples" class="nav-link">Curl Examples</a>
-        </div>
+        <nav class="sidebar-nav" id="sidebarNav">
+            <div class="nav-section">
+                <div class="nav-section-title">Getting Started</div>
+                <a class="nav-link active" data-target="overview">
+                    <i data-lucide="home"></i> Overview
+                </a>
+                <a class="nav-link" data-target="features">
+                    <i data-lucide="zap"></i> Features
+                </a>
+            </div>
 
-        <div class="nav-group">
-            <div class="nav-title">Database API</div>
-            <a href="#db-object" class="nav-link">The 'db' Object</a>
-            <a href="#finding" class="nav-link">Finding Data</a>
-            <a href="#inserting" class="nav-link">Inserting Data</a>
-            <a href="#updating" class="nav-link">Updating (Bulk)</a>
-            <a href="#deleting" class="nav-link">Deleting</a>
-        </div>
+            <div class="nav-section">
+                <div class="nav-section-title">JavaScript API</div>
+                <a class="nav-link" data-target="data-read">
+                    <i data-lucide="search"></i> Data Reading
+                </a>
+                <a class="nav-link" data-target="data-write">
+                    <i data-lucide="edit-3"></i> Data Writing
+                </a>
+                <a class="nav-link" data-target="joins">
+                    <i data-lucide="git-merge"></i> Join Operations
+                </a>
+                <a class="nav-link" data-target="indexing">
+                    <i data-lucide="list-ordered"></i> Index
+                </a>
+            </div>
 
-        <div class="nav-group">
-            <div class="nav-title">Scripting & Utilities</div>
-            <a href="#custom-logic" class="nav-link">Custom JS Logic</a>
-            <a href="#utilities" class="nav-link">Utility Functions</a>
-        </div>
+            <div class="nav-section">
+                <div class="nav-section-title">Advanced</div>
+                <a class="nav-link" data-target="views">
+                    <i data-lucide="eye"></i> Views
+                </a>
+                <a class="nav-link" data-target="triggers">
+                    <i data-lucide="bell"></i> Triggers
+                </a>
+                <a class="nav-link" data-target="vaults">
+                    <i data-lucide="lock"></i> Vaults
+                </a>
+                <a class="nav-link" data-target="webhooks">
+                    <i data-lucide="send"></i> Webhooks
+                </a>
+            </div>
 
-        <div class="nav-group">
-            <div class="nav-title">Aggregation & Joins</div>
-            <a href="#joining" class="nav-link">Multi-Collection Join</a>
-            <a href="#projection" class="nav-link">Projection (Select)</a>
-            <a href="#limiting" class="nav-link">Limiting (Take)</a>
-        </div>
+            <div class="nav-section">
+                <div class="nav-section-title">HTTP & Security</div>
+                <a class="nav-link" data-target="http-api">
+                    <i data-lucide="globe"></i> HTTP API
+                </a>
+                <a class="nav-link" data-target="security">
+                    <i data-lucide="shield"></i> Security
+                </a>
+            </div>
 
-        <div class="nav-group">
-            <div class="nav-title">Performance</div>
-            <a href="#indexing" class="nav-link">Index Management</a>
-            <a href="#lazy-eval" class="nav-link">Lazy Evaluation</a>
+            <div class="nav-section">
+                <div class="nav-section-title">Reference</div>
+                <a class="nav-link" data-target="utilities">
+                    <i data-lucide="tool"></i> Utility Functions
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="/">
+                <i data-lucide="arrow-left"></i> Back to Console
+            </a>
         </div>
     </aside>
 
-    <main class="content">
-        <section id="overview">
-            <h1>Technical Specification</h1>
-            <p>UnlockDB is a high-performance, in-memory NoSQL database server leveraging the <strong>Jint JavaScript
-                    Engine</strong> for programmable query execution. This documentation provides a complete reference
-                for integration, training AI models, and mastering the JavaScript query interface.</p>
-        </section>
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <div class="content-wrapper">
 
-        <section id="architecture">
-            <h2>Architecture</h2>
-            <p>The system operates as a stateful REST API where query sessions are independent. Each request creates a
-                fresh Jint engine scope to ensure isolation and security.</p>
-            <ul>
-                <li><strong>Engine:</strong> Jint 4.4.2 (.NET Integration)</li>
-                <li><strong>Storage:</strong> ConcurrentDictionary with disk persistence (JSON)</li>
-                <li><strong>Concurrency:</strong> Thread-safe CRUD via atomic memory operations</li>
-            </ul>
-        </section>
+            <!-- Overview -->
+            <section class="section" id="overview">
+                <h1>UnlockDB Documentation</h1>
+                <p class="subtitle">High-performance NoSQL database server powered by a JavaScript-based query language
+                </p>
+                <p>UnlockDB is a NoSQL database server that works with JavaScript-based queries using the Jint
+                    JavaScript engine. It runs on ASP.NET Core 8.0.</p>
+            </section>
 
-        <section id="auth">
-            <h2>Authentication</h2>
-            <p>Access requires HTTP Basic Authentication. All management console operations are performed using these
-                credentials.</p>
-            <pre><code>Username: unlocker
-Password: unlocker</code></pre>
-            <p>Headers must include <code>Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=</code></p>
-        </section>
-
-        <section id="curl-examples">
-            <h2>Curl Examples</h2>
-            <p>You can interact with the UnlockDB API directly using <code>curl</code> or any HTTP client. All queries
-                should be sent as raw text in the request body.</p>
-
-            <h3>1. List Collections</h3>
-            <pre><code>curl -X GET http://localhost:5000/collections \
-  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI="</code></pre>
-
-            <h3>2. Simple Query (Find All)</h3>
-            <pre><code>curl -X POST http://localhost:5000/query \
-  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=" \
-  -d "db.users.findall().ToList()"</code></pre>
-
-            <h3>3. Filtered Query</h3>
-            <pre><code>curl -X POST http://localhost:5000/query \
-  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=" \
-  -d "db.users.findall(x => x.age > 20).ToList()"</code></pre>
-
-            <h3>4. Insert Record</h3>
-            <pre><code>curl -X POST http://localhost:5000/query \
-  -H "Authorization: Basic dW5sb2NrZXI6dW5sb2NrZXI=" \
-  -d "db.users.insert({ name: 'External Entry', type: 'curl' })"</code></pre>
-
-            <div class="note">
-                <strong>Windows Tip:</strong> If using <code>PowerShell</code>, ensure you escape quotes properly or use
-                the <code>Invoke-RestMethod</code> cmdlet for a more native experience.
-            </div>
-        </section>
-
-        <section id="db-object">
-            <h2>The 'db' Object</h2>
-            <p>Queries are executed against the global <code>db</code> object. You can access any collection dynamically
-                using property notation.</p>
-            <pre><code>// Accessing collections
-const users = db.users; 
-const products = db.products;</code></pre>
-        </section>
-
-        <section id="finding">
-            <h2>Finding Data</h2>
-            <div class="method-block">
-                <div class="method-header">
-                    <span class="method-name">findall(predicate)</span>
-                    <span class="method-type">Returns: ResultSet</span>
+            <!-- Features -->
+            <section class="section" id="features">
+                <h2>Core Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📦 Collection Based</h4>
+                        <p>MongoDB-like structure. Automatic creation.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔍 JavaScript Query</h4>
+                        <p>Data processing with native JS syntax.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Index Support</h4>
+                        <p>Performance with ASC/DESC sorting.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔗 Join Operations</h4>
+                        <p>Joining multiple collections.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>👁️ Views</h4>
+                        <p>Server-side stored queries.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⚡ Triggers</h4>
+                        <p>Automated scripts that respond automatically.</p>
+                    </div>
                 </div>
-                <p>Retrieves records matching the predicate. If omitted, returns all records.</p>
-                <pre><code>// Get all
-db.users.findall().ToList();
+            </section>
 
-// Filtered
-db.users.findall(x => x.age > 25).ToList();</code></pre>
-            </div>
+            <!-- Data Read -->
+            <section class="section" id="data-read">
+                <h2>Data Reading</h2>
+                <p>The <code>db</code> object is the entry point for all database operations.</p>
+                <pre><code><span class="comment">// Find a single record (returns the first match)</span>
+<span class="keyword">var</span> user = db.users.<span class="function">find</span>(u => u.age > <span class="number">18</span>);
 
-            <div class="method-block">
-                <div class="method-header">
-                    <span class="method-name">find(predicate)</span>
-                    <span class="method-type">Returns: Document</span>
+<span class="comment">// List all matches (convert to array with toList())</span>
+<span class="keyword">var</span> admins = db.users.<span class="function">findall</span>(u => u.role == <span class="string">'admin'</span>).<span class="function">toList</span>();
+
+<span class="comment">// Get the entire collection</span>
+<span class="keyword">var</span> allUsers = db.users.<span class="function">findall</span>().<span class="function">toList</span>();
+
+<span class="comment">// Get the first record</span>
+<span class="keyword">var</span> first = db.users.<span class="function">findall</span>().<span class="function">first</span>();
+
+<span class="comment">// Record count</span>
+<span class="keyword">var</span> count = db.users.<span class="function">findall</span>().<span class="function">count</span>();
+
+<span class="comment">// Case-insensitive search</span>
+<span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);</code></pre>
+                <div class="info-box">
+                    <strong>💡 Important:</strong> <code>findall()</code> returns a ResultSet. To use it as an array,
+                    <code>.toList()</code> must be called.
                 </div>
-                <p>Returns the first record matching the criteria (Lazy evaluation).</p>
-                <pre><code>const user = db.users.find(x => x.email == "admin@db.com");</code></pre>
-            </div>
-        </section>
+            </section>
 
-        <section id="inserting">
-            <h2>Inserting Data</h2>
-            <p>Every document automatically receives a unique <code>_id</code> (GUID) upon insertion.</p>
-            <pre><code>db.users.insert({
-    username: "dev_user",
-    tags: ["nosql", "fast"],
-    metadata: { lastLogin: new Date() }
+            <!-- Data Write -->
+            <section class="section" id="data-write">
+                <h2>Data Writing</h2>
+                <h3>insert</h3>
+                <pre><code>db.users.<span class="function">insert</span>({
+    name: <span class="string">"Ahmet"</span>,
+    age: <span class="number">25</span>,
+    role: <span class="string">"developer"</span>
 });</code></pre>
-        </section>
 
-        <section id="updating">
-            <h2>Updating Data</h2>
-            <p>Updates can be performed directly on a collection or on a <code>ResultSet</code>.</p>
-            <pre><code>// Collection-level update (Bulk)
-db.users.update(x => x.status == "pending", { status: "active" });
+                <h3>update</h3>
+                <pre><code><span class="comment">// Update records that match the condition</span>
+db.users.<span class="function">update</span>(u => u.name == <span class="string">"Ahmet"</span>, { age: <span class="number">26</span> });
 
-// ResultSet-level update
-db.users.findall(x => x.points > 100).update({ level: "pro" });</code></pre>
-        </section>
+<span class="comment">// Update via ResultSet</span>
+db.users.<span class="function">findall</span>(u => u.inactive).<span class="function">update</span>({ status: <span class="string">"archived"</span> });</code></pre>
 
-        <section id="deleting">
-            <h2>Deleting Data</h2>
-            <pre><code>// Bulk delete via query result
-db.users.findall(x => x.isDeleted == true).delete();</code></pre>
-        </section>
+                <h3>delete</h3>
+                <pre><code>db.users.<span class="function">findall</span>(u => u.inactive == <span class="keyword">true</span>).<span class="function">delete</span>();</code></pre>
 
-        <section id="joining">
-            <h2>Aggregation & Joins</h2>
-            <p>UnlockDB supports foreign-key style joins between multiple collections based on ID matching.</p>
-            <pre><code>// Join users and their orders
-const reports = db.join(db.users, db.orders).findall().ToList();</code></pre>
-        </section>
+                <h3>foreach</h3>
+                <pre><code>db.users.<span class="function">findall</span>().<span class="function">foreach</span>(user => {
+    console.<span class="function">log</span>(user.name);
+});</code></pre>
+            </section>
 
-        <section id="projection">
-            <h2>Projection (Select)</h2>
-            <p>Use <code>select()</code> to transform results or extract specific fields.</p>
-            <pre><code>// Map to new schema
-const names = db.users.findall().select(x => ({ 
-    fullName: x.firstName + " " + x.lastName,
-    id: x._id 
+            <!-- Joins -->
+            <section class="section" id="joins">
+                <h2>Join Operations</h2>
+                <pre><code><span class="comment">// Join two collections</span>
+<span class="keyword">var</span> result = db.<span class="function">join</span>(db.users, db.orders)
+    .<span class="function">where</span>(x => x.userId == x.customerId).<span class="function">toList</span>();
+
+<span class="comment">// Projection with Select</span>
+<span class="keyword">var</span> data = db.<span class="function">join</span>(db.products, db.categories).<span class="function">select</span>(x => ({
+    name: x.productName,
+    category: x.categoryName
 }));</code></pre>
-        </section>
+            </section>
 
-        <section id="limiting">
-            <h2>Limiting (Take)</h2>
-            <p>Limit the number of results for paginated or preview views.</p>
-            <pre><code>// Get top 5 newest records
-db.logs.findall().take(5).ToList();</code></pre>
-        </section>
+            <!-- Indexing -->
+            <section class="section" id="indexing">
+                <h2>Creating Index</h2>
+                <pre><code><span class="comment">// ASC (default)</span>
+db.users.<span class="function">index</span>(x => x.email);
 
-        <section id="custom-logic">
-            <h2>Custom JS Functions</h2>
-            <p>You can use standard JavaScript logic (functions, loops, variables) to process data. <strong>The last
-                    evaluated expression or a returned value determines what appears in the results grid.</strong></p>
-            <pre><code>// Using a functional approach
-(function() {
-    const data = db.users.findall().ToList();
-    const processed = data.map(u => {
-        return {
-            id: u._id,
-            tag: u.age > 18 ? "Adult" : "Minor",
-            raw: u
-        };
-    });
-    return processed;
-})();</code></pre>
-            <div class="note">
-                <strong>Tip:</strong> Always use <code>ToList()</code> when you need to iterate over collection data in
-                standard JavaScript arrays.
-            </div>
-        </section>
+<span class="comment">// DESC sorting</span>
+db.users.<span class="function">index</span>(x => x.createdAt, <span class="string">"DESC"</span>);
 
-        <section id="utilities">
-            <h2>Utility Functions</h2>
-            <p>UnlockDB includes a suite of built-in helper functions to simplify data manipulation and security tasks
-                within your scripts.</p>
+<span class="comment">// Chaining</span>
+db.users.<span class="function">insert</span>({...}).<span class="function">index</span>(x => x.name);</code></pre>
+            </section>
 
-            <h3>Cryptography & Security</h3>
-            <ul>
-                <li><code>md5(string)</code>: Returns MD5 hash.</li>
-                <li><code>sha256(string)</code>: Returns SHA256 hash.</li>
-                <li><code>encrypt(text, salt)</code> / <code>decrypt(text, salt)</code>: Simple encryption helpers.</li>
-                <li><code>toBase64(string)</code> / <code>fromBase64(string)</code>: Text encoding.</li>
-            </ul>
+            <!-- Views -->
+            <section class="section" id="views">
+                <h2>Views</h2>
+                <p>Views are reusable queries stored on the server side in the <code>Views/</code> folder.
+                </p>
 
-            <h3>Data Utilities</h3>
-            <ul>
-                <li><code>randomString(length)</code>: Generates random alphanumeric strings (great for tokens).</li>
-                <li><code>randomNumber(min, max)</code>: Generates random integers.</li>
-                <li><code>randomDecimal(minStr, maxStr)</code>: Generates random decimals.</li>
-                <li><code>split(text, separator)</code>: Splits string into array.</li>
-                <li><code>toString(obj)</code>: Safe string conversion.</li>
-            </ul>
+                <h3>Public View (Accessible to Everyone)</h3>
+                <pre><code><span class="comment">// Accessible via HTTP GET /views/activeUsers (No Auth required)</span>
+db.<span class="function">saveView</span>(<span class="string">"activeUsers"</span>, <span class="string">`
+// @access public
+return db.users.findall(u => u.active == true).toList();
+`</span>);</code></pre>
 
-            <div class="method-block">
-                <div class="method-header">
-                    <span class="method-name">Example: Secure User Creation</span>
+                <h3>Private View (Internal Use Only)</h3>
+                <pre><code><span class="comment">// Can only be called with db.view(), not accessible from HTTP</span>
+db.<span class="function">saveView</span>(<span class="string">"internalReport"</span>, <span class="string">`
+// @access private
+return db.orders.findall(o => o.status == "pending").toList();
+`</span>);</code></pre>
+
+                <h3>View Usage</h3>
+                <pre><code><span class="comment">// Call internally</span>
+<span class="keyword">var</span> result = db.<span class="function">view</span>(<span class="string">"activeUsers"</span>);
+
+<span class="comment">// Get view code</span>
+<span class="keyword">var</span> code = db.<span class="function">getView</span>(<span class="string">"activeUsers"</span>);
+
+<span class="comment">// Access via HTTP (only public views)</span>
+<span class="comment">// GET /views/activeUsers</span></code></pre>
+
+                <div class="info-box">
+                    <strong>💡 @access Metadata:</strong><br>
+                    • <code>// @access public</code> → Accessible from outside via HTTP GET<br>
+                    • <code>// @access private</code> → Can only be used internally via <code>db.view()</code>
                 </div>
-                <pre><code>db.users.insert({
-    username: "new_user",
-    password: sha256("mySecretPass"), 
-    apiToken: randomString(64),
-    createdAt: toString(new Date())
+            </section>
+
+            <!-- Triggers -->
+            <section class="section" id="triggers">
+                <h2>Triggers</h2>
+                <p>Triggers are asynchronous scripts that run automatically by monitoring file changes in the
+                    <code>Data/</code> folder. They are stored in the <code>Triggers/</code> folder.</p>
+
+                <h3>Creating a Trigger</h3>
+                <pre><code><span class="comment">// saveTrigger(triggerName, targetCollection, scriptCode)</span>
+db.<span class="function">saveTrigger</span>(<span class="string">"userNotifier"</span>, <span class="string">"users"</span>, <span class="string">`
+// @target users
+console.log("User changed: " + event.documentId);
+webhook("https://api.example.com/notify", 
+    { id: event.documentId, type: event.type },
+    { "Authorization": "Bearer " + $API_TOKEN }
+);
+`</span>);</code></pre>
+
+                <h3>@target Metadata</h3>
+                <p>Determines which collection the trigger will react to changes in:</p>
+                <pre><code><span class="comment">// Monitor changes only in the "orders" collection</span>
+<span class="comment">// @target orders</span>
+
+<span class="comment">// Monitor multiple collections</span>
+<span class="comment">// @target users,orders,products</span></code></pre>
+
+                <h3>Event Object</h3>
+                <pre><code>event.type        <span class="comment">// "changed" | "created" | "deleted"</span>
+event.collection  <span class="comment">// Name of the changed collection</span>
+event.documentId  <span class="comment">// _id value of the changed document</span>
+event.timestamp   <span class="comment">// Server time (ISO format)</span></code></pre>
+
+                <h3>Event Types</h3>
+                <ul>
+                    <li><strong>created</strong> - When a new document is added</li>
+                    <li><strong>changed</strong> - When an existing document is updated</li>
+                    <li><strong>deleted</strong> - When a document is deleted</li>
+                </ul>
+
+                <div class="info-box">
+                    <strong>💡 Logging:</strong> Trigger executions are logged daily in the <code>trigger_logs/</code>
+                    folder.
+                </div>
+            </section>
+
+            <!-- Vaults -->
+            <section class="section" id="vaults">
+                <h2>Vaults (Secure Storage)</h2>
+                <p>Secure key-value store in the <code>sysvaults</code> collection for API keys and constants.</p>
+                <pre><code><span class="comment">// Add value to Vault</span>
+<span class="function">addVault</span>(<span class="string">"API_KEY"</span>, <span class="string">"sk-xxxx..."</span>);
+<span class="function">addVault</span>(<span class="string">"SLACK_WEBHOOK"</span>, <span class="string">"https://hooks.slack.com/..."</span>);
+
+<span class="comment">// Use as $Key in queries</span>
+<span class="function">webhook</span>($SLACK_WEBHOOK, { text: <span class="string">"Notification!"</span> }, {});</code></pre>
+            </section>
+
+            <!-- Webhooks -->
+            <section class="section" id="webhooks">
+                <h2>Webhooks</h2>
+                <p>The <code>webhook(url, data, headers)</code> function is used to send HTTP POST requests to external
+                    services.</p>
+
+                <h3>Basic Usage</h3>
+                <pre><code><span class="comment">// Simple webhook (without headers)</span>
+<span class="function">webhook</span>(<span class="string">"https://api.example.com/notify"</span>, {
+    message: <span class="string">"New record added"</span>,
+    timestamp: <span class="keyword">new</span> Date().<span class="function">toISOString</span>()
+}, {});</code></pre>
+
+                <h3>Usage with Headers</h3>
+                <pre><code><span class="comment">// With Bearer Token</span>
+<span class="function">webhook</span>(<span class="string">"https://api.example.com/data"</span>, 
+    { userId: <span class="number">123</span>, action: <span class="string">"update"</span> },
+    { 
+        <span class="string">"Authorization"</span>: <span class="string">"Bearer "</span> + $API_TOKEN,
+        <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>
+    }
+);
+
+<span class="comment">// With API Key</span>
+<span class="function">webhook</span>(<span class="string">"https://api.stripe.com/v1/charges"</span>, 
+    { amount: <span class="number">1000</span>, currency: <span class="string">"usd"</span> },
+    { <span class="string">"X-API-Key"</span>: $STRIPE_KEY }
+);
+
+<span class="comment">// Slack Webhook</span>
+<span class="function">webhook</span>($SLACK_WEBHOOK, 
+    { text: <span class="string">"New order received!"</span> },
+    { <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span> }
+);</code></pre>
+            </section>
+
+            <!-- HTTP API -->
+            <section class="section" id="http-api">
+                <h2>HTTP API</h2>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Method</th>
+                            <th>Description</th>
+                            <th>Auth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>/query</code></td>
+                            <td><span class="method method-post">POST</span></td>
+                            <td>Execute JavaScript query</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td><code>/collections</code></td>
+                            <td><span class="method method-get">GET</span></td>
+                            <td>List collections</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td><code>/views/{name}</code></td>
+                            <td><span class="method method-get">GET</span></td>
+                            <td>Run public view</td>
+                            <td>@access</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Query Parameters</h3>
+                <pre><code><span class="comment">// POST /query?userName=John&userAge=30</span>
+db.users.<span class="function">insert</span>({
+    name: @userName,
+    age: <span class="function">parseInt</span>(@userAge)
 });</code></pre>
-            </div>
-        </section>
+            </section>
 
-        <section id="indexing">
-            <h2>Index Management</h2>
-            <p>Optimizing queries with indexes. Supported types: <code>ASC</code> (Ascending) and <code>DESC</code>
-                (Descending).</p>
-            <pre><code>// String-based creation
-db.users.index("email", "ASC");
+            <!-- Security -->
+            <section class="section" id="security">
+                <h2>Security</h2>
+                <ul>
+                    <li><strong>Basic Authentication:</strong> Required for /query and /collections</li>
+                    <li><strong>Default User:</strong> <code>unlocker / unlocker</code></li>
+                    <li><strong>Injection Protection:</strong> @param placeholders are securely bound</li>
+                    <li><strong>Malicious Code Check:</strong> eval, Function are blocked</li>
+                </ul>
+                <div class="warning-box">
+                    <strong>⚠️ Warning:</strong> Dangerous codes such as <code>eval(</code>, <code>Function(</code>,
+                    <code>script</code> in parameters are rejected.
+                </div>
+            </section>
 
-// Lambda-based creation
-db.products.index(x => x.price, "DESC");</code></pre>
-            <div class="note">
-                <strong>AI Training Note:</strong> UnlockDB uses "Text Indexing" for strings (word-based + n-grams) and
-                "Sorted Indexing" for numeric values.
-            </div>
-        </section>
+            <!-- Utilities -->
+            <section class="section" id="utilities">
+                <h2>Utility Functions</h2>
+                <pre><code><span class="comment">// Create unique ID (UUID)</span>
+<span class="keyword">var</span> id = <span class="function">guid</span>();
 
-        <section id="lazy-eval">
-            <h2>Lazy Evaluation</h2>
-            <p>The engine defers data realization until <code>ToList()</code> or <code>first()</code> is called. This
-                minimizes memory overhead during complex logical filtering.</p>
-        </section>
+<span class="comment">// Write log to console (server console and logs/)</span>
+console.<span class="function">log</span>(<span class="string">"Message"</span>);
 
-        <footer>
-            UnlockDB Technical Documentation &copy; 2026. Designed for Humans and AI.
-        </footer>
+<span class="comment">// Send webhook (url, data, headers)</span>
+<span class="function">webhook</span>(<span class="string">"https://api.example.com/hook"</span>, 
+    { data: <span class="string">"value"</span> }, 
+    { <span class="string">"Authorization"</span>: <span class="string">"Bearer token"</span> }
+);
+
+<span class="comment">// Add value to Vault</span>
+<span class="function">addVault</span>(<span class="string">"KEY_NAME"</span>, <span class="string">"value"</span>);
+
+<span class="comment">// List existing collections</span>
+<span class="keyword">var</span> cols = <span class="function">showCollections</span>();
+
+<span class="comment">// Create SHA256 hash</span>
+<span class="keyword">var</span> hash = <span class="function">sha256</span>(<span class="string">"password"</span>);
+
+<span class="comment">// Create random string</span>
+<span class="keyword">var</span> token = <span class="function">randomString</span>(<span class="number">32</span>);</code></pre>
+            </section>
+
+        </div>
     </main>
 
     <script>
         lucide.createIcons();
 
-        // Custom Smooth Scroll for In-Page navigation
-        document.querySelectorAll('.nav-link').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    window.scrollTo({
-                        top: target.offsetTop - 20,
-                        behavior: 'smooth'
-                    });
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.section');
+        const mainContent = document.getElementById('mainContent');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const targetId = link.getAttribute('data-target');
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        mainContent.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - mainContent.offsetTop;
+                if (mainContent.scrollTop >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-target') === current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            sections.forEach(section => {
+                const text = section.textContent.toLowerCase();
+                const matches = query === '' || text.includes(query);
+                section.style.display = matches ? 'block' : 'none';
+            });
+            navLinks.forEach(link => {
+                const targetId = link.getAttribute('data-target');
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    link.style.display = targetSection.style.display === 'none' ? 'none' : 'flex';
                 }
             });
         });

@@ -7,10 +7,19 @@ using UnlockDB.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel to listen on port 5000
+// Configure Kestrel to listen on specified port or default 5000
+int port = 5000;
+for (int i = 0; i < args.Length; i++)
+{
+    if ((args[i] == "-p" || args[i] == "--port") && i + 1 < args.Length && int.TryParse(args[i + 1], out int p))
+    {
+        port = p;
+    }
+}
+
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.ListenAnyIP(5000);
+    serverOptions.ListenAnyIP(port);
 });
 
 var app = builder.Build();
@@ -21,7 +30,14 @@ if (args.Contains("--benchmark"))
     return;
 }
 
+if (args.Contains("--verify"))
+{
+    Verification.Run();
+    return;
+}
+
 var dbEngine = new DatabaseEngine();
+dbEngine.InitializeTriggers();
 
 // Global Exception Handler Middleware
 app.Use(async (context, next) =>
@@ -150,6 +166,62 @@ app.MapPost("/query", async (HttpContext context) =>
     catch (Exception ex)
     {
         // Results.Problem will set status code > 400 which our middleware captures
+        return Results.Problem(ex.Message);
+    }
+});
+
+app.MapGet("/views/{viewName}", async (string viewName, HttpContext context) => 
+{
+    // 1. Check Access
+    string access = dbEngine.GetViewAccess(viewName);
+    string user = "anonymous";
+
+    if (access == "private")
+    {
+        // Require Auth
+        string authHeader = context.Request.Headers["Authorization"];
+        bool authenticated = false;
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Basic "))
+        {
+            try
+            {
+                var encoding = Encoding.GetEncoding("iso-8859-1");
+                string credentials = encoding.GetString(Convert.FromBase64String(authHeader.Substring(6)));
+                string[] parts = credentials.Split(':');
+                if (parts.Length == 2 && dbEngine.Authenticate(parts[0], parts[1]))
+                {
+                    user = parts[0];
+                    authenticated = true;
+                }
+            }
+            catch {}
+        }
+
+        if (!authenticated)
+        {
+            context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"UnlockDB Views\"";
+            return Results.Unauthorized();
+        }
+    }
+    else
+    {
+        user = "public_user";
+    }
+
+    // 2. Prepare Params
+    var queryParams = context.Request.Query.ToDictionary(k => k.Key, v => (object)v.Value.ToString());
+
+    try
+    {
+        var result = dbEngine.ExecuteView(viewName, queryParams, context.Connection.RemoteIpAddress?.ToString() ?? "unknown", user);
+        return Results.Json(result);
+    }
+    catch (FileNotFoundException)
+    {
+        return Results.NotFound(new { error = $"View '{viewName}' not found" });
+    }
+    catch (Exception ex)
+    {
         return Results.Problem(ex.Message);
     }
 });

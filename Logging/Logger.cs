@@ -6,6 +6,7 @@ namespace UnlockDB.Logging
     {
         private static readonly string RequestLogsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "request_logs");
         private static readonly string ErrorLogsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error_logs");
+        private static readonly object _lock = new object();
 
         static Logger()
         {
@@ -27,7 +28,10 @@ namespace UnlockDB.Logging
                 
                 var logLine = $"[{timestamp}] - [{ip}] - [{user}] - [{cleanedJson}] - [{durationMs}ms] - [{status}]";
                 
-                File.AppendAllLines(filePath, new[] { logLine });
+                lock (_lock)
+                {
+                    File.AppendAllLines(filePath, new[] { logLine });
+                }
             }
             catch
             {
@@ -46,7 +50,10 @@ namespace UnlockDB.Logging
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
                 var logLine = $"[{timestamp}] {message}";
                 
-                File.AppendAllLines(filePath, new[] { logLine });
+                lock (_lock)
+                {
+                    File.AppendAllLines(filePath, new[] { logLine });
+                }
             }
             catch
             {

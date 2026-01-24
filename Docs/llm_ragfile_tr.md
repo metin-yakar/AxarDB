@@ -90,10 +90,10 @@ string script = "db.users.find(u => u.name == '" + userInput + "')";
 ```
 
 **İYİ (Güvenli):**
-`userInput` değerini `myName` değişkeni olarak API'ye gönderin.
+`userInput` değerini `name` parametresi olarak API'ye gönderin ve script içinde `@name` yer tutucusunu kullanın.
 ```javascript
-// Script içinde sadece değişken adını kullanın
-db.users.find(u => u.name == myName);
+// Script içinde @name kullanın
+db.users.find(u => u.name == @name);
 ```
 
 ## 5. Scripting (Saklı Yordamlar)
@@ -135,13 +135,94 @@ curl -X POST "http://localhost:5000/query" \
 
 **Parametreli Örnek (Güvenli):**
 ```bash
-// URL'de 'ageLimit' parametresini gönder
+// URL'de 'ageLimit' parametresini gönder: ?ageLimit=20
 curl -X POST "http://localhost:5000/query?ageLimit=20" \
      -u "unlocker:unlocker" \
-     -d "db.users.findall(u => u.age > ageLimit)"
+     -d "db.users.findall(u => u.age > @ageLimit)"
 ```
 
-## 7. Sorun Giderme
+```
+
+## 7. Vaults (Sabit Değişkenler)
+
+Genel sabitleri (API Key, Connection String vb.) saklamak için güvenli bir kasa (Vault) sistemi mevcuttur.
+
+**Vault Ekleme:**
+```javascript
+db.AddVault("apiUrl", "https://api.example.com");
+```
+
+**Kullanım ($key):**
+Sorgu içinde `$key` formatında kullanıldığında, sorgu çalışmadan önce bu değerle değiştirilir.
+
+```javascript
+/* Kullanım */
+var url = "$apiUrl";
+// Sunucu bunu şuna çevirir: var url = "https://api.example.com";
+```
+
+Sunucu tarafından dış dünyaya HTTP isteği (POST) göndermek için `webhook` fonksiyonunu kullanabilirsiniz.
+
+```javascript
+// Basit Webhook
+webhook("https://api.example.com/notify", { message: "İşlem tamam" });
+
+// Header ile Webhook
+webhook("https://api.example.com/secure", 
+    { data: 123 }, 
+    [{ "Authorization": "Bearer token" }]
+);
+```
+
+```
+
+## 8. Views (Saklı Sorgular)
+
+Views, sunucuda saklanan JavaScript dosyalarıdır (`Views/` klasörü). 
+
+**View Oluşturma:**
+```javascript
+// db.saveView(name, content)
+db.saveView("getUser", `
+    // @access public
+    return db.users.find(u => u.name == @name);
+`);
+```
+
+**Erişim Kontrolü:**
+Scriptin başına `// @access public` yazarsanız şifresiz HTTP erişimine açılır. Varsayılan `private`tir.
+
+**Çalıştırma:**
+1. **İçerden:** `db.view("getUser", {name: "Ali"})`
+2. **HTTP:** `GET /views/getUser?name=Ali`
+
+**Loglama:**
+Her view çalışması `view_logs/` klasörüne (IP, Süre, Hata, Console çıktıları) kaydedilir.
+
+## 9. Triggers (Asenkron Tetikleyiciler)
+
+Veri değişikliklerini dinleyen arka plan fonksiyonlarıdır.
+
+**Oluşturma:**
+```javascript
+db.saveTrigger("logUserChange", `
+    // @target sysusers
+    console.log("Değişiklik: " + event.type + " on " + event.documentId);
+`);
+```
+*   `// @target [collectionName]` satırı zorunludur. `*` ile hepsi dinlenebilir.
+*   `event` global nesnesi: `{ type: "changed|created|deleted", collection: "...", documentId: "..." }`
+*   Loglar `trigger_logs/yyyy-MM-dd.log` dosyasına yazılır.
+
+## 10. HTML Çıktı
+
+Eğer sorgunuz bir **Dizi (Array)** yerine tek bir **String (HTML)** döndürürse, Yönetim Konsolu bu sonucu Grid yerine bir Iframe içinde web sayfası olarak gösterir. Raporlama için idealdir.
+
+```javascript
+return "<h1>Rapor</h1><p>Veri...</p>";
+```
+
+## 9. Sorun Giderme
 
 *   **401 Unauthorized**: Kullanıcı adı/şifreyi kontrol edin (`unlocker:unlocker`).
 *   **Script Error**: JavaScript sözdiziminizi kontrol edin.
@@ -210,7 +291,9 @@ faktoriyel(5); // 120 döndürür
 **C:** **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)** adresini ziyaret ederek PR veya Issue oluşturabilirsiniz.
 
 **S: Birden fazla veritabanı kullanmak için ne yapmam gerekiyor?**
-**C:** UnlockDB tek bir port üzerinde çalışır. Birden fazla ayrı veritabanı için, farklı portlarda (örn. 5000, 5001) çalışan birden fazla UnlockDB uygulaması (veya Docker konteyneri) başlatmalısınız.
+**C:** UnlockDB tek bir port üzerinde çalışır. Birden fazla ayrı veritabanı için, farklı portlarda (örn. 5000, 5001) çalışan birden fazla UnlockDB uygulaması başlatmalısınız.
+Başlatırken `-p` parametresi ile portu belirtebilirsiniz:
+`dotnet run -- -p 5001` veya Docker'da `-p 5001:5001` mapping yaparak.
 
 **S: Eksik bir özellik talep edebilir miyim?**
 **C:** Evet! Lütfen GitHub'da bir özellik isteği (feature request) açın: **[https://github.com/metin-yakar/UnlockDB/](https://github.com/metin-yakar/UnlockDB/)**.
