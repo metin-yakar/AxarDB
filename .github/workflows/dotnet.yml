@@ -1,0 +1,55 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - name: alpine
+            rid: linux-musl-x64
+          - name: debian
+            rid: linux-x64
+          - name: archlinux
+            rid: linux-x64
+          - name: centos
+            rid: linux-x64
+          - name: windows
+            rid: win-x64
+          - name: macos
+            rid: osx-x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish (${{ matrix.name }})
+        run: |
+          dotnet publish \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=true \
+            -o publish/${{ matrix.name }}
+
+      - name: Package output
+        run: |
+          cd publish
+          zip -r AxarDB-${{ matrix.name }}.zip ${{ matrix.name }}
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/AxarDB-${{ matrix.name }}.zip
