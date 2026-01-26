@@ -19,13 +19,12 @@ jobs:
           VERSION="v1.0.$(date +'%Y%m%d%H%M')"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release
+      - name: Create draft release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
-          draft: false
-          prerelease: false
+          draft: true
 
   build:
     needs: release
@@ -34,13 +33,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: alpine
-            rid: linux-musl-x64
           - name: debian
-            rid: linux-x64
-          - name: archlinux
-            rid: linux-x64
-          - name: centos
             rid: linux-x64
           - name: windows
             rid: win-x64
@@ -61,7 +54,6 @@ jobs:
             -r ${{ matrix.rid }} \
             --self-contained true \
             -p:PublishSingleFile=true \
-            -p:PublishTrimmed=true \
             -o publish/${{ matrix.name }}
 
       - name: Package
@@ -74,3 +66,14 @@ jobs:
         with:
           tag_name: ${{ needs.release.outputs.version }}
           files: publish/AxarDB-${{ matrix.name }}.zip
+
+  publish:
+    needs: [release, build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release.outputs.version }}
+          draft: false
