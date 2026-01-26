@@ -14,10 +14,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate version (YYMMDD)
+      - name: Generate version (YYMMDD + run)
         run: |
           DATE_CODE=$(date +'%y%m%d')
-          echo "TAG_VERSION=v1.0.$DATE_CODE" >> $GITHUB_ENV
+          echo "TAG_VERSION=v1.0.$DATE_CODE.${GITHUB_RUN_NUMBER}" >> $GITHUB_ENV
           echo "FILE_VERSION=1.0.$DATE_CODE" >> $GITHUB_ENV
 
       - name: Setup .NET
@@ -25,7 +25,6 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      # ---------------- Debian ----------------
       - name: Publish Debian
         run: |
           dotnet publish -c Release -r linux-x64 --self-contained true \
@@ -34,7 +33,6 @@ jobs:
             -o publish/debian
           cd publish && zip -r AxarDB-debian.zip debian
 
-      # ---------------- Windows ----------------
       - name: Publish Windows
         run: |
           dotnet publish -c Release -r win-x64 --self-contained true \
@@ -43,7 +41,6 @@ jobs:
             -o publish/windows
           cd publish && zip -r AxarDB-windows.zip windows
 
-      # ---------------- macOS ----------------
       - name: Publish macOS
         run: |
           dotnet publish -c Release -r osx-x64 --self-contained true \
@@ -52,8 +49,7 @@ jobs:
             -o publish/macos
           cd publish && zip -r AxarDB-macos.zip macos
 
-      # -------- SINGLE & SAFE RELEASE STEP --------
-      - name: Create GitHub Draft Release & upload assets
+      - name: Create GitHub Draft Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_VERSION }}
