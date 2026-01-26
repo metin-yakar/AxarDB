@@ -1,5 +1,3 @@
-# 🔓 AxarDB - The JavaScript-Native NoSQL Database
-
 ![AxarDB Logo](wwwroot/AxarDBLogo.png)
 
 [![License: Custom](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](LICENSE)
