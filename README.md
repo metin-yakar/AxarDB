@@ -1,4 +1,4 @@
-![AxarDB Logo](wwwroot/AxarDBLogo.png)
+![AxarDB Logo](./AxarDBLogo.png)
 
 [![License: Custom](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
