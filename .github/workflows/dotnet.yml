@@ -1,9 +1,7 @@
-name: Build & Release
+name: Manual Build & Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -29,6 +27,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="v1.0.$(date +'%Y%m%d%H%M')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -49,7 +54,9 @@ jobs:
           cd publish
           zip -r AxarDB-${{ matrix.name }}.zip ${{ matrix.name }}
 
-      - name: Upload Release Asset
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
           files: publish/AxarDB-${{ matrix.name }}.zip
