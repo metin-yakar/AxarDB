@@ -25,7 +25,7 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      # Debian
+      # ---------------- Debian ----------------
       - name: Publish Debian
         run: |
           dotnet publish -c Release -r linux-x64 --self-contained true \
@@ -34,7 +34,7 @@ jobs:
             -o publish/debian
           cd publish && zip -r AxarDB-debian.zip debian
 
-      # Windows
+      # ---------------- Windows ----------------
       - name: Publish Windows
         run: |
           dotnet publish -c Release -r win-x64 --self-contained true \
@@ -43,7 +43,7 @@ jobs:
             -o publish/windows
           cd publish && zip -r AxarDB-windows.zip windows
 
-      # macOS
+      # ---------------- macOS ----------------
       - name: Publish macOS
         run: |
           dotnet publish -c Release -r osx-x64 --self-contained true \
@@ -52,12 +52,13 @@ jobs:
             -o publish/macos
           cd publish && zip -r AxarDB-macos.zip macos
 
-      # ✅ SINGLE release step (CRITICAL)
-      - name: Create GitHub Release & upload assets
+      # -------- SINGLE & SAFE RELEASE STEP --------
+      - name: Create GitHub Draft Release & upload assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_VERSION }}
           name: ${{ env.TAG_VERSION }}
+          draft: true
           files: |
             publish/AxarDB-debian.zip
             publish/AxarDB-windows.zip
