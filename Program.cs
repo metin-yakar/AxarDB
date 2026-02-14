@@ -30,6 +30,30 @@ if (args.Contains("--benchmark"))
     return;
 }
 
+if (args.Length > 1 && args[0] == "script")
+{
+    var scriptPath = args[1];
+    if (File.Exists(scriptPath))
+    {
+        var db = new DatabaseEngine();
+        try 
+        {
+            var content = File.ReadAllText(scriptPath);
+            var result = db.ExecuteScript(content);
+            Console.WriteLine("Result: " + (result?.ToString() ?? "null"));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
+        }
+    }
+    else
+    {
+        Console.WriteLine($"File not found: {scriptPath}");
+    }
+    return;
+}
+
 var dbEngine = new DatabaseEngine();
 dbEngine.InitializeTriggers();
 

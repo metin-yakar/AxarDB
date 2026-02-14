@@ -16,6 +16,12 @@ namespace AxarDB.Bridges
             _engine = engine;
         }
 
+        public void reload()
+        {
+            Console.WriteLine($"[DB] Reloading collection: {_collection.Name}");
+            _collection.Reload();
+        }
+
         public ResultSet findall(Jint.Native.JsValue? predicate = null)
         {
             if (predicate == null || predicate.IsNull() || predicate.IsUndefined())

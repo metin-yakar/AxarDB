@@ -134,5 +134,16 @@ namespace AxarDB.Helpers
             if (decimal.TryParse(val, out var result)) return result;
             return 0;
         }
+
+        public static object? DeepCopy(object? obj)
+        {
+            if (obj == null) return null;
+            var json = System.Text.Json.JsonSerializer.Serialize(obj);
+            
+            var options = new System.Text.Json.JsonSerializerOptions();
+            options.Converters.Add(new AxarDB.Storage.CustomObjectConverter());
+            
+            return System.Text.Json.JsonSerializer.Deserialize<object>(json, options);
+        }
     }
 }

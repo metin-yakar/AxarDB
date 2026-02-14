@@ -31,6 +31,26 @@ namespace AxarDB
             engine.SetValue("split", new Func<string, string, string[]>(AxarDB.Helpers.ScriptUtils.Split));
             engine.SetValue("toDecimal", new Func<string, decimal>(AxarDB.Helpers.ScriptUtils.ToDecimal));
             engine.SetValue("guid", new Func<string>(() => Guid.NewGuid().ToString()));
+            engine.SetValue("toJson", new Func<object, string>(o => System.Text.Json.JsonSerializer.Serialize(o, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })));
+            
+            // Deep Copy Utility
+            engine.SetValue("deepcopy", new Func<object?, object?>(AxarDB.Helpers.ScriptUtils.DeepCopy));
+            
+            // Support for .toList() on arrays/enumerables
+            engine.Execute(@"
+                Object.prototype.toList = function() {
+                    if (Array.isArray(this)) return this;
+                    if (this && typeof this.toArray === 'function') return this.toArray();
+                    // If it's a .NET List/Enumerable wrapped
+                    return new System.Collections.Generic.List(this);
+                };
+                
+                // Polyfill for Array if needed, but Object.prototype hits all. 
+                // Better to be specific to Array or standard iterables if possible to avoid polluting everything.
+                // But user asked for 'herhangi bir array listesine'.
+                
+                Array.prototype.toList = function() { return this; };
+            ");
         }
 
         public DatabaseEngine()
@@ -128,6 +148,9 @@ namespace AxarDB
             var engine = new Engine(options => {
                  options.AllowClr();
             });
+
+            // Expose console.log for CLI scripts
+            engine.SetValue("console", new { log = new Action<object>(o => Console.WriteLine(o)) });
 
             // Expose 'db'
             var dbBridge = new AxarDBBridge(this, engine);

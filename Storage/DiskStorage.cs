@@ -6,13 +6,16 @@ namespace AxarDB.Storage
     public class DiskStorage
     {
         private readonly string _basePath;
-        private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = false };
+        private readonly JsonSerializerOptions _jsonOptions;
 
         public DiskStorage(string basePath)
         {
             _basePath = basePath;
             if (!Directory.Exists(_basePath))
                 Directory.CreateDirectory(_basePath);
+            
+            _jsonOptions = new JsonSerializerOptions { WriteIndented = false };
+            _jsonOptions.Converters.Add(new CustomObjectConverter());
         }
 
         public void EnsureCollection(string collectionName)
@@ -44,7 +47,7 @@ namespace AxarDB.Storage
             {
                 // Read: Share ReadWrite to allow writers to write while we read
                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                return JsonSerializer.Deserialize<Dictionary<string, object>>(fs);
+                return JsonSerializer.Deserialize<Dictionary<string, object>>(fs, _jsonOptions);
             }
             catch (IOException) { return null; } // File locked or busy
             catch (JsonException) { return null; }
@@ -75,7 +78,7 @@ namespace AxarDB.Storage
                 {
                     // Stream Read
                     using var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    doc = JsonSerializer.Deserialize<Dictionary<string, object>>(fs);
+                    doc = JsonSerializer.Deserialize<Dictionary<string, object>>(fs, _jsonOptions);
                 }
                 catch { /* Skip generic errors/locks for resilience during stream */ }
 
@@ -93,6 +96,39 @@ namespace AxarDB.Storage
                  if (Path.GetFileName(file).StartsWith("idx_")) continue;
                  yield return Path.GetFileNameWithoutExtension(file);
              }
+        }
+    }
+
+    public class CustomObjectConverter : System.Text.Json.Serialization.JsonConverter<object>
+    {
+        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.True:
+                    return true;
+                case JsonTokenType.False:
+                    return false;
+                case JsonTokenType.Number:
+                    if (reader.TryGetInt64(out long l))
+                        return l;
+                    return reader.GetDouble();
+                case JsonTokenType.String:
+                    if (reader.TryGetDateTime(out DateTime date))
+                        return date;
+                    return reader.GetString()!;
+                case JsonTokenType.StartObject:
+                    return JsonSerializer.Deserialize<Dictionary<string, object>>(ref reader, options)!;
+                case JsonTokenType.StartArray:
+                    return JsonSerializer.Deserialize<List<object>>(ref reader, options)!;
+                default:
+                    return JsonDocument.ParseValue(ref reader).RootElement.Clone();
+            }
+        }
+
+        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, value.GetType(), options);
         }
     }
 }
