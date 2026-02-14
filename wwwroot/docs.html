@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AxarDB Documentation</title>
+    <link rel="icon" type="image/png" href="AxarDBLogo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #252526;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --border: #333;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.7;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-header img {
+            width: 32px;
+            height: 32px;
+        }
+
+        .sidebar-header h2 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.25rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-link i {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .sidebar-footer a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .sidebar-footer a:hover {
+            color: var(--accent-hover);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .content-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 3rem 4rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+            padding-top: 1rem;
+        }
+
+        h1 {
+            color: var(--text-primary);
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        code {
+            background: var(--bg-card);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875em;
+            color: #e879f9;
+        }
+
+        pre {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #d4d4d4;
+        }
+
+        .comment {
+            color: #6a9955;
+        }
+
+        .keyword {
+            color: #c586c0;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .function {
+            color: #dcdcaa;
+        }
+
+        .number {
+            color: #b5cea8;
+        }
+
+        ul,
+        ol {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .feature-card h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+
+        .endpoint-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .endpoint-table th,
+        .endpoint-table td {
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--border);
+        }
+
+        .endpoint-table th {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .method {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .method-get {
+            background: #22c55e20;
+            color: #22c55e;
+        }
+
+        .method-post {
+            background: #3b82f620;
+            color: #3b82f6;
+        }
+
+        .info-box {
+            background: #3b82f610;
+            border: 1px solid #3b82f640;
+            border-left: 3px solid #3b82f6;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .warning-box {
+            background: #f59e0b10;
+            border: 1px solid #f59e0b40;
+            border-left: 3px solid #f59e0b;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="brand">
+                <img src="AxarDBLogo.png" alt="AxarDB">
+                <h2>Documentation</h2>
+            </div>
+            <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="searchInput" placeholder="Search...">
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" id="sidebarNav">
+            <div class="nav-section">
+                <div class="nav-section-title">Getting Started</div>
+                <a class="nav-link active" data-target="overview">
+                    <i data-lucide="home"></i> Overview
+                </a>
+                <a class="nav-link" data-target="features">
+                    <i data-lucide="zap"></i> Features
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">JavaScript API</div>
+                <a class="nav-link" data-target="data-read">
+                    <i data-lucide="search"></i> Data Reading
+                </a>
+                <a class="nav-link" data-target="data-write">
+                    <i data-lucide="edit-3"></i> Data Writing
+                </a>
+                <a class="nav-link" data-target="joins">
+                    <i data-lucide="git-merge"></i> Join Operations
+                </a>
+                <a class="nav-link" data-target="indexing">
+                    <i data-lucide="list-ordered"></i> Index
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Advanced</div>
+                <a class="nav-link" data-target="views">
+                    <i data-lucide="eye"></i> Views
+                </a>
+                <a class="nav-link" data-target="triggers">
+                    <i data-lucide="bell"></i> Triggers
+                </a>
+                <a class="nav-link" data-target="vaults">
+                    <i data-lucide="lock"></i> Vaults
+                </a>
+                <a class="nav-link" data-target="webhooks">
+                    <i data-lucide="send"></i> Webhooks
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">HTTP & Security</div>
+                <a class="nav-link" data-target="http-api">
+                    <i data-lucide="globe"></i> HTTP API
+                </a>
+                <a class="nav-link" data-target="security">
+                    <i data-lucide="shield"></i> Security
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Reference</div>
+                <a class="nav-link" data-target="utilities">
+                    <i data-lucide="tool"></i> Utility Functions
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="/">
+                <i data-lucide="arrow-left"></i> Back to Console
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <div class="content-wrapper">
+
+            <!-- Overview -->
+            <section class="section" id="overview">
+                <h1>AxarDB Documentation</h1>
+                <p class="subtitle">High-performance NoSQL database server powered by a JavaScript-based query language
+                </p>
+                <p>AxarDB is a NoSQL database server that works with JavaScript-based queries using the Jint
+                    JavaScript engine. It runs on ASP.NET Core 8.0.</p>
+            </section>
+
+            <!-- Features -->
+            <section class="section" id="features">
+                <h2>Core Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>📦 Collection Based</h4>
+                        <p>MongoDB-like structure. Automatic creation.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔍 JavaScript Query</h4>
+                        <p>Data processing with native JS syntax.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Index Support</h4>
+                        <p>Performance with ASC/DESC sorting.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🔗 Join Operations</h4>
+                        <p>Joining multiple collections.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>👁️ Views</h4>
+                        <p>Server-side stored queries.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>⚡ Triggers</h4>
+                        <p>Automated scripts that respond automatically.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Read -->
+            <section class="section" id="data-read">
+                <h2>Data Reading</h2>
+                <p>The <code>db</code> object is the entry point for all database operations.</p>
+                <pre><code><span class="comment">// Find a single record (returns the first match)</span>
+<span class="keyword">var</span> user = db.users.<span class="function">find</span>(u => u.age > <span class="number">18</span>);
+
+<span class="comment">// List all matches (convert to array with toList())</span>
+<span class="keyword">var</span> admins = db.users.<span class="function">findall</span>(u => u.role == <span class="string">'admin'</span>).<span class="function">toList</span>();
+
+<span class="comment">// Get the entire collection</span>
+<span class="keyword">var</span> allUsers = db.users.<span class="function">findall</span>().<span class="function">toList</span>();
+
+<span class="comment">// Get the first record</span>
+<span class="keyword">var</span> first = db.users.<span class="function">findall</span>().<span class="function">first</span>();
+
+<span class="comment">// Record count</span>
+<span class="keyword">var</span> count = db.users.<span class="function">findall</span>().<span class="function">count</span>();
+
+<span class="comment">// Case-insensitive search</span>
+<span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);</code></pre>
+                <div class="info-box">
+                    <strong>💡 Important:</strong> <code>findall()</code> returns a ResultSet. To use it as an array,
+                    <code>.toList()</code> must be called.
+                </div>
+            </section>
+
+            <!-- Data Write -->
+            <section class="section" id="data-write">
+                <h2>Data Writing</h2>
+                <h3>insert</h3>
+                <pre><code>db.users.<span class="function">insert</span>({
+    name: <span class="string">"Ahmet"</span>,
+    age: <span class="number">25</span>,
+    role: <span class="string">"developer"</span>
+});</code></pre>
+
+                <h3>update</h3>
+                <pre><code><span class="comment">// Update records that match the condition</span>
+db.users.<span class="function">update</span>(u => u.name == <span class="string">"Ahmet"</span>, { age: <span class="number">26</span> });
+
+<span class="comment">// Update via ResultSet</span>
+db.users.<span class="function">findall</span>(u => u.inactive).<span class="function">update</span>({ status: <span class="string">"archived"</span> });</code></pre>
+
+                <h3>delete</h3>
+                <pre><code>db.users.<span class="function">findall</span>(u => u.inactive == <span class="keyword">true</span>).<span class="function">delete</span>();</code></pre>
+
+                <h3>foreach</h3>
+                <pre><code>db.users.<span class="function">findall</span>().<span class="function">foreach</span>(user => {
+    console.<span class="function">log</span>(user.name);
+});</code></pre>
+            </section>
+
+            <!-- Joins -->
+            <section class="section" id="joins">
+                <h2>Join Operations</h2>
+                <pre><code><span class="comment">// Join two collections</span>
+<span class="keyword">var</span> result = db.<span class="function">join</span>(db.users, db.orders)
+    .<span class="function">where</span>(x => x.userId == x.customerId).<span class="function">toList</span>();
+
+<span class="comment">// Projection with Select</span>
+<span class="keyword">var</span> data = db.<span class="function">join</span>(db.products, db.categories).<span class="function">select</span>(x => ({
+    name: x.productName,
+    category: x.categoryName
+}));</code></pre>
+            </section>
+
+            <!-- Indexing -->
+            <section class="section" id="indexing">
+                <h2>Creating Index</h2>
+                <pre><code><span class="comment">// ASC (default)</span>
+db.users.<span class="function">index</span>(x => x.email);
+
+<span class="comment">// DESC sorting</span>
+db.users.<span class="function">index</span>(x => x.createdAt, <span class="string">"DESC"</span>);
+
+<span class="comment">// Chaining</span>
+db.users.<span class="function">insert</span>({...}).<span class="function">index</span>(x => x.name);</code></pre>
+            </section>
+
+            <!-- Views -->
+            <section class="section" id="views">
+                <h2>Views</h2>
+                <p>Views are reusable queries stored on the server side in the <code>Views/</code> folder.
+                </p>
+
+                <h3>Public View (Accessible to Everyone)</h3>
+                <pre><code><span class="comment">// Accessible via HTTP GET /views/activeUsers (No Auth required)</span>
+db.<span class="function">saveView</span>(<span class="string">"activeUsers"</span>, <span class="string">`
+// @access public
+return db.users.findall(u => u.active == true).toList();
+`</span>);</code></pre>
+
+                <h3>Private View (Internal Use Only)</h3>
+                <pre><code><span class="comment">// Can only be called with db.view(), not accessible from HTTP</span>
+db.<span class="function">saveView</span>(<span class="string">"internalReport"</span>, <span class="string">`
+// @access private
+return db.orders.findall(o => o.status == "pending").toList();
+`</span>);</code></pre>
+
+                <h3>View Usage</h3>
+                <pre><code><span class="comment">// Call internally</span>
+<span class="keyword">var</span> result = db.<span class="function">view</span>(<span class="string">"activeUsers"</span>);
+
+<span class="comment">// Get view code</span>
+<span class="keyword">var</span> code = db.<span class="function">getView</span>(<span class="string">"activeUsers"</span>);
+
+<span class="comment">// Access via HTTP (only public views)</span>
+<span class="comment">// GET /views/activeUsers</span></code></pre>
+
+                <div class="info-box">
+                    <strong>💡 @access Metadata:</strong><br>
+                    • <code>// @access public</code> → Accessible from outside via HTTP GET<br>
+                    • <code>// @access private</code> → Can only be used internally via <code>db.view()</code>
+                </div>
+            </section>
+
+            <!-- Triggers -->
+            <section class="section" id="triggers">
+                <h2>Triggers</h2>
+                <p>Triggers are asynchronous scripts that run automatically by monitoring file changes in the
+                    <code>Data/</code> folder. They are stored in the <code>Triggers/</code> folder.</p>
+
+                <h3>Creating a Trigger</h3>
+                <pre><code><span class="comment">// saveTrigger(triggerName, targetCollection, scriptCode)</span>
+db.<span class="function">saveTrigger</span>(<span class="string">"userNotifier"</span>, <span class="string">"users"</span>, <span class="string">`
+// @target users
+console.log("User changed: " + event.documentId);
+webhook("https://api.example.com/notify", 
+    { id: event.documentId, type: event.type },
+    { "Authorization": "Bearer " + $API_TOKEN }
+);
+`</span>);</code></pre>
+
+                <h3>@target Metadata</h3>
+                <p>Determines which collection the trigger will react to changes in:</p>
+                <pre><code><span class="comment">// Monitor changes only in the "orders" collection</span>
+<span class="comment">// @target orders</span>
+
+<span class="comment">// Monitor multiple collections</span>
+<span class="comment">// @target users,orders,products</span></code></pre>
+
+                <h3>Event Object</h3>
+                <pre><code>event.type        <span class="comment">// "changed" | "created" | "deleted"</span>
+event.collection  <span class="comment">// Name of the changed collection</span>
+event.documentId  <span class="comment">// _id value of the changed document</span>
+event.timestamp   <span class="comment">// Server time (ISO format)</span></code></pre>
+
+                <h3>Event Types</h3>
+                <ul>
+                    <li><strong>created</strong> - When a new document is added</li>
+                    <li><strong>changed</strong> - When an existing document is updated</li>
+                    <li><strong>deleted</strong> - When a document is deleted</li>
+                </ul>
+
+                <div class="info-box">
+                    <strong>💡 Logging:</strong> Trigger executions are logged daily in the <code>trigger_logs/</code>
+                    folder.
+                </div>
+            </section>
+
+            <!-- Vaults -->
+            <section class="section" id="vaults">
+                <h2>Vaults (Secure Storage)</h2>
+                <p>Secure key-value store in the <code>sysvaults</code> collection for API keys and constants.</p>
+                <pre><code><span class="comment">// Add value to Vault</span>
+<span class="function">addVault</span>(<span class="string">"API_KEY"</span>, <span class="string">"sk-xxxx..."</span>);
+<span class="function">addVault</span>(<span class="string">"SLACK_WEBHOOK"</span>, <span class="string">"https://hooks.slack.com/..."</span>);
+
+<span class="comment">// Use as $Key in queries</span>
+<span class="function">webhook</span>($SLACK_WEBHOOK, { text: <span class="string">"Notification!"</span> }, {});</code></pre>
+            </section>
+
+            <!-- Webhooks -->
+            <section class="section" id="webhooks">
+                <h2>Webhooks</h2>
+                <p>The <code>webhook(url, data, headers)</code> function is used to send HTTP POST requests to external
+                    services.</p>
+
+                <h3>Basic Usage</h3>
+                <pre><code><span class="comment">// Simple webhook (without headers)</span>
+<span class="function">webhook</span>(<span class="string">"https://api.example.com/notify"</span>, {
+    message: <span class="string">"New record added"</span>,
+    timestamp: <span class="keyword">new</span> Date().<span class="function">toISOString</span>()
+}, {});</code></pre>
+
+                <h3>Usage with Headers</h3>
+                <pre><code><span class="comment">// With Bearer Token</span>
+<span class="function">webhook</span>(<span class="string">"https://api.example.com/data"</span>, 
+    { userId: <span class="number">123</span>, action: <span class="string">"update"</span> },
+    { 
+        <span class="string">"Authorization"</span>: <span class="string">"Bearer "</span> + $API_TOKEN,
+        <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span>
+    }
+);
+
+<span class="comment">// With API Key</span>
+<span class="function">webhook</span>(<span class="string">"https://api.stripe.com/v1/charges"</span>, 
+    { amount: <span class="number">1000</span>, currency: <span class="string">"usd"</span> },
+    { <span class="string">"X-API-Key"</span>: $STRIPE_KEY }
+);
+
+<span class="comment">// Slack Webhook</span>
+<span class="function">webhook</span>($SLACK_WEBHOOK, 
+    { text: <span class="string">"New order received!"</span> },
+    { <span class="string">"Content-Type"</span>: <span class="string">"application/json"</span> }
+);</code></pre>
+            </section>
+
+            <!-- HTTP API -->
+            <section class="section" id="http-api">
+                <h2>HTTP API</h2>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Method</th>
+                            <th>Description</th>
+                            <th>Auth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>/query</code></td>
+                            <td><span class="method method-post">POST</span></td>
+                            <td>Execute JavaScript query</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td><code>/collections</code></td>
+                            <td><span class="method method-get">GET</span></td>
+                            <td>List collections</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td><code>/views/{name}</code></td>
+                            <td><span class="method method-get">GET</span></td>
+                            <td>Run public view</td>
+                            <td>@access</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Query Parameters</h3>
+                <pre><code><span class="comment">// POST /query?userName=John&userAge=30</span>
+db.users.<span class="function">insert</span>({
+    name: @userName,
+    age: <span class="function">parseInt</span>(@userAge)
+});</code></pre>
+            </section>
+
+            <!-- Security -->
+            <section class="section" id="security">
+                <h2>Security</h2>
+                <ul>
+                    <li><strong>Basic Authentication:</strong> Required for /query and /collections</li>
+                    <li><strong>Default User:</strong> <code>unlocker / unlocker</code></li>
+                    <li><strong>Password Hashing:</strong> Supports both plain text and SHA256 hashed passwords in the <code>sysusers</code> collection.</li>
+                    <li><strong>Injection Protection:</strong> @param placeholders are securely bound</li>
+                    <li><strong>Malicious Code Check:</strong> eval, Function are blocked</li>
+                </ul>
+                <div class="warning-box">
+                    <strong>⚠️ Warning:</strong> Dangerous codes such as <code>eval(</code>, <code>Function(</code>,
+                    <code>script</code> in parameters are rejected.
+                </div>
+            </section>
+
+            <!-- Utilities -->
+            <section class="section" id="utilities">
+                <h2>Utility Functions</h2>
+                <pre><code><span class="comment">// Create unique ID (UUID)</span>
+<span class="keyword">var</span> id = <span class="function">guid</span>();
+
+<span class="comment">// Write log to console (server console and logs/)</span>
+console.<span class="function">log</span>(<span class="string">"Message"</span>);
+
+<span class="comment">// Send webhook (url, data, headers)</span>
+<span class="function">webhook</span>(<span class="string">"https://api.example.com/hook"</span>, 
+    { data: <span class="string">"value"</span> }, 
+    { <span class="string">"Authorization"</span>: <span class="string">"Bearer token"</span> }
+);
+
+<span class="comment">// Add value to Vault</span>
+<span class="function">addVault</span>(<span class="string">"KEY_NAME"</span>, <span class="string">"value"</span>);
+
+<span class="comment">// List existing collections</span>
+<span class="keyword">var</span> cols = <span class="function">showCollections</span>();
+
+<span class="comment">// Create SHA256 hash</span>
+<span class="keyword">var</span> hash = <span class="function">sha256</span>(<span class="string">"password"</span>);
+
+<span class="comment">// Create random string</span>
+<span class="keyword">var</span> token = <span class="function">randomString</span>(<span class="number">32</span>);</code></pre>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.section');
+        const mainContent = document.getElementById('mainContent');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const targetId = link.getAttribute('data-target');
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        mainContent.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - mainContent.offsetTop;
+                if (mainContent.scrollTop >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-target') === current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            sections.forEach(section => {
+                const text = section.textContent.toLowerCase();
+                const matches = query === '' || text.includes(query);
+                section.style.display = matches ? 'block' : 'none';
+            });
+            navLinks.forEach(link => {
+                const targetId = link.getAttribute('data-target');
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    link.style.display = targetSection.style.display === 'none' ? 'none' : 'flex';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

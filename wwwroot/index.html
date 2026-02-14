@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AxarDB - Management Console</title>
+    <link rel="icon" type="image/png" href="AxarDBLogo.png">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Monaco Editor -->
+    <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/loader.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar: Databases & Collections -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <img src="AxarDBLogo.png" alt="AxarDB" class="logo-img">
+                    <h2>Collections</h2>
+                </div>
+                <button class="btn-add" id="btnAddDb" title="Add Database">
+                    <i data-lucide="plus"></i>
+                </button>
+            </div>
+            <div style="padding: 0 1rem 0.5rem 1rem;">
+                <input type="text" id="sidebarFilter" placeholder="Filter..." class="filter-input"
+                    style="width: 100%; border: 1px solid #333; background: #252526; color: white; padding: 4px 8px; border-radius: 4px;">
+            </div>
+            <div class="tree-container" id="collectionTree">
+                <!-- Tree items will be injected here -->
+                <div class="loading">Loading collections...</div>
+            </div>
+            <div class="sidebar-footer">
+                <a href="/docs" target="_blank" class="btn-docs">
+                    <i data-lucide="book-open"></i>
+                    <span>Documentation</span>
+                </a>
+            </div>
+            <div class="resizer-v" id="resizerV"></div>
+        </aside>
+
+        <!-- Main Area -->
+        <main class="main-content">
+            <!-- Query Section -->
+            <section class="query-section" id="querySection">
+                <div class="toolbar">
+                    <button class="btn-execute" id="btnExecute">
+                        <i data-lucide="play"></i>
+                        Execute (Ctrl+Enter)
+                    </button>
+                </div>
+                <div id="editorContainer" class="editor-container"></div>
+                <div class="resizer-h" id="resizerH"></div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section">
+                <div class="results-toolbar">
+                    <span class="results-title">Results</span>
+                    <div class="results-actions">
+                        <button class="btn-icon" id="btnExportJson" title="Export to JSON">
+                            <i data-lucide="file-json"></i>
+                        </button>
+                        <button class="btn-icon" id="btnExportCsv" title="Export to CSV">
+                            <i data-lucide="file-spreadsheet"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="grid-container" id="gridContainer">
+                    <table id="resultsTable">
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                    <div id="noResults" style="padding: 2rem; color: var(--text-secondary); text-align: center;">
+                        Execute a query to see results
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Hidden Template for Context Menu -->
+    <div id="contextMenu" class="context-menu" style="display: none;"></div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="login-box">
+            <div class="login-header">
+                <img src="AxarDBLogo.png" alt="AxarDB" class="login-logo">
+                <h2>Welcome Back</h2>
+                <p style="color: var(--text-secondary); margin-top: 0.5rem;">Sign in to access the console</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="username" class="form-input" placeholder="Enter username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn-primary">Sign In</button>
+                <div id="loginError" class="error-msg">Invalid credentials</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transparent overlay during resizing -->
+    <div id="resizeOverlay"
+        style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; cursor: col-resize;"></div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
