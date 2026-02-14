@@ -30,12 +30,6 @@ if (args.Contains("--benchmark"))
     return;
 }
 
-if (args.Contains("--verify"))
-{
-    Verification.Run();
-    return;
-}
-
 var dbEngine = new DatabaseEngine();
 dbEngine.InitializeTriggers();
 

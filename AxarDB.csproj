@@ -25,4 +25,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\sysvaults\" />
+  </ItemGroup>
+
 </Project>

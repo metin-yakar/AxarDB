@@ -3,6 +3,7 @@
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+[Pp]roperties/
 x64/
 x86/
 [Ww][Ii][Nn]32/
@@ -42,6 +43,7 @@ x86/
 bld/
 .agent/
 .agents/
+tmp/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
