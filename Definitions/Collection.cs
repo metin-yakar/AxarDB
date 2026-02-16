@@ -229,5 +229,40 @@ namespace AxarDB.Definitions
                 }
             }
         }
+        public void OnExternalChange(string id, string evtType)
+        {
+            // Handle external file changes (manual edit, FTP, etc.)
+            // We need to reflect these changes in Memory (Index & Cache)
+            
+            if (evtType == "deleted")
+            {
+                lock (_indexLock) { _primaryIndex.Remove(id); }
+                _cache.Remove(GetCacheKey(id));
+                // TODO: Remove from secondary indices if supported
+            }
+            else if (evtType == "created")
+            {
+                lock (_indexLock) { _primaryIndex.Add(id); }
+                // We don't populate cache here, let next read do it
+                // We should update secondary indices
+                var doc = _storage.LoadDocument(Name, id);
+                if (doc != null)
+                {
+                    foreach (var index in Indices) index.IndexDocument(doc);
+                }
+            }
+            else if (evtType == "changed")
+            {
+                // Invalidate cache
+                _cache.Remove(GetCacheKey(id));
+                
+                // Update secondary indices
+                var doc = _storage.LoadDocument(Name, id);
+                if (doc != null)
+                {
+                    foreach (var index in Indices) index.IndexDocument(doc);
+                }
+            }
+        }
     }
 }

@@ -83,6 +83,17 @@ nunit-*.xml
 # Data directory - contains user data and passwords
 Data/
 **/Data/
+Views/
+**/Views/
+Triggers/
+**/Triggers/
+request_logs/
+**/request_logs/
+view_logs/
+**/view_logs/
+error_logs/
+**/error_logs/
+
 
 # Test data and user files
 *.json
@@ -131,3 +142,4 @@ notebookllm.md
 **/SDKs/**/*.egg-info/
 **/SDKs/**/.vs/
 **/SDKs/**/.vscode/
+.playwright-mcp/
