@@ -81,7 +81,52 @@ dotnet run --project SDKs/cli/AxarDB.Cli -- --host http://localhost:5000 --user 
 
 ---
 
-## 📦 İstemci SDK'ları
+## � Dahili Fonksiyonlar
+
+AxarDB, script ve view içerisinde kullanabileceğiniz güçlü yardımcı fonksiyonlar sunar.
+
+### 📅 Tarih İşlemleri
+Tarih manipülasyonu için .NET benzeri metodlar mevcuttur ve `DateTime` nesnesi döndürürler.
+
+```javascript
+var now = new Date();
+
+// 5 dakika ekle
+var future = addMinutes(now, 5);
+
+// 2 gün ekle
+var nextWeek = addDays(now, 2);
+
+// 3 saat ekle
+var later = addHours(now, 3);
+```
+
+### 🌐 HTTP İstekleri
+Dış servislerle iletişim kurmak için `httpGet` ve `webhook` (POST) kullanılabilir.
+
+**httpGet(url, headers?)**
+```javascript
+// Basit GET isteği
+var response = httpGet("https://api.example.com/data");
+if (response.success) {
+    console.log(response.data);
+}
+
+// Header ile GET isteği
+var responseWithHeader = httpGet("https://api.example.com/secure", { "Authorization": "Bearer token" });
+```
+
+**webhook(url, data, headers?)**
+```javascript
+// POST isteği
+webhook("https://api.example.com/notify", { message: "Hello" });
+```
+
+---
+
+
+
+## �📦 İstemci SDK'ları
 
 C# ve Python için tam tip destekli (strongly typed) ve asenkron (async) çalışan resmi SDK'lar mevcuttur.
 

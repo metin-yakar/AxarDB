@@ -5,7 +5,14 @@ using System.Diagnostics;
 using AxarDB;
 using AxarDB.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
+// Ensure Console Output is UTF8
+Console.OutputEncoding = Encoding.UTF8;
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppDomain.CurrentDomain.BaseDirectory
+});
 
 // Configure Kestrel to listen on specified port or default 5000
 int port = 5000;

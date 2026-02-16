@@ -3,10 +3,13 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Converters;
+using System.Dynamic;
 
 using System.Collections.Generic;
 using System.Collections;
@@ -21,17 +24,29 @@ namespace AxarDB.Sdk
         private readonly ILogger<AxarClient> _logger;
         private readonly AxarRateLimiter _rateLimiter;
         private readonly IMemoryCache _cache; // Kept for disposal if we own it
+        private readonly JsonSerializerSettings _jsonSettings;
 
         public AxarClient(string baseUrl, string username, string password, ILogger<AxarClient> logger = null, IMemoryCache cache = null)
         {
             _baseUrl = baseUrl.TrimEnd('/');
             _httpClient = new HttpClient();
+            // Increase buffer size for large responses if needed, though GetAsync defaults are usually fine.
+            // _httpClient.MaxResponseContentBufferSize = 2147483647; // 2GB
+            
             var authValue = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authValue);
             
             _logger = logger;
             _cache = cache ?? new MemoryCache(new MemoryCacheOptions());
             _rateLimiter = new AxarRateLimiter(_cache, _logger);
+
+            _jsonSettings = new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore,
+                MaxDepth = null, // Allow deep structures
+                Converters = new List<JsonConverter> { new ExpandoObjectConverter(), new StringEnumConverter() }
+            };
         }
 
         public void ConfigureRateLimit(string type, int maxRequests)
@@ -104,11 +119,7 @@ namespace AxarDB.Sdk
             
             try 
             {
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                return JsonSerializer.Deserialize<T>(json, options);
+                return JsonConvert.DeserializeObject<T>(json, _jsonSettings);
             }
             catch (JsonException)
             {
@@ -142,14 +153,14 @@ namespace AxarDB.Sdk
              {
                  document.Id = Guid.NewGuid().ToString();
              }
-             var json = JsonSerializer.Serialize(document);
+             var json = JsonConvert.SerializeObject(document, _jsonSettings);
              var script = $"db.{collection}.insert({json})";
              return await QueryAsync<T>(script);
         }
 
         public async Task<object> InsertAsync(string collection, object document)
         {
-             var json = JsonSerializer.Serialize(document);
+             var json = JsonConvert.SerializeObject(document, _jsonSettings);
              var script = $"db.{collection}.insert({json})";
              return await QueryAsync<object>(script);
         }
@@ -168,7 +179,7 @@ namespace AxarDB.Sdk
 
         public async Task UpdateAsync(string collection, string predicate, object updateData)
         {
-            var json = JsonSerializer.Serialize(updateData);
+            var json = JsonConvert.SerializeObject(updateData, _jsonSettings);
             var script = $"db.{collection}.update({predicate}, {json})";
             await ExecuteAsync(script);
         }
@@ -234,11 +245,8 @@ namespace AxarDB.Sdk
             
             try 
             {
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                return JsonSerializer.Deserialize<T>(content, options);
+                // Configured _jsonSettings includes ExpandoObjectConverter and MaxDepth = null
+                return JsonConvert.DeserializeObject<T>(content, _jsonSettings);
             }
             catch (JsonException)
             {
