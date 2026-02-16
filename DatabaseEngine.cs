@@ -6,6 +6,7 @@ using System.IO;
 using System.Net.Http;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace AxarDB
 {
@@ -14,6 +15,86 @@ namespace AxarDB
         private ConcurrentDictionary<string, Collection> _collections = new();
         private readonly AxarDB.Storage.DiskStorage _storage;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _sharedCache;
+        private static readonly HttpClient _httpClient = new HttpClient();
+        private readonly string _basePath;
+
+        private string FormatLog(object o)
+        {
+            if (o == null) return "null";
+            if (o is string s) return s;
+            try
+            {
+                var settings = new JsonSerializerSettings
+                {
+                    Formatting = Formatting.None, // Compact JSON as requested
+                    DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                    NullValueHandling = NullValueHandling.Ignore,
+                    Converters = new List<JsonConverter> 
+                    { 
+                        new Newtonsoft.Json.Converters.ExpandoObjectConverter(),
+                        new Newtonsoft.Json.Converters.StringEnumConverter()
+                    }
+                };
+                return JsonConvert.SerializeObject(o, settings);
+            }
+            catch
+            {
+                return o.ToString();
+            }
+        }
+
+        private object PerformHttpRequest(string method, string url, object? data, object? headers)
+        {
+            try 
+            {
+                HttpRequestMessage request = new HttpRequestMessage(new HttpMethod(method), url);
+
+                if (data != null && (method == "POST" || method == "PUT"))
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(data);
+                    request.Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                }
+
+                // Handle Headers
+                if (headers != null)
+                {
+                    if (headers is IDictionary<string, object> headerDict)
+                    {
+                        foreach (var kvp in headerDict)
+                        {
+                            request.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value?.ToString());
+                        }
+                    }
+                    else if (headers is System.Collections.IEnumerable headerList)
+                    {
+                        foreach (var item in headerList)
+                        {
+                             if (item is IDictionary<string, object> dict)
+                             {
+                                 foreach (var kvp in dict) 
+                                     request.Headers.TryAddWithoutValidation(kvp.Key, kvp.Value?.ToString());
+                             }
+                        }
+                    }
+                }
+
+                var response = _httpClient.SendAsync(request).Result;
+                var responseString = response.Content.ReadAsStringAsync().Result;
+                
+                object? responseData;
+                try {
+                     responseData = System.Text.Json.JsonSerializer.Deserialize<object>(responseString);
+                } catch {
+                     responseData = responseString;
+                }
+
+                return new { success = response.IsSuccessStatusCode, status = (int)response.StatusCode, data = responseData };
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, error = ex.Message };
+            }
+        }
 
         private void RegisterUtils(Engine engine)
         {
@@ -36,6 +117,20 @@ namespace AxarDB
             // Deep Copy Utility
             engine.SetValue("deepcopy", new Func<object?, object?>(AxarDB.Helpers.ScriptUtils.DeepCopy));
             
+            
+            // Webhook Function (POST)
+            engine.SetValue("webhook", new Func<string, object, object?, object>((url, data, headers) => 
+                PerformHttpRequest("POST", url, data, headers)));
+
+            // HTTP Get Function
+            engine.SetValue("httpGet", new Func<string, object?, object>((url, headers) => 
+                PerformHttpRequest("GET", url, null, headers)));
+
+            // Date Functions
+            engine.SetValue("addMinutes", new Func<object, double, DateTime>(AxarDB.Helpers.ScriptUtils.AddMinutes));
+            engine.SetValue("addHours", new Func<object, double, DateTime>(AxarDB.Helpers.ScriptUtils.AddHours));
+            engine.SetValue("addDays", new Func<object, double, DateTime>(AxarDB.Helpers.ScriptUtils.AddDays));
+
             // Support for .toList() on arrays/enumerables
             engine.Execute(@"
                 Object.prototype.toList = function() {
@@ -53,9 +148,12 @@ namespace AxarDB
             ");
         }
 
-        public DatabaseEngine()
+        public DatabaseEngine(string? basePath = null)
         {
-            _storage = new AxarDB.Storage.DiskStorage("Data");
+            _basePath = basePath ?? AppDomain.CurrentDomain.BaseDirectory;
+            if (!Directory.Exists(_basePath)) Directory.CreateDirectory(_basePath);
+
+            _storage = new AxarDB.Storage.DiskStorage(Path.Combine(_basePath, "Data"));
             
             // Dynamic Memory Limit: 70% of Total Available Memory
             var gcInfo = GC.GetGCMemoryInfo();
@@ -150,7 +248,7 @@ namespace AxarDB
             });
 
             // Expose console.log for CLI scripts
-            engine.SetValue("console", new { log = new Action<object>(o => Console.WriteLine(o)) });
+            engine.SetValue("console", new { log = new Action<object>(o => Console.WriteLine(FormatLog(o))) });
 
             // Expose 'db'
             var dbBridge = new AxarDBBridge(this, engine);
@@ -165,7 +263,7 @@ namespace AxarDB
             engine.SetValue("showCollections", new Func<List<string>>(() => {
                 var list = _collections.Keys.ToList();
                 // Also scan the Data folder for existing collections that might not be loaded yet
-                var dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+                var dataPath = Path.Combine(_basePath, "Data");
                 if (Directory.Exists(dataPath))
                 {
                     var dirs = Directory.GetDirectories(dataPath).Select(Path.GetFileName).Where(n => n != null).Cast<string>();
@@ -184,59 +282,6 @@ namespace AxarDB
 
             // --- Utility Functions ---
             RegisterUtils(engine);
-
-            // Webhook Function
-            engine.SetValue("webhook", new Func<string, object, object?, object>((url, data, headers) => {
-                try 
-                {
-                    using (var client = new HttpClient())
-                    {
-                        var json = System.Text.Json.JsonSerializer.Serialize(data);
-                        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-                        
-                        // Handle headers - Jint returns JS objects as ExpandoObject (IDictionary<string, object>)
-                        if (headers != null)
-                        {
-                            // Direct dictionary from JS object like { "Authorization": "Bearer..." }
-                            if (headers is IDictionary<string, object> headerDict)
-                            {
-                                foreach (var kvp in headerDict)
-                                {
-                                    client.DefaultRequestHeaders.TryAddWithoutValidation(kvp.Key, kvp.Value?.ToString());
-                                }
-                            }
-                            // Array of header objects like [{ "Authorization": "Bearer..." }]
-                            else if (headers is System.Collections.IEnumerable headerList)
-                            {
-                                foreach (var item in headerList)
-                                {
-                                    if (item is IDictionary<string, object> dict)
-                                    {
-                                        foreach (var kvp in dict) 
-                                            client.DefaultRequestHeaders.TryAddWithoutValidation(kvp.Key, kvp.Value?.ToString());
-                                    }
-                                }
-                            }
-                        }
-
-                        var response = client.PostAsync(url, content).Result;
-                        var responseString = response.Content.ReadAsStringAsync().Result;
-                        var isSuccess = response.IsSuccessStatusCode;
-                        
-                        try {
-                             return new { success = isSuccess, status = (int)response.StatusCode, data = System.Text.Json.JsonSerializer.Deserialize<object>(responseString) };
-                        } catch {
-                             return new { success = isSuccess, status = (int)response.StatusCode, data = responseString };
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return new { success = false, error = ex.Message };
-                }
-            }));
-
-            // AddVault Global removed - moved to db.AddVault
             
             // Execute
             var result = engine.Evaluate(script);
@@ -314,14 +359,14 @@ namespace AxarDB
 
         private string GetViewsPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Views");
+            var path = Path.Combine(_basePath, "Views");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
 
         private string GetLogsPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "view_logs");
+            var path = Path.Combine(_basePath, "view_logs");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
@@ -395,7 +440,7 @@ namespace AxarDB
                 // Ideally ExecuteScript should be refactored. 
                 // Let's just add the Console capture here.
                 
-                engine.SetValue("console", new { log = new Action<object>(o => consoleLogs.Add(o?.ToString() ?? "null")) });
+                engine.SetValue("console", new { log = new Action<object>(o => consoleLogs.Add(FormatLog(o))) });
 
                 // Execute
                 var evalResult = engine.Evaluate(script);
@@ -473,14 +518,14 @@ namespace AxarDB
 
         private string GetTriggersPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Triggers");
+            var path = Path.Combine(_basePath, "Triggers");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
 
         private string GetTriggerLogsPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "trigger_logs");
+            var path = Path.Combine(_basePath, "trigger_logs");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
@@ -489,7 +534,8 @@ namespace AxarDB
         {
             if (_triggerWatcher != null) return;
 
-            var dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+            
+            var dataPath = Path.Combine(_basePath, "Data");
             if (!Directory.Exists(dataPath)) Directory.CreateDirectory(dataPath);
 
             _triggerWatcher = new FileSystemWatcher(dataPath);
@@ -517,13 +563,24 @@ namespace AxarDB
                     // Path: Data/CollectionName/doc.json OR Data/CollectionName/_id_wrapper if shards (but current impl is simple)
                     // Current DiskStorage: Data/CollectionName/{guid}.json
                     
-                    var relative = Path.GetRelativePath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"), fullPath);
+                    var relative = Path.GetRelativePath(Path.Combine(_basePath, "Data"), fullPath);
                     var parts = relative.Split(Path.DirectorySeparatorChar);
                     
                     if (parts.Length < 2) return; // Not inside a collection
                     
                     var collectionName = parts[0];
                     var docIdRaw = Path.GetFileNameWithoutExtension(parts[1]);
+
+                    // Notify Collection for Cache Invalidation
+                    try
+                    {
+                        var collection = GetCollection(collectionName);
+                        collection.OnExternalChange(docIdRaw, evtType);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error notifying collection change: {ex.Message}");
+                    }
                     
                     // 2. Find matching triggers
                     var triggers = Directory.GetFiles(GetTriggersPath(), "*.js");
@@ -558,18 +615,9 @@ namespace AxarDB
                 // Minimal Bridge for Triggers - full db access? Yes.
                 var dbBridge = new AxarDBBridge(this, engine);
                 engine.SetValue("db", dbBridge);
-                engine.SetValue("webhook", new Func<string, object, object?, object>((url, data, headers) => {
-                     // Webhook reuse logic needed. Copy-paste or extract? 
-                     // Ideally extract. For now, we assume bridge calls are enough, but we need standalone webhook too?
-                     // Let's rely on db bridge having webhook if we exposed it... 
-                     // Wait, we exposed webhook globally in ExecuteScript. Here we need it too.
-                     // IMPORTANT: Code duplication is bad. But refactoring `ExecuteScript` is risky mid-task.
-                     // I will instantiate a fresh engine, so I need to re-register basic utilities.
-                     // Minimal set for now.
-                     return new { success = false, error = "Webhook not available in trigger context yet (use db.webhook if added)" }; 
-                }));
+                RegisterUtils(engine);
                 // Re-add console
-                engine.SetValue("console", new { log = new Action<object>(o => consoleLogs.Add(o?.ToString() ?? "null")) });
+                engine.SetValue("console", new { log = new Action<object>(o => consoleLogs.Add(FormatLog(o))) });
 
                 // Event Object
                 engine.SetValue("event", new 

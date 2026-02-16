@@ -26,13 +26,13 @@
 | **⚡ High Performance** | In-memory storage with `ConcurrentDictionary` and lazy evaluation using LINQ. |
 | **🔍 Smart Indexing** | Create ASC/DESC indexes on any field. Supports optimized range queries. |
 | **🔗 Joins** | Perform complex joins between collections: `db.join(users, orders).toList()`. |
-| **👁️ Views** | Stored server-side queries with `@access public/private` metadata. |
+| **👁️ Views** | Stored server-side queries with `@access public/private` metadata and `@param` parameter injection. |
 | **⚡ Triggers** | Automatic event handlers on data changes with `@target` filtering. |
 | **🔐 Vaults** | Secure key-value storage for API keys using `$KEY` syntax. |
-| **🌐 Webhooks** | HTTP POST with custom headers: `webhook(url, data, headers)`. |
+| **🌐 Webhooks & HTTP** | HTTP POST with `webhook()` and HTTP GET with `httpGet()`, both with custom headers. |
 | **🛡️ Secure** | Basic Authentication (supports SHA256 hashing) & **Injection Prevention** via `@placeholder` replacement. |
-| **🐋 Docker Ready** | Runs anywhere with a single `docker run` command. |
-| **🖥️ Management Console** | Web UI with Monaco Editor, **iframe HTML rendering**, Resizable Grid, and Dark Mode. |
+| **🐳 Docker Ready** | Runs anywhere with a single `docker run` command. |
+| **🖥️ Management Console** | Web UI with Monaco Editor, **Tab System**, **Query History**, **Smart View Click** with `@param` detection, Resizable Grid, and Dark Mode. |
 | **📚 Documentation** | Built-in docs page (`/docs`) with sidebar navigation and search. |
 
 ---

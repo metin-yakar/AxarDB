@@ -170,6 +170,122 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+.tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Tab Bar */
+.tab-bar {
+    display: flex;
+    align-items: center;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    height: 36px;
+    min-height: 36px;
+    padding: 0 4px;
+    gap: 2px;
+    user-select: none;
+}
+
+.tab-bar-list {
+    display: flex;
+    flex: 1;
+    overflow-x: auto;
+    gap: 2px;
+    scrollbar-width: none;
+}
+
+.tab-bar-list::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.15s;
+    max-width: 180px;
+    position: relative;
+}
+
+.tab-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.tab-item.active {
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--accent);
+}
+
+.tab-item-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.tab-item .tab-close {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 1;
+    opacity: 0;
+    transition: all 0.15s;
+    padding: 0;
+}
+
+.tab-item:hover .tab-close {
+    opacity: 0.7;
+}
+
+.tab-item .tab-close:hover {
+    opacity: 1;
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.tab-add {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+}
+
+.tab-add:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
 }
 
 /* Vertical Splitter for Sidebar */
@@ -635,6 +751,134 @@ input[type="checkbox"]:checked::after {
 /* Ensure TH has relative positioning for resizer */
 .results-table th {
     position: relative;
-    /* Overrides previous if necessary, but sticky needs to be handled carefully. Sticky + Relative works mostly. */
-    /* Resizers need to be clickable, so high z-index */
+}
+
+/* History Button */
+.btn-history {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.btn-history:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+/* History Modal */
+.history-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    padding: 0;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 70vh;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.history-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.history-modal-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.history-filter-bar {
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.history-item.active {
+    border-left: 3px solid var(--accent);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.history-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.history-item .preview {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.25rem;
+}
+
+.history-item .timestamp {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.history-item .btn-delete {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    opacity: 0;
+}
+
+.history-item:hover .btn-delete {
+    opacity: 1;
+}
+
+.history-item .btn-delete:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
 }

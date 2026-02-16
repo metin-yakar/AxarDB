@@ -5,17 +5,33 @@ using System.Diagnostics;
 using AxarDB;
 using AxarDB.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
+// Ensure Console Output is UTF8
+Console.OutputEncoding = Encoding.UTF8;
+
+
 
 // Configure Kestrel to listen on specified port or default 5000
+// Parse Arguments
 int port = 5000;
+string? targetPath = null;
+
 for (int i = 0; i < args.Length; i++)
 {
     if ((args[i] == "-p" || args[i] == "--port") && i + 1 < args.Length && int.TryParse(args[i + 1], out int p))
     {
         port = p;
     }
+    if (args[i] == "--targetpath" && i + 1 < args.Length)
+    {
+        targetPath = args[i + 1];
+    }
 }
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppDomain.CurrentDomain.BaseDirectory
+});
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
@@ -35,7 +51,7 @@ if (args.Length > 1 && args[0] == "script")
     var scriptPath = args[1];
     if (File.Exists(scriptPath))
     {
-        var db = new DatabaseEngine();
+        var db = new DatabaseEngine(targetPath);
         try 
         {
             var content = File.ReadAllText(scriptPath);
@@ -54,7 +70,7 @@ if (args.Length > 1 && args[0] == "script")
     return;
 }
 
-var dbEngine = new DatabaseEngine();
+var dbEngine = new DatabaseEngine(targetPath);
 dbEngine.InitializeTriggers();
 
 // Global Exception Handler Middleware

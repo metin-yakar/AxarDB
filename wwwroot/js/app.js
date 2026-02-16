@@ -1,4 +1,4 @@
-// AxarDB Web Interface - Refined Logic Phase 6 (Educational Fix)
+// AxarDB Web Interface
 let editor;
 let currentCollections = [];
 let queryResults = [];
@@ -6,6 +6,98 @@ let sortCol = null;
 let sortDir = 1;
 let filters = {};
 let lastCollectionName = "sysusers";
+let activeHistoryId = null;
+let _historyDebounceTimer = null;
+let _suppressHistorySync = false;
+
+// --- Tab System ---
+let tabs = [];
+let activeTabId = null;
+let _tabCounter = 0;
+
+function generateTabId() {
+    return 'tab_' + (++_tabCounter);
+}
+
+function createTab(title, script) {
+    const id = generateTabId();
+    const tab = {
+        id,
+        title: title || `Query ${_tabCounter}`,
+        script: script || "// Type your JavaScript query here\n// Use 'db.collection' to access data\n",
+        queryResults: [],
+        filters: {},
+        sortCol: null,
+        sortDir: 1,
+        lastCollectionName: 'sysusers'
+    };
+    tabs.push(tab);
+    switchTab(id);
+    return id;
+}
+
+function saveCurrentTabState() {
+    if (!activeTabId) return;
+    const tab = tabs.find(t => t.id === activeTabId);
+    if (!tab) return;
+    tab.script = editor ? editor.getValue() : '';
+    tab.queryResults = queryResults;
+    tab.filters = { ...filters };
+    tab.sortCol = sortCol;
+    tab.sortDir = sortDir;
+    tab.lastCollectionName = lastCollectionName;
+}
+
+function restoreTabState(tab) {
+    queryResults = tab.queryResults || [];
+    filters = tab.filters || {};
+    sortCol = tab.sortCol || null;
+    sortDir = tab.sortDir || 1;
+    lastCollectionName = tab.lastCollectionName || 'sysusers';
+    if (editor) {
+        _suppressHistorySync = true;
+        editor.setValue(tab.script);
+        _suppressHistorySync = false;
+    }
+    renderGrid();
+}
+
+function switchTab(id) {
+    if (activeTabId === id) return;
+    saveCurrentTabState();
+    activeTabId = id;
+    activeHistoryId = null;
+    const tab = tabs.find(t => t.id === id);
+    if (tab) restoreTabState(tab);
+    renderTabBar();
+}
+
+function closeTab(id) {
+    if (tabs.length <= 1) return;
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    tabs.splice(idx, 1);
+    if (activeTabId === id) {
+        const newIdx = Math.min(idx, tabs.length - 1);
+        activeTabId = null;
+        switchTab(tabs[newIdx].id);
+    } else {
+        renderTabBar();
+    }
+}
+
+function renderTabBar() {
+    const list = document.getElementById('tabBarList');
+    if (!list) return;
+    list.innerHTML = tabs.map(tab => {
+        const isActive = tab.id === activeTabId;
+        const titleHtml = escapeHtml(tab.title);
+        return `<button class="tab-item ${isActive ? 'active' : ''}" data-tab="${tab.id}" onclick="switchTab('${tab.id}')">
+            <span class="tab-item-title">${titleHtml}</span>
+            ${tabs.length > 1 ? `<span class="tab-close" onclick="event.stopPropagation(); closeTab('${tab.id}')">&times;</span>` : ''}
+        </button>`;
+    }).join('');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     initResizers();
@@ -14,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initLogin();
     checkAuthAndLoad();
     initIcons();
+    createTab('Query 1');
 });
 
 function initLogin() {
@@ -77,6 +170,15 @@ function initEditor() {
             run: () => {
                 executeSelectedQuery();
             }
+        });
+
+        // Live sync: update localStorage on every keystroke (debounced)
+        editor.onDidChangeModelContent(() => {
+            if (_suppressHistorySync || !activeHistoryId) return;
+            clearTimeout(_historyDebounceTimer);
+            _historyDebounceTimer = setTimeout(() => {
+                updateHistoryEntry(activeHistoryId, editor.getValue());
+            }, 300);
         });
     });
 }
@@ -162,7 +264,7 @@ async function loadCollections() {
 
             item.onclick = () => {
                 lastCollectionName = name;
-                editor.setValue(`// Find, Filter, Limit and List for '${name}'
+                setEditorValue(`// Find, Filter, Limit and List for '${name}'
 // Returns top 10 documents
 db.${name}
   .findall(x => true) // No filter
@@ -173,8 +275,8 @@ db.${name}
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: `Default Query`, action: () => { editor.setValue(`db.${name}.findall(x => true).take(5).ToList()`); executeSelectedQuery(); } },
-                    { label: `Clear ${name}`, action: () => { editor.setValue(`db.${name}.findall().delete()`); } }
+                    { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall(x => true).take(5).ToList()`); executeSelectedQuery(); } },
+                    { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } }
                 ]);
             };
             tree.appendChild(item);
@@ -220,26 +322,40 @@ db.saveView("ActiveUsers", \`
             item.className = 'tree-item';
             item.innerHTML = `<i data-lucide="file-code"></i> <span>${vName}</span>`;
             item.onclick = async () => {
-                // Fetch code on click? Or Execute default?
-                // Prompt implied "view and trigger code visualization option".
-                // Left click -> Execute usage example. Right click -> View Code?
-                // Or Left click -> Load Code into Editor to edit?
-                // Editors usually load code. Let's load code by default or provide easy wrapper.
-                // Let's do: Left click = Template to Run. Right Click = View/Edit Code (Raw).
-                editor.setValue(`db.view("${vName}", { param: "value" })`);
+                // Fetch view code to detect parameters
+                try {
+                    const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getView("${vName}")` });
+                    if (res.ok) {
+                        const code = await res.json();
+                        const params = extractViewParams(code);
+                        if (Object.keys(params).length > 0) {
+                            setEditorValue(`db.view("${vName}", ${JSON.stringify(params, null, 2)})`);
+                        } else {
+                            setEditorValue(`db.view("${vName}")`);
+                        }
+                    } else {
+                        setEditorValue(`db.view("${vName}")`);
+                    }
+                } catch {
+                    setEditorValue(`db.view("${vName}")`);
+                }
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: 'Run View', action: () => { editor.setValue(`db.view("${vName}")`); executeSelectedQuery(); } },
+                    { label: 'Run View', action: () => { setEditorValue(`db.view("${vName}")`); executeSelectedQuery(); } },
                     {
                         label: 'Edit/View Code', action: async () => {
                             const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getView("${vName}")` });
-                            if (res.ok) editor.setValue(`db.saveView("${vName}", ${JSON.stringify(await res.json())})`);
+                            if (res.ok) {
+                                const raw = await res.json();
+                                const prettyCode = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                                setEditorValue(`db.saveView("${vName}", \`\n${prettyCode}\n\`);`);
+                            }
                         }
                     },
-                    { label: 'Delete View', action: () => { editor.setValue(`db.deleteView("${vName}")`); executeSelectedQuery(); loadCollections(); } }
+                    { label: 'Delete View', action: () => { setEditorValue(`db.deleteView("${vName}")`); executeSelectedQuery(); loadCollections(); } }
                 ]);
             };
             tree.appendChild(item);
@@ -288,7 +404,7 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
                             // Extract target? Regex?
                             // Simple: Just let user edit body and re-save
                             // Or show full wrapper command
-                            editor.setValue(`// Update Trigger\ndb.saveTrigger("${tName}", "sysusers", ${JSON.stringify(code)});\n// Note: Update "sysusers" to your target parameter if changed.`);
+                            setEditorValue(`// Update Trigger\ndb.saveTrigger("${tName}", "sysusers", ${JSON.stringify(code)});\n// Note: Update "sysusers" to your target parameter if changed.`);
                         }
                     }
                 } catch (e) { console.error(e); }
@@ -299,10 +415,10 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
                     {
                         label: 'View Code', action: async () => {
                             const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getTrigger("${tName}")` });
-                            if (res.ok) editor.setValue(await res.json());
+                            if (res.ok) setEditorValue(await res.json());
                         }
                     },
-                    { label: 'Delete Trigger', action: () => { editor.setValue(`db.deleteTrigger("${tName}")`); executeSelectedQuery(); loadCollections(); } }
+                    { label: 'Delete Trigger', action: () => { setEditorValue(`db.deleteTrigger("${tName}")`); executeSelectedQuery(); loadCollections(); } }
                 ]);
             };
             tree.appendChild(item);
@@ -352,19 +468,34 @@ async function executeSelectedQuery() {
         try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
 
         if (response.ok) {
-            // Handle all response types properly
             if (Array.isArray(data)) {
                 queryResults = data;
             } else if (data === null || data === undefined) {
                 queryResults = [];
             } else {
-                // Wrap string, number, boolean, or object in array
                 queryResults = [data];
             }
             filters = {};
             renderGrid();
-            // Auto-refresh sidebar to show new collections/views/vaults
             loadCollections();
+
+            // Update active tab title
+            if (activeTabId) {
+                const tab = tabs.find(t => t.id === activeTabId);
+                if (tab) {
+                    const viewMatch = script.match(/db\.view\(["']([^"']+)["']/);
+                    if (viewMatch) {
+                        tab.title = viewMatch[1];
+                    } else if (match) {
+                        tab.title = match[1];
+                    }
+                    tab.queryResults = queryResults;
+                    renderTabBar();
+                }
+            }
+
+            // Save to history (always new entry)
+            addHistoryEntry(script);
         } else {
             alert('Error: ' + (data?.detail || data?.error || data || 'Query failed'));
         }
@@ -529,12 +660,12 @@ function handleRowAction(e, rowIdx) {
     showContextMenu(e, [
         {
             label: 'Edit Record', action: () => {
-                editor.setValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
+                setEditorValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
             }
         },
         {
             label: 'Delete Record', action: () => {
-                editor.setValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
+                setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
             }
         },
         { label: 'Export specific record (JSON)', action: () => exportData([row], 'json') }
@@ -607,12 +738,21 @@ function initColResize(e, resizer) {
 
 
 function initIcons() { if (window.lucide) lucide.createIcons(); }
+
+// Programmatic editor.setValue wrapper — resets activeHistoryId
+function setEditorValue(value) {
+    _suppressHistorySync = true;
+    activeHistoryId = null;
+    editor.setValue(value);
+    _suppressHistorySync = false;
+}
+
 function initButtons() {
     document.getElementById('btnExecute').onclick = executeSelectedQuery;
     document.getElementById('btnAddDb').onclick = () => {
         const name = prompt("Enter new collection name:");
         if (name) {
-            editor.setValue(`// Create Collection '${name}' by inserting a document
+            setEditorValue(`// Create Collection '${name}' by inserting a document
 // Collections are created automatically on first write
 db.${name}.insert({ 
     created: new Date(), 
@@ -626,4 +766,162 @@ showCollections();`);
     // Export buttons
     document.getElementById('btnExportJson').onclick = () => exportData(queryResults, 'json');
     document.getElementById('btnExportCsv').onclick = () => exportData(queryResults, 'csv');
+
+    // History
+    document.getElementById('btnHistory').onclick = openHistoryModal;
+    document.getElementById('btnCloseHistory').onclick = closeHistoryModal;
+
+    // Tab management
+    document.getElementById('btnAddTab').onclick = () => createTab();
+}
+
+// --- View Parameter Extraction ---
+function extractViewParams(code) {
+    const params = {};
+
+    // 1. Match @param patterns (e.g. @email, @password)
+    const atRegex = /@([a-zA-Z_][a-zA-Z0-9_]*)/g;
+    let match;
+    while ((match = atRegex.exec(code)) !== null) {
+        const paramName = match[1];
+        // Skip known directives like @access
+        if (paramName === 'access') continue;
+        if (params[paramName] === undefined) {
+            params[paramName] = '';
+        }
+    }
+
+    // 2. Match parameters.xxx patterns
+    const paramRegex = /parameters\.([a-zA-Z_][a-zA-Z0-9_]*)/g;
+    while ((match = paramRegex.exec(code)) !== null) {
+        const paramName = match[1];
+        if (params[paramName] !== undefined) continue;
+        // Try to find default: parameters.xxx || defaultValue
+        const defaultRegex = new RegExp(`parameters\\.${paramName}\\s*\\|\\|\\s*(.+?)\\s*;`);
+        const defaultMatch = code.match(defaultRegex);
+        if (defaultMatch) {
+            const raw = defaultMatch[1].trim();
+            if (!isNaN(Number(raw))) {
+                params[paramName] = Number(raw);
+            } else if (raw.startsWith('"') || raw.startsWith("'")) {
+                params[paramName] = raw.replace(/^["']|["']$/g, '');
+            } else if (raw === 'true' || raw === 'false') {
+                params[paramName] = raw === 'true';
+            } else {
+                params[paramName] = raw;
+            }
+        } else {
+            params[paramName] = '';
+        }
+    }
+
+    return params;
+}
+
+// --- Query History (localStorage) ---
+
+function getHistory() {
+    try {
+        return JSON.parse(localStorage.getItem('AxarDB_queryHistory') || '[]');
+    } catch { return []; }
+}
+
+function saveHistory(entries) {
+    localStorage.setItem('AxarDB_queryHistory', JSON.stringify(entries));
+}
+
+function addHistoryEntry(script) {
+    const entries = getHistory();
+    const id = 'q_' + Date.now();
+    entries.unshift({ id, script, timestamp: Date.now() });
+    saveHistory(entries);
+    activeHistoryId = id;
+}
+
+function updateHistoryEntry(id, script) {
+    const entries = getHistory();
+    const entry = entries.find(e => e.id === id);
+    if (entry) {
+        entry.script = script;
+        saveHistory(entries);
+    }
+}
+
+function deleteHistoryEntry(id) {
+    let entries = getHistory();
+    entries = entries.filter(e => e.id !== id);
+    saveHistory(entries);
+    if (activeHistoryId === id) activeHistoryId = null;
+    renderHistoryList();
+}
+
+function loadHistoryItem(id) {
+    const entries = getHistory();
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+    _suppressHistorySync = true;
+    activeHistoryId = id;
+    editor.setValue(entry.script);
+    _suppressHistorySync = false;
+    closeHistoryModal();
+}
+
+function openHistoryModal() {
+    document.getElementById('historyModal').style.display = 'flex';
+    renderHistoryList();
+    initIcons();
+}
+
+function closeHistoryModal() {
+    document.getElementById('historyModal').style.display = 'none';
+}
+
+function renderHistoryList() {
+    const list = document.getElementById('historyList');
+    const entries = getHistory();
+    const filterEl = document.getElementById('historyFilter');
+    const filterVal = filterEl ? filterEl.value.toLowerCase() : '';
+
+    const filtered = filterVal
+        ? entries.filter(e => e.script.toLowerCase().includes(filterVal))
+        : entries;
+
+    if (entries.length === 0) {
+        list.innerHTML = '<div style="padding: 2rem; color: var(--text-secondary); text-align: center;">No saved queries</div>';
+        return;
+    }
+
+    if (filtered.length === 0) {
+        list.innerHTML = '<div style="padding: 2rem; color: var(--text-secondary); text-align: center;">No matching queries</div>';
+        return;
+    }
+
+    list.innerHTML = filtered.map(entry => {
+        const preview = entry.script
+            .replace(/\/\/.*$/gm, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 70) || '(empty)';
+        const date = new Date(entry.timestamp);
+        const timeStr = date.toLocaleString();
+        const isActive = entry.id === activeHistoryId;
+
+        return `<div class="history-item ${isActive ? 'active' : ''}" data-id="${entry.id}">
+            <div class="history-item-content" onclick="loadHistoryItem('${entry.id}')">
+                <div class="preview">${escapeHtml(preview)}</div>
+                <div class="timestamp">${timeStr}</div>
+            </div>
+            <button class="btn-delete" onclick="event.stopPropagation(); deleteHistoryEntry('${entry.id}')" title="Delete">
+                <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+            </button>
+        </div>`;
+    }).join('');
+
+    initIcons();
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
 }

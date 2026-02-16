@@ -2,38 +2,34 @@ using AxarDB.Wrappers;
 
 namespace AxarDB
 {
-    public class ResultSet
+    public class ResultSet : List<DocumentWrapper>
     {
-        private readonly IEnumerable<Dictionary<string, object>> _source;
         private readonly AxarDB.Definitions.Collection? _collection; // Reference to update/delete
 
-        public ResultSet(IEnumerable<Dictionary<string, object>> source, AxarDB.Definitions.Collection? collection = null)
+        public ResultSet(IEnumerable<Dictionary<string, object>> source, AxarDB.Definitions.Collection? collection = null) 
+            : base(source.Select(d => new DocumentWrapper(d)))
         {
-            _source = source;
             _collection = collection;
         }
 
-        public List<DocumentWrapper> ToList()
-        {
-            return _source.Select(d => new DocumentWrapper(d)).ToList();
-        }
-
-        public List<DocumentWrapper> toList() => ToList();
+        public List<DocumentWrapper> ToList() => this;
+        public List<DocumentWrapper> toList() => this;
 
         public DocumentWrapper? first()
         {
-            var doc = _source.FirstOrDefault();
-            return doc != null ? new DocumentWrapper(doc) : null;
+            return this.FirstOrDefault();
         }
 
         public ResultSet take(int count)
         {
-            return new ResultSet(_source.Take(count), _collection);
+            // Create a new ResultSet from the taken items
+            var taken = this.Take(count).Select(w => w.Data);
+            return new ResultSet(taken, _collection);
         }
 
         public AxarList select(Func<object, object> selector)
         {
-            var list = _source.Select(d => selector(new DocumentWrapper(d)));
+            var list = this.Select(d => selector(d));
             return new AxarList(list);
         }
 
@@ -49,8 +45,9 @@ namespace AxarDB
             
             if (fields == null) return;
 
-            foreach(var doc in _source)
+            foreach(var wrapper in this)
             {
+                var doc = wrapper.Data;
                 foreach(var kv in fields)
                 {
                     doc[kv.Key] = kv.Value;
@@ -64,8 +61,8 @@ namespace AxarDB
             if (_collection == null) return;
             
             // Collect IDs to delete
-            var idsToDelete = _source
-                .Select(d => d.TryGetValue("_id", out var id) ? id.ToString() : null)
+            var idsToDelete = this
+                .Select(d => d.Data.TryGetValue("_id", out var id) ? id.ToString() : null)
                 .Where(x => x != null)
                 .Cast<string>()
                 .ToList();
@@ -74,19 +71,19 @@ namespace AxarDB
 
             // Efficient and safe deletion predicate
             _collection.Delete(d => d.TryGetValue("_id", out var id) && idsToDelete.Contains(id.ToString()!));
+            
+            this.Clear();
         }
 
         public void @foreach(Action<DocumentWrapper> action)
         {
-            foreach (var doc in _source)
-            {
-                action(new DocumentWrapper(doc));
-            }
+           foreach (var item in this) action(item);
         }
 
-        public int Count()
+        
+        public new int Count()
         {
-            return _source.Count();
+            return base.Count;
         }
     }
 }
