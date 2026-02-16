@@ -16,6 +16,7 @@ namespace AxarDB
         private readonly AxarDB.Storage.DiskStorage _storage;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _sharedCache;
         private static readonly HttpClient _httpClient = new HttpClient();
+        private readonly string _basePath;
 
         private string FormatLog(object o)
         {
@@ -147,9 +148,12 @@ namespace AxarDB
             ");
         }
 
-        public DatabaseEngine()
+        public DatabaseEngine(string? basePath = null)
         {
-            _storage = new AxarDB.Storage.DiskStorage("Data");
+            _basePath = basePath ?? AppDomain.CurrentDomain.BaseDirectory;
+            if (!Directory.Exists(_basePath)) Directory.CreateDirectory(_basePath);
+
+            _storage = new AxarDB.Storage.DiskStorage(Path.Combine(_basePath, "Data"));
             
             // Dynamic Memory Limit: 70% of Total Available Memory
             var gcInfo = GC.GetGCMemoryInfo();
@@ -259,7 +263,7 @@ namespace AxarDB
             engine.SetValue("showCollections", new Func<List<string>>(() => {
                 var list = _collections.Keys.ToList();
                 // Also scan the Data folder for existing collections that might not be loaded yet
-                var dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+                var dataPath = Path.Combine(_basePath, "Data");
                 if (Directory.Exists(dataPath))
                 {
                     var dirs = Directory.GetDirectories(dataPath).Select(Path.GetFileName).Where(n => n != null).Cast<string>();
@@ -278,10 +282,6 @@ namespace AxarDB
 
             // --- Utility Functions ---
             RegisterUtils(engine);
-
-
-
-            // AddVault Global removed - moved to db.AddVault
             
             // Execute
             var result = engine.Evaluate(script);
@@ -359,14 +359,14 @@ namespace AxarDB
 
         private string GetViewsPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Views");
+            var path = Path.Combine(_basePath, "Views");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
 
         private string GetLogsPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "view_logs");
+            var path = Path.Combine(_basePath, "view_logs");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
@@ -518,14 +518,14 @@ namespace AxarDB
 
         private string GetTriggersPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Triggers");
+            var path = Path.Combine(_basePath, "Triggers");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
 
         private string GetTriggerLogsPath() 
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "trigger_logs");
+            var path = Path.Combine(_basePath, "trigger_logs");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             return path;
         }
@@ -534,7 +534,8 @@ namespace AxarDB
         {
             if (_triggerWatcher != null) return;
 
-            var dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data");
+            
+            var dataPath = Path.Combine(_basePath, "Data");
             if (!Directory.Exists(dataPath)) Directory.CreateDirectory(dataPath);
 
             _triggerWatcher = new FileSystemWatcher(dataPath);
@@ -562,7 +563,7 @@ namespace AxarDB
                     // Path: Data/CollectionName/doc.json OR Data/CollectionName/_id_wrapper if shards (but current impl is simple)
                     // Current DiskStorage: Data/CollectionName/{guid}.json
                     
-                    var relative = Path.GetRelativePath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data"), fullPath);
+                    var relative = Path.GetRelativePath(Path.Combine(_basePath, "Data"), fullPath);
                     var parts = relative.Split(Path.DirectorySeparatorChar);
                     
                     if (parts.Length < 2) return; // Not inside a collection

@@ -49,41 +49,56 @@
 
         <!-- Main Area -->
         <main class="main-content">
-            <!-- Query Section -->
-            <section class="query-section" id="querySection">
-                <div class="toolbar">
-                    <button class="btn-execute" id="btnExecute">
-                        <i data-lucide="play"></i>
-                        Execute (Ctrl+Enter)
-                    </button>
-                </div>
-                <div id="editorContainer" class="editor-container"></div>
-                <div class="resizer-h" id="resizerH"></div>
-            </section>
+            <!-- Tab Content (editor + results) -->
+            <div class="tab-content" id="tabContent">
+                <!-- Query Section -->
+                <section class="query-section" id="querySection">
+                    <div class="toolbar">
+                        <button class="btn-history" id="btnHistory" title="Query History">
+                            <i data-lucide="history"></i>
+                            History
+                        </button>
+                        <button class="btn-execute" id="btnExecute">
+                            <i data-lucide="play"></i>
+                            Execute (Ctrl+Enter)
+                        </button>
+                    </div>
+                    <div id="editorContainer" class="editor-container"></div>
+                    <div class="resizer-h" id="resizerH"></div>
+                </section>
 
-            <!-- Results Section -->
-            <section class="results-section">
-                <div class="results-toolbar">
-                    <span class="results-title">Results</span>
-                    <div class="results-actions">
-                        <button class="btn-icon" id="btnExportJson" title="Export to JSON">
-                            <i data-lucide="file-json"></i>
-                        </button>
-                        <button class="btn-icon" id="btnExportCsv" title="Export to CSV">
-                            <i data-lucide="file-spreadsheet"></i>
-                        </button>
+                <!-- Results Section -->
+                <section class="results-section">
+                    <div class="results-toolbar">
+                        <span class="results-title">Results</span>
+                        <div class="results-actions">
+                            <button class="btn-icon" id="btnExportJson" title="Export to JSON">
+                                <i data-lucide="file-json"></i>
+                            </button>
+                            <button class="btn-icon" id="btnExportCsv" title="Export to CSV">
+                                <i data-lucide="file-spreadsheet"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="grid-container" id="gridContainer">
-                    <table id="resultsTable">
-                        <thead id="tableHead"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
-                    <div id="noResults" style="padding: 2rem; color: var(--text-secondary); text-align: center;">
-                        Execute a query to see results
+                    <div class="grid-container" id="gridContainer">
+                        <table id="resultsTable">
+                            <thead id="tableHead"></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                        <div id="noResults" style="padding: 2rem; color: var(--text-secondary); text-align: center;">
+                            Execute a query to see results
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            </div>
+
+            <!-- Tab Bar -->
+            <div class="tab-bar" id="tabBar">
+                <div class="tab-bar-list" id="tabBarList"></div>
+                <button class="tab-add" id="btnAddTab" title="New Tab">
+                    <i data-lucide="plus" style="width:14px;height:14px"></i>
+                </button>
+            </div>
         </main>
     </div>
 
@@ -110,6 +125,25 @@
                 <button type="submit" class="btn-primary">Sign In</button>
                 <div id="loginError" class="error-msg">Invalid credentials</div>
             </form>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="history-modal">
+            <div class="history-modal-header">
+                <h3>Query History</h3>
+                <button class="btn-icon" id="btnCloseHistory" title="Close">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="history-filter-bar">
+                <input type="text" id="historyFilter" class="filter-input" placeholder="Filter queries..."
+                    oninput="renderHistoryList()">
+            </div>
+            <div class="history-list" id="historyList">
+                <div style="padding: 2rem; color: var(--text-secondary); text-align: center;">No saved queries</div>
+            </div>
         </div>
     </div>
 

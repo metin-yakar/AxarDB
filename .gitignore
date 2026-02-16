@@ -142,3 +142,4 @@ notebookllm.md
 **/SDKs/**/*.egg-info/
 **/SDKs/**/.vs/
 **/SDKs/**/.vscode/
+.playwright-mcp/
