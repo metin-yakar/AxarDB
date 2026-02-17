@@ -25,7 +25,7 @@
 | **📜 JavaScript Querying** | Use full JavaScript syntax. `db.users.findall(x => x.active == true).ToList()` (Supports `.toList()` too) |
 | **⚡ High Performance** | In-memory storage with `ConcurrentDictionary` and lazy evaluation using LINQ. |
 | **🔍 Smart Indexing** | Create ASC/DESC indexes on any field. Supports optimized range queries. |
-| **🔗 Joins** | Perform complex joins between collections: `db.join(users, orders).toList()`. |
+| **🔗 Joins** | Perform complex joins with easy aliases: `db.join(alias(u, "user"), alias(o, "order"))`. |
 | **🛢️ MySQL/MariaDB** | Native support for external SQL queries: `mysqlRead(conn, query)` and `mysqlExec(conn, query)`. |
 | **🐘 PostgreSQL** | Native support for PostgreSQL queries: `pgsqlRead(conn, query)` and `pgsqlExec(conn, query)`. |
 | **👁️ Views** | Stored server-side queries with `@access public/private` metadata and `@param` parameter injection. |

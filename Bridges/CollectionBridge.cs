@@ -65,7 +65,17 @@ namespace AxarDB.Bridges
 
         public DocumentWrapper? find(Func<object, bool> predicate)
         {
-             var doc = _collection.FindAll(d => predicate(new DocumentWrapper(d))).FirstOrDefault();
+             // Fix: Lock engine for thread safety during Parallel execution
+             Func<Dictionary<string, object>, bool> safePredicate = (d) => 
+             {
+                 if (_engine == null) return predicate(new DocumentWrapper(d));
+                 lock (_engine) 
+                 {
+                     try { return predicate(new DocumentWrapper(d)); } catch { return false; }
+                 }
+             };
+
+             var doc = _collection.FindAll(safePredicate).FirstOrDefault();
              return doc != null ? new DocumentWrapper(doc) : null;
         }
 
@@ -77,7 +87,13 @@ namespace AxarDB.Bridges
 
         public AxarList select(Func<object, object> selector)
         {
-             var list = _collection.FindAll().Select(d => selector(new DocumentWrapper(d)));
+             Func<Dictionary<string, object>, object> safeSelector = (d) => 
+             {
+                 if (_engine == null) return selector(new DocumentWrapper(d));
+                 lock (_engine) { return selector(new DocumentWrapper(d)); }
+             };
+
+             var list = _collection.FindAll().Select(safeSelector);
              return new AxarList(list);
         }
 
@@ -112,13 +128,29 @@ namespace AxarDB.Bridges
 
         public ResultSet contains(Func<object, bool> predicate)
         {
-            var results = _collection.FindAll(d => predicate(new CaseInsensitiveDocumentWrapper(d)));
+            Func<Dictionary<string, object>, bool> safePredicate = (d) => 
+            {
+                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                lock (_engine) 
+                {
+                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            var results = _collection.FindAll(safePredicate);
             return new ResultSet(results, _collection);
         }
 
         public bool exists(Func<object, bool> predicate)
         {
-            return _collection.FindAll(d => predicate(new DocumentWrapper(d))).Any();
+            Func<Dictionary<string, object>, bool> safePredicate = (d) => 
+            {
+                if (_engine == null) return predicate(new DocumentWrapper(d));
+                lock (_engine) 
+                {
+                    try { return predicate(new DocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            return _collection.FindAll(safePredicate).Any();
         }
 
         private Dictionary<string, object>? ConvertToDictionary(object? obj)

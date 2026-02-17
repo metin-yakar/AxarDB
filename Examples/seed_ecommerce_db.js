@@ -103,10 +103,7 @@ for (var i = 0; i < 100; i++) {
 
         items.push({
             productId: product._id,
-            productName: product.name,
-            price: product.price,
-            quantity: quantity,
-            total: itemTotal
+            quantity: quantity
         });
         totalAmount += itemTotal;
     }
@@ -155,6 +152,39 @@ for (var i = 0; i < 150; i++) {
 }
 
 // 8. Create Views
+
+// Public View: Join Orders with Products (Refactored to use db.join)
+db.saveView("orderDetails", `
+// @access public
+var orderId = @orderId;
+var order = db.orders.find(o => o._id == orderId);
+if (!order) return { error: "Order not found" };
+
+// 4-Way Join with ALIASES: items + products + categories + reviews
+return db.join(
+    alias(order.items, "orderitems"), 
+    alias(db.products, "products"), 
+    alias(db.categories, "categories"), 
+    alias(db.reviews, "reviews")
+)
+    .where(x => 
+        x.orderitems.productId == x.products._id && 
+        x.products.categoryId == x.categories._id &&
+        x.reviews.productId == x.products._id
+    )
+    .select(x => ({
+        productId: x.orderitems.productId,
+        name: x.products.name,
+        category: x.categories.name,
+        price: x.products.price,
+        quantity: x.orderitems.quantity,
+        total: Math.round(x.products.price * x.orderitems.quantity * 100) / 100,
+        recentReview: {
+            rating: x.reviews.rating,
+            comment: x.reviews.comment
+        }
+    })).toList();
+`);
 
 // Public View: Top Selling Products (Mock logic using rating for simplicity in demo)
 db.saveView("topRatedProducts", `

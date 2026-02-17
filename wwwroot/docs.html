@@ -438,6 +438,9 @@
                 <a class="nav-link" data-target="webhooks">
                     <i data-lucide="send"></i> Webhooks
                 </a>
+                <a class="nav-link" data-target="external-db">
+                    <i data-lucide="database"></i> External Databases
+                </a>
             </div>
 
             <div class="nav-section">
@@ -565,14 +568,17 @@ db.users.<span class="function">findall</span>(u => u.inactive).<span class="fun
             <!-- Joins -->
             <section class="section" id="joins">
                 <h2>Join Operations</h2>
-                <pre><code><span class="comment">// Join two collections</span>
-<span class="keyword">var</span> result = db.<span class="function">join</span>(db.users, db.orders)
-    .<span class="function">where</span>(x => x.userId == x.customerId).<span class="function">toList</span>();
+                <pre><code><span class="comment">// Recommended: Join with Aliases</span>
+<span class="keyword">var</span> result = db.<span class="function">join</span>(
+    alias(db.users, <span class="string">"u"</span>), 
+    alias(db.orders, <span class="string">"o"</span>)
+)
+.<span class="function">where</span>(x => x.u._id == x.o.userId).<span class="function">toList</span>();
 
-<span class="comment">// Projection with Select</span>
+<span class="comment">// Default: Join with indexed properties (j1, j2...)</span>
 <span class="keyword">var</span> data = db.<span class="function">join</span>(db.products, db.categories).<span class="function">select</span>(x => ({
-    name: x.productName,
-    category: x.categoryName
+    name: x.j1.productName,
+    category: x.j2.categoryName
 }));</code></pre>
             </section>
 
@@ -630,7 +636,8 @@ return db.orders.findall(o => o.status == "pending").toList();
             <section class="section" id="triggers">
                 <h2>Triggers</h2>
                 <p>Triggers are asynchronous scripts that run automatically by monitoring file changes in the
-                    <code>Data/</code> folder. They are stored in the <code>Triggers/</code> folder.</p>
+                    <code>Data/</code> folder. They are stored in the <code>Triggers/</code> folder.
+                </p>
 
                 <h3>Creating a Trigger</h3>
                 <pre><code><span class="comment">// saveTrigger(triggerName, targetCollection, scriptCode)</span>
@@ -718,6 +725,26 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
 );</code></pre>
             </section>
 
+            <!-- External DB -->
+            <section class="section" id="external-db">
+                <h2>External Databases</h2>
+                <p>AxarDB can execute queries on external MySQL/MariaDB and PostgreSQL databases.</p>
+
+                <h3>MySQL / MariaDB</h3>
+                <pre><code><span class="keyword">var</span> conn = <span class="string">"Server=localhost;Database=test;Uid=root;Pwd=pass;"</span>;
+<span class="comment">// Read data</span>
+<span class="keyword">var</span> users = <span class="function">mysqlRead</span>(conn, <span class="string">"SELECT * FROM users WHERE age > @age"</span>, { age: 18 });
+<span class="comment">// Execute command</span>
+<span class="keyword">var</span> count = <span class="function">mysqlExec</span>(conn, <span class="string">"UPDATE users SET active = 1 WHERE id = @id"</span>, { id: 5 });</code></pre>
+
+                <h3>PostgreSQL</h3>
+                <pre><code><span class="keyword">var</span> conn = <span class="string">"Host=localhost;Database=db;Username=pg;Password=pass"</span>;
+<span class="comment">// Read data</span>
+<span class="keyword">var</span> data = <span class="function">pgsqlRead</span>(conn, <span class="string">"SELECT * FROM public.logs WHERE type = @t"</span>, { t: 'error' });
+<span class="comment">// Execute command</span>
+<span class="keyword">var</span> affected = <span class="function">pgsqlExec</span>(conn, <span class="string">"DELETE FROM public.logs WHERE id = @id"</span>, { id: 10 });</code></pre>
+            </section>
+
             <!-- HTTP API -->
             <section class="section" id="http-api">
                 <h2>HTTP API</h2>
@@ -766,7 +793,8 @@ db.users.<span class="function">insert</span>({
                 <ul>
                     <li><strong>Basic Authentication:</strong> Required for /query and /collections</li>
                     <li><strong>Default User:</strong> <code>unlocker / unlocker</code></li>
-                    <li><strong>Password Hashing:</strong> Supports both plain text and SHA256 hashed passwords in the <code>sysusers</code> collection.</li>
+                    <li><strong>Password Hashing:</strong> Supports both plain text and SHA256 hashed passwords in the
+                        <code>sysusers</code> collection.</li>
                     <li><strong>Injection Protection:</strong> @param placeholders are securely bound</li>
                     <li><strong>Malicious Code Check:</strong> eval, Function are blocked</li>
                 </ul>
@@ -801,7 +829,14 @@ console.<span class="function">log</span>(<span class="string">"Message"</span>)
 <span class="keyword">var</span> hash = <span class="function">sha256</span>(<span class="string">"password"</span>);
 
 <span class="comment">// Create random string</span>
-<span class="keyword">var</span> token = <span class="function">randomString</span>(<span class="number">32</span>);</code></pre>
+<span class="keyword">var</span> token = <span class="function">randomString</span>(<span class="number">32</span>);
+
+<span class="comment">// Deep copy object</span>
+<span class="keyword">var</span> copy = <span class="function">deepcopy</span>(original);
+
+<span class="comment">// Date manipulation</span>
+<span class="keyword">var</span> nextWeek = <span class="function">addDays</span>(<span class="keyword">new</span> Date(), <span class="number">7</span>);
+<span class="keyword">var</span> later = <span class="function">addMinutes</span>(<span class="keyword">new</span> Date(), <span class="number">15</span>);</code></pre>
             </section>
 
         </div>
