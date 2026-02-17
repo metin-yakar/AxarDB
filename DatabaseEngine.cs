@@ -292,9 +292,13 @@ namespace AxarDB
                 
                 // Polyfill for Array if needed, but Object.prototype hits all. 
                 // Better to be specific to Array or standard iterables if possible to avoid polluting everything.
-                // But user asked for 'herhangi bir array listesine'.
                 
                 Array.prototype.toList = function() { return this; };
+                
+                // Alias contains to includes for String
+                if (!String.prototype.contains) {
+                    String.prototype.contains = String.prototype.includes;
+                }
             ");
         }
 
