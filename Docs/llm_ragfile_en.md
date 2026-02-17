@@ -338,6 +338,24 @@ var count = mysqlExec(conn, "DELETE FROM logs WHERE created_at < @date", { date:
 // Returns: integer (e.g., 5)
 ```
 
+### PostgreSQL Functions
+
+#### `pgsqlRead(connectionString, query, parameters)`
+Executes a `SELECT` statement against a PostgreSQL database.
+
+```javascript
+var conn = "Host=localhost;Database=testdb;Username=postgres;Password=secret";
+var data = pgsqlRead(conn, "SELECT id, json_data FROM reports WHERE created_at > @date", { date: "2023-01-01" });
+```
+
+#### `pgsqlExec(connectionString, query, parameters)`
+Executes `INSERT`, `UPDATE`, or `DELETE` statements against a PostgreSQL database.
+
+```javascript
+var conn = "Host=localhost;Database=testdb;Username=postgres;Password=secret";
+var affected = pgsqlExec(conn, "UPDATE reports SET status = 'archived' WHERE id = @id", { id: 100 });
+```
+
 ### Logging
 - All queries are logged to server-side request logs.
 - Errors are logged to error logs.

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using MySqlConnector;
+using Npgsql;
 
 namespace AxarDB
 {
@@ -100,7 +101,6 @@ namespace AxarDB
 
         private void LogMySqlRequest(ScriptContext context, string connectionString, string query, object? parameters, long durationMs, bool success, string error = null)
         {
-             // 1. Request Log
              try 
              {
                  var logEntry = new 
@@ -120,6 +120,8 @@ namespace AxarDB
                  
                  var json = System.Text.Json.JsonSerializer.Serialize(logEntry);
                  var path = Path.Combine(_basePath, "request_logs", $"{DateTime.UtcNow:yyyy-MM-dd}_mysql.log"); // Separate or same? User said "standard log types".
+                 
+                 //FOR AI TESTING PURPOSES
                  // Actually Logger.LogRequest format is specific pipe-delimited. 
                  // User requested "request_log, error_log... standard log types".
                  // Let's stick to existing Logger class structure OR extend it.
@@ -132,23 +134,7 @@ namespace AxarDB
                  
                  AxarDB.Logging.Logger.LogRequest(context.IpAddress, context.User, $"[MySQL] {query}", durationMs, success, error);
                  
-                 // 2. View Log (if in view)
-                 if (context.IsView)
-                 {
-                     // View logging is handled in ExecuteView finally block for the *entire* view execution.
-                     // But user said "if used inside view, additionally view_log...". 
-                     // This might mean specific MySQL call details inside the view log?
-                     // The view log already captures console output. I can log to console?
-                     // Or maybe they mean "record it in the view's execution log".
-                     // Best approach: Add to a thread-local or context-bound log collection that ExecuteView writes out?
-                     // Currently ExecuteView captures `consoleLogs`. 
-                     // I will format a log string and add it to `consoleLogs` if I can access the engine/scope? 
-                     // I don't have access to the engine instance easily here without passing it.
-                     // Let's just log to the main request/error logs for now, and rely on the fact that 
-                     // the View's own log (duration/success) covers the high level.
-                 }
                  
-                 // 3. Error Log
                  if (!success && !string.IsNullOrEmpty(error))
                  {
                      AxarDB.Logging.Logger.LogError($"[MySQL Error] {error} | Query: {query}");
@@ -274,6 +260,14 @@ namespace AxarDB
             engine.SetValue("mysqlExec", new Func<string, string, object?, int>((conn, query, param) => 
                 MySqlExec(conn, query, param, context)));
 
+            // PostgreSQL Functions
+            engine.SetValue("pgsqlRead", new Func<string, string, object?, object>((conn, query, param) => 
+                PgSqlRead(conn, query, param, context)));
+                
+            engine.SetValue("pgsqlExec", new Func<string, string, object?, int>((conn, query, param) => 
+                PgSqlExec(conn, query, param, context)));
+
+
             // Webhook Function (POST)
             engine.SetValue("webhook", new Func<string, object, object?, object>((url, data, headers) => 
                 PerformHttpRequest("POST", url, data, headers)));
@@ -351,6 +345,7 @@ namespace AxarDB
             // ---------------------------------------------------------
             GetCollection("sysvaults");
 
+            //FOR AI TESTING PURPOSES
             // Validate and prepare script
             // 1. Vault Replacement ($key -> value from sysvaults)
             // We do this BEFORE parameters to allow vaults to define structure if needed, 
@@ -387,6 +382,7 @@ namespace AxarDB
                         throw new InvalidOperationException($"Input parameter '{param.Key}' contains potentially malicious content.");
                     }
 
+                    //FOR AI TESTING PURPOSES
                     // 2. Placeholder Replacement
                     // We look for @Key and replace it with JSON serialized Value
                     // This ensures strings are quoted and special chars escaped.
@@ -549,7 +545,8 @@ namespace AxarDB
                 if (!File.Exists(viewPath)) throw new FileNotFoundException($"View '{viewName}' not found.");
 
                 var script = File.ReadAllText(viewPath);
-
+                
+                //FOR AI TESTING PURPOSES
                 // Access Control Check (for HTTP calls mostly, but good to enforce)
                 // If called internally via db.view, we assume privileged.
                 // If called via HTTP, Program.cs handles Auth. 
@@ -718,8 +715,6 @@ namespace AxarDB
 
         private void HandleFileEvent(string fullPath, string evtType)
         {
-            // Debounce or fire and forget? Prompt says "asynchronous and non-blocking".
-            // We fire a Task.
             Task.Run(() => 
             {
                 try 
@@ -868,6 +863,120 @@ namespace AxarDB
         public List<string> ListTriggers()
         {
             return Directory.GetFiles(GetTriggersPath(), "*.js").Select(Path.GetFileNameWithoutExtension).Cast<string>().ToList();
+        }
+
+        public object PgSqlRead(string connectionString, string query, object? parameters, ScriptContext context)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            string? error = null;
+            bool success = false;
+
+            try
+            {
+                using var connection = new NpgsqlConnection(connectionString);
+                connection.Open();
+
+                using var command = new NpgsqlCommand(query, connection);
+                
+                if (parameters != null)
+                {
+                    var paramJson = System.Text.Json.JsonSerializer.Serialize(parameters);
+                    var paramDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(paramJson);
+                    
+                    if (paramDict != null)
+                    {
+                        foreach (var kvp in paramDict)
+                        {
+                            command.Parameters.AddWithValue(kvp.Key, kvp.Value ?? DBNull.Value);
+                        }
+                    }
+                }
+                
+                using var reader = command.ExecuteReader();
+                var results = new List<Dictionary<string, object>>();
+                
+                while (reader.Read())
+                {
+                    var row = new Dictionary<string, object>();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        var val = reader.GetValue(i);
+                        if (val == DBNull.Value) val = null;
+                        row[reader.GetName(i)] = val;
+                    }
+                    results.Add(row);
+                }
+                
+                sw.Stop();
+                LogPgSqlRequest(context, connectionString, query, parameters, sw.ElapsedMilliseconds, true);
+                
+                return results;
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                error = ex.Message;
+                LogPgSqlRequest(context, connectionString, query, parameters, sw.ElapsedMilliseconds, false, error);
+                throw new Exception($"PostgreSQL Read Failed: {ex.Message}");
+            }
+        }
+
+        public int PgSqlExec(string connectionString, string query, object? parameters, ScriptContext context)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            string? error = null;
+            bool success = false;
+
+            try
+            {
+                using var connection = new NpgsqlConnection(connectionString);
+                connection.Open();
+
+                using var command = new NpgsqlCommand(query, connection);
+                
+                if (parameters != null)
+                {
+                    var paramJson = System.Text.Json.JsonSerializer.Serialize(parameters);
+                    var paramDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(paramJson);
+                    
+                    if (paramDict != null)
+                    {
+                        foreach (var kvp in paramDict)
+                        {
+                            command.Parameters.AddWithValue(kvp.Key, kvp.Value ?? DBNull.Value);
+                        }
+                    }
+                }
+                
+                int affected = command.ExecuteNonQuery();
+                
+                sw.Stop();
+                LogPgSqlRequest(context, connectionString, query, parameters, sw.ElapsedMilliseconds, true);
+                
+                return affected;
+            }
+            catch (Exception ex)
+            {
+                sw.Stop();
+                error = ex.Message;
+                LogPgSqlRequest(context, connectionString, query, parameters, sw.ElapsedMilliseconds, false, error);
+                throw new Exception($"PostgreSQL Exec Failed: {ex.Message}");
+            }
+        }
+
+        private void LogPgSqlRequest(ScriptContext context, string connectionString, string query, object? parameters, long durationMs, bool success, string? error = null)
+        {
+             try
+             {
+                 // Use AxarDB.Logging.Logger to avoid ambiguity
+                 AxarDB.Logging.Logger.LogRequest(context.IpAddress, context.User, $"[PostgreSQL] {query}", durationMs, success, error ?? "");
+                 
+                 if (!success && !string.IsNullOrEmpty(error))
+                 {
+                     AxarDB.Logging.Logger.LogError($"[PostgreSQL Error] {error} | Query: {query}");
+                 }
+             }
+             catch {}
         }
     }
 }
