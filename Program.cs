@@ -176,7 +176,8 @@ app.MapGet("/", () => Results.Redirect("/index.html"));
 
 app.MapGet("/collections", () => 
 {
-    return Results.Json(dbEngine.ExecuteScript("showCollections()", null));
+    // Admin context for showing collections? Or just default.
+    return Results.Json(dbEngine.ExecuteScript("showCollections()"));
 });
 
 app.MapGet("/docs", () => Results.Redirect("/docs.html"));
@@ -194,7 +195,34 @@ app.MapPost("/query", async (HttpContext context) =>
     
     try 
     {
-        var result = dbEngine.ExecuteScript(script, queryParams);
+        // Extract Auth User if present (already parsed in Middleware but not easily accessible here without HttpContext.Items or re-parsing)
+        // We can re-parse or use Items if middleware set it. 
+        // Middleware didn't set Items. Let's re-parse quickly or just trust "anonymous" if not found? 
+        // Middleware logic was:
+        /*
+        string authHeader = context.Request.Headers["Authorization"];
+        ...
+        */
+        string user = "anonymous";
+        string authHeader = context.Request.Headers["Authorization"];
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Basic "))
+        {
+             try {
+                var encoding = Encoding.GetEncoding("iso-8859-1");
+                string credentials = encoding.GetString(Convert.FromBase64String(authHeader.Substring(6)));
+                var parts = credentials.Split(':');
+                if (parts.Length > 0) user = parts[0];
+             } catch {}
+        }
+    
+        var scriptContext = new AxarDB.ScriptContext 
+        { 
+            IpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            User = user,
+            IsView = false
+        };
+
+        var result = dbEngine.ExecuteScript(script, queryParams, scriptContext);
         return Results.Json(result);
     }
     catch (Exception ex)
