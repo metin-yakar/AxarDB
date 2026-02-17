@@ -26,6 +26,7 @@
 | **⚡ High Performance** | In-memory storage with `ConcurrentDictionary` and lazy evaluation using LINQ. |
 | **🔍 Smart Indexing** | Create ASC/DESC indexes on any field. Supports optimized range queries. |
 | **🔗 Joins** | Perform complex joins between collections: `db.join(users, orders).toList()`. |
+| **🛢️ MySQL/MariaDB** | Native support for external SQL queries: `mysqlRead(conn, query)` and `mysqlExec(conn, query)`. |
 | **👁️ Views** | Stored server-side queries with `@access public/private` metadata and `@param` parameter injection. |
 | **⚡ Triggers** | Automatic event handlers on data changes with `@target` filtering. |
 | **🔐 Vaults** | Secure key-value storage for API keys using `$KEY` syntax. |

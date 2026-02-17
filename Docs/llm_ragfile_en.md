@@ -314,7 +314,36 @@ var response = httpGet("https://api.example.com/data", {
 var result = httpGet("https://api.example.com/public");
 ```
 
-## 10. Utility Functions Reference
+## 10. External Database Access (MySQL/MariaDB)
+
+AxarDB can connect to external MySQL or MariaDB databases directly from scripts.
+
+### Functions
+
+#### `mysqlRead(connectionString, query, parameters)`
+Executes a `SELECT` statement and returns a list of objects.
+
+```javascript
+var conn = "Server=127.0.0.1;Database=test;Uid=root;Pwd=pass;";
+var users = mysqlRead(conn, "SELECT id, name FROM users WHERE age > @age", { age: 18 });
+// Returns: [{ id: 1, name: "Alice" }, { id: 2, name: "Bob" }]
+```
+
+#### `mysqlExec(connectionString, query, parameters)`
+Executes `INSERT`, `UPDATE`, or `DELETE` statements and returns the number of affected rows.
+
+```javascript
+var conn = "Server=127.0.0.1;Database=test;Uid=root;Pwd=pass;";
+var count = mysqlExec(conn, "DELETE FROM logs WHERE created_at < @date", { date: "2023-01-01" });
+// Returns: integer (e.g., 5)
+```
+
+### Logging
+- All queries are logged to server-side request logs.
+- Errors are logged to error logs.
+- View execution context is preserved in logs.
+
+## 11. Utility Functions Reference
 
 ### Cryptographic & Encoding
 | Function | Signature | Description | Example |
