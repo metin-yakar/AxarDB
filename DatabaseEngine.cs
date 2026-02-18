@@ -279,6 +279,10 @@ namespace AxarDB
             engine.SetValue("httpGet", new Func<string, object?, object>((url, headers) => 
                 PerformHttpRequest("GET", url, null, headers)));
 
+            // OpenAI / LLM Function
+            engine.SetValue("openai", new Func<string, string, AxarDB.Helpers.LlmClient>((url, token) => 
+                new AxarDB.Helpers.LlmClient(url, token)));
+
             // Date Functions
             engine.SetValue("addMinutes", new Func<object, double, DateTime>(AxarDB.Helpers.ScriptUtils.AddMinutes));
             engine.SetValue("addHours", new Func<object, double, DateTime>(AxarDB.Helpers.ScriptUtils.AddHours));

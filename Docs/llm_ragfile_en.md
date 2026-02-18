@@ -406,6 +406,13 @@ var affected = pgsqlExec(conn, "UPDATE reports SET status = 'archived' WHERE id 
 | `randomNumber(min, max)` | `int, int -> int` | Random integer in range | `randomNumber(1, 100)` → `42` |
 | `randomDecimal(min, max)` | `string, string -> decimal` | Random decimal in range | `randomDecimal("0.01", "99.99")` |
 
+### AI / LLM Functions
+| Function | Signature | Description | Example |
+|:---|:---|:---|:---|
+| `openai(url, token)` | `string, string -> LlmClient` | Create LLM client | `var llm = openai("https://api...", "sk-...");` |
+| `llm.addSysMsg(msg)` | `string -> void` | Add system message | `llm.addSysMsg("You are a bot");` |
+| `llm.msg(user, data, model)` | `string, object, object -> object/string` | Send message | `var res = llm.msg("Hello", {}, null);` |
+
 ### String & Conversion
 | Function | Signature | Description | Example |
 |:---|:---|:---|:---|
