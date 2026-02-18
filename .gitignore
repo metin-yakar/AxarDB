@@ -131,6 +131,7 @@ PROJECT_PROMPT.md
 notebookllm.md
 project_task.md
 release.md
+session_history.md
 
 # AxarDB SDKs
 **/SDKs/**/bin/
