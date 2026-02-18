@@ -28,6 +28,7 @@
 | **🔗 Joins** | Perform complex joins with easy aliases: `db.join(alias(u, "user"), alias(o, "order"))`. |
 | **🛢️ MySQL/MariaDB** | Native support for external SQL queries: `mysqlRead(conn, query)` and `mysqlExec(conn, query)`. |
 | **🐘 PostgreSQL** | Native support for PostgreSQL queries: `pgsqlRead(conn, query)` and `pgsqlExec(conn, query)`. |
+| **⏳ Task Queue** | Background job processing with `queue("script", params, { priority: 1 })`. |
 | **👁️ Views** | Stored server-side queries with `@access public/private` metadata and `@param` parameter injection. |
 | **⚡ Triggers** | Automatic event handlers on data changes with `@target` filtering. |
 | **🔐 Vaults** | Secure key-value storage for API keys using `$KEY` syntax. |

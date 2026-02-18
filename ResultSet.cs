@@ -1,43 +1,46 @@
 using AxarDB.Wrappers;
+using System.Collections;
 
 namespace AxarDB
 {
-    public class ResultSet : List<DocumentWrapper>
+    public class ResultSet : IEnumerable<DocumentWrapper>
     {
-        private readonly AxarDB.Definitions.Collection? _collection; // Reference to update/delete
+        private readonly List<DocumentWrapper> _results;
+        private readonly AxarDB.Definitions.Collection? _collection; 
 
         public ResultSet(IEnumerable<Dictionary<string, object>> source, AxarDB.Definitions.Collection? collection = null) 
-            : base(source.Select(d => new DocumentWrapper(d)))
         {
+            _results = source.Select(d => new DocumentWrapper(d)).ToList();
             _collection = collection;
         }
 
-        public List<DocumentWrapper> ToList() => this;
-        public List<DocumentWrapper> toList() => this;
+        public IEnumerator<DocumentWrapper> GetEnumerator() => _results.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => _results.GetEnumerator();
+
+        public List<DocumentWrapper> ToList() => _results;
+        public List<DocumentWrapper> toList() => _results;
 
         public DocumentWrapper? first()
         {
-            return this.FirstOrDefault();
+            return _results.FirstOrDefault();
         }
 
         public ResultSet take(int count)
         {
-            // Create a new ResultSet from the taken items
-            var taken = this.Take(count).Select(w => w.Data);
+            var taken = _results.Take(count).Select(w => w.Data);
             return new ResultSet(taken, _collection);
         }
 
         public AxarList select(Func<object, object> selector)
         {
-            var list = this.Select(d => selector(d));
+            var list = _results.Select(d => selector(d));
             return new AxarList(list);
         }
 
         public void update(object updateFields)
         {
             if (_collection == null || updateFields == null) return;
-
-            // Handle Jint's object conversion
+            
             Dictionary<string, object>? fields = null;
             if (updateFields is Dictionary<string, object> d) fields = d;
             else if (updateFields is IDictionary<string, object> id) fields = new Dictionary<string, object>(id);
@@ -45,14 +48,14 @@ namespace AxarDB
             
             if (fields == null) return;
 
-            foreach(var wrapper in this)
+            foreach(var wrapper in _results)
             {
                 var doc = wrapper.Data;
                 foreach(var kv in fields)
                 {
                     doc[kv.Key] = kv.Value;
                 }
-                _collection.Insert(doc); // Save & index
+                _collection.Insert(doc);
             }
         }
 
@@ -60,8 +63,7 @@ namespace AxarDB
         {
             if (_collection == null) return;
             
-            // Collect IDs to delete
-            var idsToDelete = this
+            var idsToDelete = _results
                 .Select(d => d.Data.TryGetValue("_id", out var id) ? id.ToString() : null)
                 .Where(x => x != null)
                 .Cast<string>()
@@ -69,21 +71,16 @@ namespace AxarDB
             
             if (idsToDelete.Count == 0) return;
 
-            // Efficient and safe deletion predicate
             _collection.Delete(d => d.TryGetValue("_id", out var id) && idsToDelete.Contains(id.ToString()!));
             
-            this.Clear();
+            _results.Clear();
         }
 
         public void @foreach(Action<DocumentWrapper> action)
         {
-           foreach (var item in this) action(item);
+           foreach (var item in _results) action(item);
         }
 
-        
-        public new int Count()
-        {
-            return base.Count;
-        }
+        public int count() => _results.Count;
     }
 }
