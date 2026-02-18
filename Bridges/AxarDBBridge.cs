@@ -21,25 +21,66 @@ namespace AxarDB.Bridges
             result = new CollectionBridge(collection, _jintEngine);
             return true;
         }
+
+        public AliasWrapper alias(object source, string name) => new AliasWrapper(source, name);
         
         // Static join method simulation (instance method on db)
-        public JoinCollectionBridge join(params object[] collections)
+        // Refactored for j1, j2, ... indexing and multi-join support
+        // Added support for AliasWrapper
+        public JoinCollectionBridge join(params object[] sources)
         {
-             // For the sake of matching the "db.join" signature:
-             var bridges = collections.OfType<CollectionBridge>().ToList();
-             if (bridges.Count < 2) return new JoinCollectionBridge(new List<Dictionary<string, object>>());
-             
-             // Let's update CollectionBridge first to expose Data? Or just use findall().
-             var allDocs = new List<Dictionary<string, object>>();
-             
-             foreach(var b in bridges)
-             {
-                 // We access the underlying collection directly to aggregate data.
-                 // This implements a simple Union of all collections passed to join.
-                 allDocs.AddRange(b._collection.FindAll());
-             }
+            if (sources == null || sources.Length == 0) 
+                return new JoinCollectionBridge(new List<object>(), _jintEngine);
 
-             return new JoinCollectionBridge(allDocs);
+            // Normalize the first source
+            string firstKey = "j1";
+            object firstData = sources[0];
+            if (sources[0] is AliasWrapper aw1)
+            {
+                firstKey = aw1.Name;
+                firstData = aw1.Source;
+            }
+
+            IEnumerable<object> joined = GetIterable(firstData).Select(x => (object)new Dictionary<string, object> { { firstKey, x } });
+
+            for (int i = 1; i < sources.Length; i++)
+            {
+                string key = "j" + (i + 1);
+                object currentData = sources[i];
+                
+                if (sources[i] is AliasWrapper aw)
+                {
+                    key = aw.Name;
+                    currentData = aw.Source;
+                }
+
+                IEnumerable<object> nextSourceData = GetIterable(currentData);
+                
+                // Cartesian Product for relational join support
+                joined = from l in joined.Cast<Dictionary<string, object>>()
+                         from r in nextSourceData
+                         select (object)new Dictionary<string, object>(l) { { key, r } };
+            }
+
+            return new JoinCollectionBridge(joined, _jintEngine);
+        }
+
+        private IEnumerable<object> GetIterable(object source)
+        {
+            if (source is CollectionBridge cb)
+            {
+                return cb._collection.FindAll().Select(d => new Wrappers.DocumentWrapper(d));
+            }
+            if (source is System.Collections.IEnumerable enumerable)
+            {
+                var list = new List<object>();
+                foreach (var item in enumerable)
+                {
+                    list.Add(item);
+                }
+                return list;
+            }
+            return new List<object> { source };
         }
 
         public bool addVault(string key, object value)

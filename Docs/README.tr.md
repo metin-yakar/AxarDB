@@ -26,7 +26,7 @@
 | **📜 JavaScript Sorguları** | Sorgularınızı tam JavaScript sözdizimi ile yazın. `db.users.findall(x => x.age > 18)` |
 | **⚡ Yüksek Performans** | `ConcurrentDictionary` ve LINQ ile bellek içi depolama. |
 | **🔍 Akıllı İndeksleme** | Herhangi bir alanda ASC/DESC indeks oluşturun. |
-| **🔗 Join Desteği** | Koleksiyonlar arası birleştirme işlemleri: `db.join(users, orders)`. |
+| **🔗 Join Desteği** | Koleksiyonlar arası güçlü join ve alias (takma ad) desteği. |
 | **🛡️ Güvenli** | Basic Auth (SHA256 hash desteği ile) ve **Injection Koruması**. |
 | **🐋 Docker Uyumlu** | Tek komutla çalıştırın: `docker run`. |
 | **🛠️ Araçlar** | Dahili yardımcı fonksiyonlar: `md5`, `sha256`, `encrypt`, `random`, `base64`. |

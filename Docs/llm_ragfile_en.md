@@ -132,19 +132,44 @@ var devs = db.users.contains(x => x.title == "developer");
 
 ## 4. Join Operations
 
-Combine data from two collections:
-```javascript
-// Basic join
-var result = db.join(db.users, db.orders)
-    .where(x => x.userId == x.customerId)
-    .toList();
+AxarDB supports powerful multi-joins between collections. By default, results use `j1`, `j2`, `j3`... indexing, but the `alias()` function provides a more readable "named" approach.
 
-// Join with projection
-var data = db.join(db.products, db.categories)
-    .select(x => ({
-        name: x.productName,
-        category: x.categoryName
-    }));
+### A. Named Joins (Recommended)
+Use `alias(source, name)` to give each join source a meaningful name.
+```javascript
+var result = db.join(
+    alias(db.users, "user"), 
+    alias(db.orders, "order"),
+    alias(db.products, "product")
+)
+.where(x => 
+    x.user._id == x.order.userId &&
+    x.order.productId == x.product._id
+)
+.select(x => ({
+    customer: x.user.name,
+    item: x.product.name,
+    date: x.order.createdAt
+}))
+.toList();
+```
+
+### B. Default Indexed Joins
+If aliases are not provided, sources are indexed as `j1`, `j2`, `j3`, etc., based on their position in `db.join`.
+```javascript
+// j1 = users, j2 = orders
+var result = db.join(db.users, db.orders)
+    .where(x => x.j1._id == x.j2.userId)
+    .toList();
+```
+
+### C. Joining Arrays/Parameters
+You can join literal arrays or objects passed as parameters:
+```javascript
+// order.items is an array inside the view
+return db.join(alias(order.items, "item"), alias(db.products, "prod"))
+    .where(x => x.item.productId == x.prod._id)
+    .toList();
 ```
 
 ## 5. Index Creation
@@ -403,6 +428,7 @@ var affected = pgsqlExec(conn, "UPDATE reports SET status = 'archived' WHERE id 
 | `showCollections()` | `-> string[]` | List all collection names | `showCollections()` |
 | `getIndexes(name)` | `string -> object[]` | List indexes for collection | `getIndexes("users")` |
 | `console.log(msg)` | `object -> void` | Print to server console | `console.log("debug: " + x)` |
+| `alias(source, name)` | `object, string -> object` | Assign alias for joins | `alias(db.users, "u")` |
 
 ## 11. Security
 

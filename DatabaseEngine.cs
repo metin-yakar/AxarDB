@@ -248,6 +248,9 @@ namespace AxarDB
             engine.SetValue("guid", new Func<string>(() => Guid.NewGuid().ToString()));
             engine.SetValue("toJson", new Func<object, string>(o => System.Text.Json.JsonSerializer.Serialize(o, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })));
             
+            // Join Alias Utility
+            engine.SetValue("alias", new Func<object, string, AliasWrapper>((source, name) => new AliasWrapper(source, name)));
+
             // Deep Copy Utility
             engine.SetValue("deepcopy", new Func<object?, object?>(AxarDB.Helpers.ScriptUtils.DeepCopy));
 
@@ -292,9 +295,13 @@ namespace AxarDB
                 
                 // Polyfill for Array if needed, but Object.prototype hits all. 
                 // Better to be specific to Array or standard iterables if possible to avoid polluting everything.
-                // But user asked for 'herhangi bir array listesine'.
                 
                 Array.prototype.toList = function() { return this; };
+                
+                // Alias contains to includes for String
+                if (!String.prototype.contains) {
+                    String.prototype.contains = String.prototype.includes;
+                }
             ");
         }
 
