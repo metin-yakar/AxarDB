@@ -9,11 +9,13 @@ namespace AxarDB.Bridges
     {
         public readonly Collection _collection;
         private readonly Engine? _engine;
+        private readonly CancellationToken _cancellationToken;
 
-        public CollectionBridge(Collection collection, Engine? engine = null)
+        public CollectionBridge(Collection collection, Engine? engine = null, CancellationToken cancellationToken = default)
         {
             _collection = collection;
             _engine = engine;
+            _cancellationToken = cancellationToken;
         }
 
         public void reload()
@@ -59,7 +61,7 @@ namespace AxarDB.Bridges
                  }
             };
 
-            var results = _collection.FindAll(csPredicate, analysis);
+            var results = _collection.FindAll(csPredicate, analysis, _cancellationToken);
             return new ResultSet(results, _collection);
         }
 
@@ -75,7 +77,7 @@ namespace AxarDB.Bridges
                  }
              };
 
-             var doc = _collection.FindAll(safePredicate).FirstOrDefault();
+             var doc = _collection.FindAll(safePredicate, null, _cancellationToken).FirstOrDefault();
              return doc != null ? new DocumentWrapper(doc) : null;
         }
 
@@ -93,17 +95,19 @@ namespace AxarDB.Bridges
                  lock (_engine) { return selector(new DocumentWrapper(d)); }
              };
 
-             var list = _collection.FindAll().Select(safeSelector);
+             var list = _collection.FindAll(_cancellationToken).Select(safeSelector);
              return new AxarList(list);
         }
 
-        public void insert(object docObj)
+        public object? insert(object docObj)
         {
             var dict = ConvertToDictionary(docObj);
             if (dict != null)
             {
-                _collection.Insert(dict);
+                _collection.Insert(dict, _cancellationToken);
+                return dict;
             }
+            return null;
         }
         
         public void index(Func<object, object> propertySelector, string type)
@@ -136,7 +140,7 @@ namespace AxarDB.Bridges
                     try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
                 }
             };
-            var results = _collection.FindAll(safePredicate);
+            var results = _collection.FindAll(safePredicate, null, _cancellationToken);
             return new ResultSet(results, _collection);
         }
 
@@ -150,7 +154,7 @@ namespace AxarDB.Bridges
                     try { return predicate(new DocumentWrapper(d)); } catch { return false; }
                 }
             };
-            return _collection.FindAll(safePredicate).Any();
+            return _collection.FindAll(safePredicate, null, _cancellationToken).Any();
         }
 
         private Dictionary<string, object>? ConvertToDictionary(object? obj)

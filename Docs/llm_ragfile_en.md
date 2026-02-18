@@ -386,7 +386,26 @@ var affected = pgsqlExec(conn, "UPDATE reports SET status = 'archived' WHERE id 
 - Errors are logged to error logs.
 - View execution context is preserved in logs.
 
-## 11. Utility Functions Reference
+- View execution context is preserved in logs.
+
+## 11. Queue Operations (Background Jobs)
+
+Use `queue()` to schedule scripts for background execution.
+
+```javascript
+// generic queue usage
+var jobId = queue("db.logs.insert({ msg: @msg })", { msg: "Hello" }, { priority: 1 });
+```
+
+### Parameters
+*   **Template**: The JavaScript code to execute. Use `@param` for binding.
+*   **Parameters**: Object containing values for `@param` placeholders.
+*   **Options**: Object with settings (e.g., `{ priority: 1 }`). Higher priority runs first.
+
+### Logging
+Execution logs are stored in `queue_logs/` directory.
+
+## 12. Utility Functions Reference
 
 ### Cryptographic & Encoding
 | Function | Signature | Description | Example |
@@ -433,6 +452,7 @@ var affected = pgsqlExec(conn, "UPDATE reports SET status = 'archived' WHERE id 
 | Function | Signature | Description | Example |
 |:---|:---|:---|:---|
 | `showCollections()` | `-> string[]` | List all collection names | `showCollections()` |
+| `queue(script, params, opts)` | `string, object, object -> string` | Schedule background job | `queue("...", {}, {})` |
 | `getIndexes(name)` | `string -> object[]` | List indexes for collection | `getIndexes("users")` |
 | `console.log(msg)` | `object -> void` | Print to server console | `console.log("debug: " + x)` |
 | `alias(source, name)` | `object, string -> object` | Assign alias for joins | `alias(db.users, "u")` |

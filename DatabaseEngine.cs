@@ -99,7 +99,7 @@ namespace AxarDB
         }
 
 
-        private void LogMySqlRequest(ScriptContext context, string connectionString, string query, object? parameters, long durationMs, bool success, string error = null)
+        private void LogMySqlRequest(ScriptContext context, string connectionString, string query, object? parameters, long durationMs, bool success, string? error = null)
         {
              try 
              {
@@ -283,6 +283,10 @@ namespace AxarDB
             engine.SetValue("openai", new Func<string, string, AxarDB.Helpers.LlmClient>((url, token) => 
                 new AxarDB.Helpers.LlmClient(url, token)));
 
+            // Queue Function
+            engine.SetValue("queue", new Func<string, object?, object?, string>((template, parameters, options) => 
+                QueueJob(template, parameters, options)));
+
             // Date Functions
             engine.SetValue("addMinutes", new Func<object, double, DateTime>(AxarDB.Helpers.ScriptUtils.AddMinutes));
             engine.SetValue("addHours", new Func<object, double, DateTime>(AxarDB.Helpers.ScriptUtils.AddHours));
@@ -329,6 +333,7 @@ namespace AxarDB
 
             // Create default system collection
             GetCollection("sysusers");
+            GetCollection("sysqueue"); // Initialize queue collection
             // Add default user
             var sysusers = GetCollection("sysusers");
             // Check via storage if empty
@@ -347,10 +352,10 @@ namespace AxarDB
             return _collections.GetOrAdd(name, n => new Collection(n, _storage, _sharedCache));
         }
 
-        public object? ExecuteScript(string script, Dictionary<string, object>? parameters = null, ScriptContext? context = null)
+        public object? ExecuteScript(string script, Dictionary<string, object>? parameters = null, ScriptContext? context = null, CancellationToken cancellationToken = default)
         {
             var ctx = context ?? ScriptContext.Default; 
-            Console.WriteLine($"DEBUG: Executing script (Length: {script.Length})...");
+            AxarDB.Logging.Logger.LogDebug($"[Engine] Executing script (Length: {script.Length})...");
             // ---------------------------------------------------------
             // VAULTS FEATURE INITIALIZATION
             // ---------------------------------------------------------
@@ -406,21 +411,27 @@ namespace AxarDB
                 }
             }
 
-            // Create a new engine for scope isolation
+            // Create a new engine for scope isolation with constraints
             var engine = new Engine(options => {
                  options.AllowClr();
+                 options.CancellationToken(cancellationToken);
+                 var memoryLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 2;
+                 AxarDB.Logging.Logger.LogDebug($"Setting JS Engine Memory Limit: {memoryLimit / 1024 / 1024} MB");
+                 options.LimitRecursion(100);
+                 options.LimitMemory(memoryLimit); // 50% of available memory
+                 options.TimeoutInterval(TimeSpan.FromMinutes(10)); // Default timeout
             });
 
             // Expose console.log for CLI scripts
             engine.SetValue("console", new { log = new Action<object>(o => Console.WriteLine(FormatLog(o))) });
 
             // Expose 'db'
-            var dbBridge = new AxarDBBridge(this, engine);
+            var dbBridge = new AxarDBBridge(this, engine, cancellationToken);
             engine.SetValue("db", dbBridge);
 
             // Expose 'UnlockDB' constructor: new UnlockDB("name")
             engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => {
-                return new CollectionBridge(GetCollection(name), engine);
+                return new CollectionBridge(GetCollection(name), engine, cancellationToken);
             }));
 
             // Expose 'showCollections'
@@ -470,7 +481,7 @@ namespace AxarDB
 
         public bool Authenticate(string username, string password)
         {
-            Console.WriteLine($"DEBUG: Authenticating user '{username}'...");
+            AxarDB.Logging.Logger.LogDebug($"[Auth] Authenticating user '{username}'...");
             var sysusers = GetCollection("sysusers");
             
             // Try matching plain password first
@@ -489,7 +500,7 @@ namespace AxarDB
                 ).Any();
             }
 
-            Console.WriteLine($"DEBUG: Auth result for '{username}': {result}");
+            AxarDB.Logging.Logger.LogDebug($"[Auth] Result for '{username}': {result}");
             return result;
         }
     
@@ -517,6 +528,45 @@ namespace AxarDB
             return true;
         }
 
+        private string QueueJob(string template, object? parameters, object? options)
+        {
+            var sysqueue = GetCollection("sysqueue");
+            var id = Guid.NewGuid().ToString();
+            
+            var job = new Dictionary<string, object>
+            {
+                { "_id", id },
+                { "queryTemplate", template },
+                { "parameters", parameters }, // Stored as provided (Dict or Array)
+                { "options", options },
+                { "createdAt", DateTime.UtcNow },
+                { "executionTime", null }, // null means pending
+                { "priority", 0 }, // Default priority
+                { "duration", 0 },
+                { "successResult", null },
+                { "errorMessage", null }
+            };
+
+            // Handle options if provided
+            if (options != null)
+            {
+                // Try to extract priority
+                try 
+                {
+                    var json = System.Text.Json.JsonSerializer.Serialize(options);
+                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                    if (dict != null && dict.ContainsKey("priority"))
+                    {
+                         job["priority"] = Convert.ToInt32(dict["priority"]);
+                    }
+                }
+                catch {}
+            }
+
+            sysqueue.Insert(job);
+            return id;
+        }
+
         // ---------------------------------------------------------
         // VIEWS FEATURE
         // ---------------------------------------------------------
@@ -535,7 +585,7 @@ namespace AxarDB
             return path;
         }
 
-        public object? ExecuteView(string viewName, Dictionary<string, object>? parameters, string clientIp, string user)
+        public object? ExecuteView(string viewName, Dictionary<string, object>? parameters, string clientIp, string user, CancellationToken cancellationToken = default)
         {
             var context = new ScriptContext 
             { 
@@ -602,12 +652,20 @@ namespace AxarDB
                     }
                 }
 
-                var engine = new Engine(options => options.AllowClr());
+                
+                var engine = new Engine(options => {
+                     options.AllowClr();
+                     options.CancellationToken(cancellationToken);
+                     var memoryLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 2;
+                     options.LimitRecursion(100);
+                     options.LimitMemory(memoryLimit); // 50% of available memory
+                     options.TimeoutInterval(TimeSpan.FromMinutes(10));
+                });
                 
                 // Bridges
-                var dbBridge = new AxarDBBridge(this, engine);
+                var dbBridge = new AxarDBBridge(this, engine, cancellationToken);
                 engine.SetValue("db", dbBridge);
-                engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(GetCollection(name), engine)));
+                engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(GetCollection(name), engine, cancellationToken)));
                 engine.SetValue("showCollections", new Func<List<string>>(() => _collections.Keys.ToList())); // Simplified for view
                 RegisterUtils(engine, context);
                 // Ideally ExecuteScript should be refactored. 

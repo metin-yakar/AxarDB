@@ -7,18 +7,20 @@ namespace AxarDB.Bridges
     {
         private readonly DatabaseEngine _dbEngine;
         private readonly Jint.Engine _jintEngine;
+        private readonly CancellationToken _cancellationToken;
 
-        public AxarDBBridge(DatabaseEngine dbEngine, Jint.Engine jintEngine)
+        public AxarDBBridge(DatabaseEngine dbEngine, Jint.Engine jintEngine, CancellationToken cancellationToken = default)
         {
             _dbEngine = dbEngine;
             _jintEngine = jintEngine;
+            _cancellationToken = cancellationToken;
         }
 
         public override bool TryGetMember(GetMemberBinder binder, out object? result)
         {
             // db.users -> returns CollectionBridge for "users"
             var collection = _dbEngine.GetCollection(binder.Name);
-            result = new CollectionBridge(collection, _jintEngine);
+            result = new CollectionBridge(collection, _jintEngine, _cancellationToken);
             return true;
         }
 
@@ -104,7 +106,7 @@ namespace AxarDB.Bridges
             }
             // If parameters is null or incompatible, we pass null.
             
-            return _dbEngine.ExecuteView(name, paramsDict, "internal", "system");
+            return _dbEngine.ExecuteView(name, paramsDict, "internal", "system", _cancellationToken);
         }
 
         public void saveView(string name, string content) => _dbEngine.SaveView(name, content);

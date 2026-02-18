@@ -93,7 +93,7 @@ namespace AxarDB.Definitions
             return null;
         }
 
-        public void Insert(Dictionary<string, object> document)
+        public void Insert(Dictionary<string, object> document, CancellationToken cancellationToken = default)
         {
             if (!document.ContainsKey("_id"))
             {
@@ -107,9 +107,8 @@ namespace AxarDB.Definitions
             // 2. Update Index
             lock (_indexLock) { _primaryIndex.Add(id); }
 
-                // Update/Invalidate Cache
-            // We set it directly to keep it fresh
-             var entryOptions = new MemoryCacheEntryOptions
+            // 3. Update/Invalidate Cache
+            var entryOptions = new MemoryCacheEntryOptions
             {
                 Size = 1000 + (document.Count * 100),
                 SlidingExpiration = TimeSpan.FromMinutes(10)
@@ -119,13 +118,14 @@ namespace AxarDB.Definitions
             // 4. Update Secondary Indexes
             foreach (var index in Indices)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 index.IndexDocument(document);
                 // Save index periodically or on change (Debounce logic implied for production, direct here)
                 index.Save(Path.Combine("Data", Name)); 
             }
         }
 
-        public IEnumerable<Dictionary<string, object>> FindAll()
+        public IEnumerable<Dictionary<string, object>> FindAll(CancellationToken cancellationToken = default)
         {
             string[] ids;
             lock (_indexLock) { ids = _primaryIndex.ToArray(); }
@@ -133,16 +133,27 @@ namespace AxarDB.Definitions
             // ConcurrentBag is safe
             var results = new ConcurrentBag<Dictionary<string, object>>();
             
-            Parallel.ForEach(ids, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 }, id => 
+            var options = new ParallelOptions 
+            { 
+                MaxDegreeOfParallelism = Environment.ProcessorCount * 2,
+                CancellationToken = cancellationToken
+            };
+
+            try 
             {
-                var doc = GetDocument(id);
-                if (doc != null) results.Add(doc);
-            });
+                Parallel.ForEach(ids, options, id => 
+                {
+                    // No need to check token manually, Parallel.ForEach handles it via options
+                    var doc = GetDocument(id);
+                    if (doc != null) results.Add(doc);
+                });
+            }
+            catch (OperationCanceledException) { throw; }
             
             return results;
         }
 
-        public IEnumerable<Dictionary<string, object>> FindAll(Func<Dictionary<string, object>, bool> predicate, AxarDB.Query.QueryOptimizer.AnalysisResult? analysis = null)
+        public IEnumerable<Dictionary<string, object>> FindAll(Func<Dictionary<string, object>, bool> predicate, AxarDB.Query.QueryOptimizer.AnalysisResult? analysis = null, CancellationToken cancellationToken = default)
         {
              // Optimization: If analyzed and index available, use it
              if (analysis != null && analysis.Value.Prop != null)
@@ -153,7 +164,13 @@ namespace AxarDB.Definitions
                      var ids = idx.Search(analysis.Value.Val!, analysis.Value.Op);
                      var indexedResults = new ConcurrentBag<Dictionary<string, object>>();
                      
-                     Parallel.ForEach(ids, id => 
+                     var options = new ParallelOptions 
+                     { 
+                        MaxDegreeOfParallelism = Environment.ProcessorCount * 2,
+                        CancellationToken = cancellationToken
+                     };
+
+                     Parallel.ForEach(ids, options, id => 
                      {
                          var doc = GetDocument(id);
                          if (doc != null && predicate(doc)) indexedResults.Add(doc);
@@ -168,7 +185,13 @@ namespace AxarDB.Definitions
 
              var results = new ConcurrentBag<Dictionary<string, object>>();
              
-             Parallel.ForEach(allIds, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount * 2 }, id => 
+             var scanOptions = new ParallelOptions 
+             { 
+                MaxDegreeOfParallelism = Environment.ProcessorCount * 2,
+                CancellationToken = cancellationToken
+             };
+
+             Parallel.ForEach(allIds, scanOptions, id => 
              {
                  var doc = GetDocument(id);
                  if (doc != null && predicate(doc))
@@ -193,30 +216,32 @@ namespace AxarDB.Definitions
             index.Save(Path.Combine("Data", Name));
         }
 
-        public void Update(Func<Dictionary<string, object>, bool> predicate, Dictionary<string, object> updateFields)
+        public void Update(Func<Dictionary<string, object>, bool> predicate, Dictionary<string, object> updateFields, CancellationToken cancellationToken = default)
         {
-            // 1. Identify matches (Parallel Scan)
-            var matches = FindAll(predicate);
+            // 1. Identify matches (Parallel Scan) -- pass token!
+            var matches = FindAll(predicate, null, cancellationToken);
             
             // 2. Perform Updates
             foreach (var doc in matches)
             {
+                 cancellationToken.ThrowIfCancellationRequested();
                  // Update fields
                  foreach (var kvp in updateFields)
                  {
                      doc[kvp.Key] = kvp.Value;
                  }
                  // Save
-                 Insert(doc); // Re-inserts/Updates cache & disk
+                 Insert(doc, cancellationToken); // Re-inserts/Updates cache & disk
             }
         }
 
-        public void Delete(Func<Dictionary<string, object>, bool> predicate)
+        public void Delete(Func<Dictionary<string, object>, bool> predicate, CancellationToken cancellationToken = default)
         {
-            var matches = FindAll(predicate);
+            var matches = FindAll(predicate, null, cancellationToken);
             
             foreach (var doc in matches)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (doc.TryGetValue("_id", out var idObj))
                 {
                     string id = idObj.ToString()!;

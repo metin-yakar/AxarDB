@@ -10,6 +10,37 @@ Console.OutputEncoding = Encoding.UTF8;
 
 
 
+if (args.Length > 0 && args[0] == "script")
+{
+    var scriptPath = args.Length > 1 ? args[1] : null;
+    if (!string.IsNullOrEmpty(scriptPath) && File.Exists(scriptPath))
+    {
+        // Parse target path from args if present (e.g. --targetpath)
+        // Simple manual parse since reusing the loop below is for builder
+        string? tPath = null;
+        for (int i = 0; i < args.Length; i++) {
+             if (args[i] == "--targetpath" && i + 1 < args.Length) tPath = args[i+1];
+        }
+
+        var db = new DatabaseEngine(tPath);
+        try 
+        {
+            var content = File.ReadAllText(scriptPath);
+            var result = db.ExecuteScript(content);
+            Console.WriteLine("Result: " + (result?.ToString() ?? "null"));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
+        }
+    }
+    else
+    {
+        Console.WriteLine($"File not found or missing argument: {scriptPath}");
+    }
+    return;
+}
+
 // Configure Kestrel to listen on specified port or default 5000
 // Parse Arguments
 int port = 5000;
@@ -38,6 +69,11 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.ListenAnyIP(port);
 });
 
+var dbEngine = new DatabaseEngine(targetPath);
+builder.Services.AddSingleton(dbEngine);
+builder.Services.AddHostedService<AxarDB.BackgroundServices.QueueProcessor>();
+dbEngine.InitializeTriggers();
+
 var app = builder.Build();
 
 if (args.Contains("--benchmark"))
@@ -46,32 +82,6 @@ if (args.Contains("--benchmark"))
     return;
 }
 
-if (args.Length > 1 && args[0] == "script")
-{
-    var scriptPath = args[1];
-    if (File.Exists(scriptPath))
-    {
-        var db = new DatabaseEngine(targetPath);
-        try 
-        {
-            var content = File.ReadAllText(scriptPath);
-            var result = db.ExecuteScript(content);
-            Console.WriteLine("Result: " + (result?.ToString() ?? "null"));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error: " + ex.Message);
-        }
-    }
-    else
-    {
-        Console.WriteLine($"File not found: {scriptPath}");
-    }
-    return;
-}
-
-var dbEngine = new DatabaseEngine(targetPath);
-dbEngine.InitializeTriggers();
 
 // Global Exception Handler Middleware
 app.Use(async (context, next) =>
@@ -222,7 +232,7 @@ app.MapPost("/query", async (HttpContext context) =>
             IsView = false
         };
 
-        var result = dbEngine.ExecuteScript(script, queryParams, scriptContext);
+        var result = dbEngine.ExecuteScript(script, queryParams, scriptContext, context.RequestAborted);
         return Results.Json(result);
     }
     catch (Exception ex)
@@ -275,7 +285,7 @@ app.MapGet("/views/{viewName}", async (string viewName, HttpContext context) =>
 
     try
     {
-        var result = dbEngine.ExecuteView(viewName, queryParams, context.Connection.RemoteIpAddress?.ToString() ?? "unknown", user);
+        var result = dbEngine.ExecuteView(viewName, queryParams, context.Connection.RemoteIpAddress?.ToString() ?? "unknown", user, context.RequestAborted);
         return Results.Json(result);
     }
     catch (FileNotFoundException)

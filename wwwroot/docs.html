@@ -441,6 +441,9 @@
                 <a class="nav-link" data-target="external-db">
                     <i data-lucide="database"></i> External Databases
                 </a>
+                <a class="nav-link" data-target="queue">
+                    <i data-lucide="clock"></i> Queue Operations
+                </a>
             </div>
 
             <div class="nav-section">
@@ -743,6 +746,24 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
 <span class="keyword">var</span> data = <span class="function">pgsqlRead</span>(conn, <span class="string">"SELECT * FROM public.logs WHERE type = @t"</span>, { t: 'error' });
 <span class="comment">// Execute command</span>
 <span class="keyword">var</span> affected = <span class="function">pgsqlExec</span>(conn, <span class="string">"DELETE FROM public.logs WHERE id = @id"</span>, { id: 10 });</code></pre>
+            </section>
+
+            <!-- Queue Operations -->
+            <section class="section" id="queue">
+                <h2>Queue Operations</h2>
+                <p>Schedule long-running tasks for background execution using <code>queue()</code>.</p>
+                <pre><code><span class="comment">// Simple background job</span>
+<span class="keyword">var</span> jobId = <span class="function">queue</span>(<span class="string">"db.logs.insert({msg: 'Background task', time: guid()})"</span>);
+
+<span class="comment">// Job with parameters and priority</span>
+<span class="keyword">var</span> highPriJob = <span class="function">queue</span>(
+    <span class="string">"db.users.update(u => u.id == @id, { active: true })"</span>, 
+    { id: <span class="number">123</span> }, 
+    { priority: <span class="number">1</span> }
+);</code></pre>
+                <div class="info-box">
+                    <strong>💡 Priority:</strong> Higher priority jobs run first. Default is 0.
+                </div>
             </section>
 
             <!-- HTTP API -->

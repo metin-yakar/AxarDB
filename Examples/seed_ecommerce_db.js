@@ -1,16 +1,28 @@
-// 1. Clean up existing data
-db.users.findall().delete(); // Delete all users
-db.products.findall().delete(); // Delete all products
-db.orders.findall().delete(); // Delete all orders
-db.categories.findall().delete(); // Delete all categories
-db.reviews.findall().delete(); // Delete all reviews
+// 1. Clean up existing data (Optional: Comment out if you want to append)
+db.users.findall().delete();
+db.products.findall().delete();
+db.orders.findall().delete();
+db.categories.findall().delete();
+db.reviews.findall().delete();
+db.audit_logs.findall().delete();
 
-// 2. Helper Functions
+// 2. Configuration for Scale
+const SCALE = {
+    USERS: 10000,      // 10k users
+    CATEGORIES: 50,    // 50 categories
+    PRODUCTS: 50000,   // 50k products
+    ORDERS: 100000,    // 100k orders
+    REVIEWS: 100000    // 100k reviews
+};
+// Total ~260k records. Adjust as needed for performance testing.
+
+// 3. Helper Functions
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function getRandomItem(array) {
+    if (!array || array.length === 0) return null;
     return array[Math.floor(Math.random() * array.length)];
 }
 
@@ -18,99 +30,145 @@ function getRandomDate(start, end) {
     return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 
-// 3. User Data Generation
+function guid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+// 4. OpenAI Integration Example (Mock Setup)
+// This view demonstrates how to use OpenAI to enrich product data
+db.saveView("generateProductDesc", `
+// @access private
+var productName = @name;
+var token = $OPENAI_KEY; // Assumes OPENAI_KEY is in Vault
+if (!token) return "No OpenAI Token configured";
+
+var llm = openai("https://api.openai.com/v1", token);
+llm.addSysMsg("You are a creative copywriter. Write a 1-sentence product description.");
+var desc = llm.msg("Write a description for: " + productName, {}, "gpt-3.5-turbo");
+return desc;
+`);
+
+// 5. Queue Integration Example
+// Queue a background job to 'process' a batch of orders (simulated)
+function queueOrderProcessing(orderId) {
+    // This script will run in the background
+    var script = `
+        var order = db.orders.find(o => o._id == @id);
+        if (order) {
+            // Simulate complex processing
+            db.orders.update(o => o._id == @id, { 
+                processedAt: new Date(), 
+                status: 'Processed' 
+            });
+            console.log("Background processed order: " + @id);
+        }
+    `;
+    // Queue with priority 1
+    queue(script, { id: orderId }, { priority: 1 });
+}
+
+
+// 6. User Data Generation
+console.log("Generating " + SCALE.USERS + " Users...");
 var firstNames = ["James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda", "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica", "Thomas", "Sarah", "Charles", "Karen"];
 var lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"];
 var countries = ["USA", "UK", "Germany", "France", "Canada", "Australia", "Japan", "China", "Brazil", "India"];
 var domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"];
 
-for (var i = 0; i < 50; i++) {
+for (var i = 0; i < SCALE.USERS; i++) {
     var firstName = getRandomItem(firstNames);
     var lastName = getRandomItem(lastNames);
-    var email = firstName.toLowerCase() + "." + lastName.toLowerCase() + getRandomInt(1, 999) + "@" + getRandomItem(domains);
+    var email = firstName.toLowerCase() + "." + lastName.toLowerCase() + i + "@" + getRandomItem(domains);
 
     db.users.insert({
         firstName: firstName,
         lastName: lastName,
         email: email,
-        password: sha256("password123"),
+        password: sha256("password" + i),
         country: getRandomItem(countries),
         age: getRandomInt(18, 70),
-        isActive: Math.random() > 0.1, // 90% active
+        isActive: Math.random() > 0.1,
         createdAt: getRandomDate(new Date(2023, 0, 1), new Date()),
-        isPremium: Math.random() > 0.8 // 20% premium
+        isPremium: Math.random() > 0.8
     });
 }
+var userList = db.users.findall().toList();
+if (userList.length === 0) throw new Error("User generation failed. userList is empty.");
+console.log("Users loaded: " + userList.length);
 
-// 4. Category Data Generation
-var categories = [
-    { name: "Electronics", description: "Gadgets and devices", taxRate: 0.18 },
-    { name: "Fashion", description: "Clothing and accessories", taxRate: 0.08 },
-    { name: "Home & Garden", description: "Furniture and decor", taxRate: 0.10 },
-    { name: "Books", description: "Fiction and non-fiction", taxRate: 0.05 },
-    { name: "Sports", description: "Equipment and apparel", taxRate: 0.12 },
-    { name: "Toys", description: "Games and playthings", taxRate: 0.15 },
-    { name: "Health", description: "Vitamins and supplements", taxRate: 0.00 },
-    { name: "Automotive", description: "Car parts and accessories", taxRate: 0.20 },
-    { name: "Beauty", description: "Makeup and skincare", taxRate: 0.12 },
-    { name: "Groceries", description: "Food and beverages", taxRate: 0.01 }
-];
-
-for (var i = 0; i < categories.length; i++) {
-    db.categories.insert(categories[i]);
+// 7. Category Data Generation
+console.log("Generating " + SCALE.CATEGORIES + " Categories...");
+var catNames = ["Electronics", "Fashion", "Home", "Books", "Sports", "Toys", "Health", "Automotive", "Beauty", "Groceries", "Music", "Movies", "Games", "Tools", "Outdoors", "Computers", "Pet", "Kids", "Industrial", "Handmade"];
+for (var i = 0; i < SCALE.CATEGORIES; i++) {
+    var base = getRandomItem(catNames);
+    db.categories.insert({
+        name: base + " " + (i + 1),
+        description: "Category for " + base,
+        taxRate: getRandomInt(0, 20) / 100
+    });
 }
-
 var categoryList = db.categories.findall().toList();
+if (categoryList.length === 0) throw new Error("Category generation failed. categoryList is empty.");
+console.log("Categories loaded: " + categoryList.length);
 
-// 5. Product Data Generation
+// 8. Product Data Generation
+console.log("Generating " + SCALE.PRODUCTS + " Products...");
 var productPrefixes = ["Super", "Ultra", "Mega", "Pro", "Max", "Eco", "Smart", "Compact", "Luxury", "Budget"];
 var productNouns = ["Phone", "Laptop", "Shirt", "Shoes", "Table", "Chair", "Book", "Ball", "Doll", "Vitamin", "Tire", "Lipstick", "Coffee", "Watch", "Headphones", "Camera", "Monitor", "Keyboard", "Mouse", "Speaker"];
 
-for (var i = 0; i < 100; i++) {
+for (var i = 0; i < SCALE.PRODUCTS; i++) {
     var category = getRandomItem(categoryList);
-    var name = getRandomItem(productPrefixes) + " " + getRandomItem(productNouns) + " " + getRandomInt(100, 9000);
-    var price = Math.round((Math.random() * 990 + 10) * 100) / 100; // 10.00 to 1000.00
+    var name = getRandomItem(productPrefixes) + " " + getRandomItem(productNouns) + " " + i;
 
     db.products.insert({
         name: name,
         description: "High quality " + name + " for your needs.",
-        price: price,
+        price: Math.round((Math.random() * 990 + 10) * 100) / 100,
         categoryId: category._id,
         categoryName: category.name,
         stock: getRandomInt(0, 500),
-        rating: Math.round((Math.random() * 4 + 1) * 10) / 10, // 1.0 to 5.0
-        tags: [category.name.toLowerCase(), "sale", "new"],
+        rating: Math.round((Math.random() * 4 + 1) * 10) / 10,
+        tags: [category.name.toLowerCase().split(' ')[0], "sale", "new"],
         createdAt: getRandomDate(new Date(2023, 0, 1), new Date())
     });
 }
+var productList = db.products.findall().toList(); // Only take first few if too large, but we need random
+if (productList.length === 0) throw new Error("Product generation failed. productList is empty.");
+console.log("Products loaded: " + productList.length);
 
-var productList = db.products.findall().toList();
-var userList = db.users.findall().toList();
-
-// 6. Order Data Generation
+// 9. Order Data Generation
+console.log("Generating " + SCALE.ORDERS + " Orders...");
 var orderStatuses = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
-for (var i = 0; i < 100; i++) {
-    var user = getRandomItem(userList);
-    var itemCount = getRandomInt(1, 5);
+for (var i = 0; i < SCALE.ORDERS; i++) {
+    var user = getRandomItem(userList); // fast random access
+    if (!user) { console.log("Warning: null user at order " + i); continue; }
+    // Optimization: Don't fetch full product list if it's 50k keys. 
+    // Just pick random index if possible, but we need _id. 
+    // userList and productList are likely available in memory here.
+
+    var itemCount = getRandomInt(1, 4);
     var items = [];
     var totalAmount = 0;
 
     for (var j = 0; j < itemCount; j++) {
         var product = getRandomItem(productList);
+        if (!product) { console.log("Warning: null product at order " + i + " item " + j); continue; }
         var quantity = getRandomInt(1, 3);
-        var itemTotal = product.price * quantity;
 
         items.push({
             productId: product._id,
-            quantity: quantity
+            productName: product.name, // Denormalize for read speed
+            quantity: quantity,
+            price: product.price
         });
-        totalAmount += itemTotal;
+        totalAmount += product.price * quantity;
     }
 
-    var orderDate = getRandomDate(new Date(2023, 0, 1), new Date());
-
-    db.orders.insert({
+    var orderId = db.orders.insert({
         userId: user._id,
         userEmail: user.email,
         items: items,
@@ -118,182 +176,73 @@ for (var i = 0; i < 100; i++) {
         status: getRandomItem(orderStatuses),
         shippingAddress: {
             street: getRandomInt(100, 999) + " Main St",
-            city: "City " + getRandomInt(1, 20),
+            city: "City " + getRandomInt(1, 100),
             country: user.country,
             zipCode: getRandomInt(10000, 99999).toString()
         },
         paymentMethod: getRandomItem(["Credit Card", "PayPal", "Bank Transfer"]),
-        createdAt: orderDate,
-        updatedAt: orderDate // Simplified
-    });
+        createdAt: getRandomDate(new Date(2023, 0, 1), new Date())
+    })._id;
+
+    // Queue Example Usage:
+    // Process 1% of orders via background queue to demonstrate functionality
+    if (i % 100 === 0) {
+        queueOrderProcessing(orderId);
+    }
 }
 
-// 7. Review Data Generation
-var reviewTexts = [
-    "Great product!", "Not what I expected.", "Excellent quality.", "Fast shipping.",
-    "Would buy again.", "Terrible.", "Okay for the price.", "Loved it!",
-    "Broken on arrival.", "Best purchase ever."
-];
+// 10. Reviews Generation
+console.log("Generating " + SCALE.REVIEWS + " Reviews...");
+var reviewTexts = ["Great!", "Bad.", "Okay.", "Love it.", "Hate it."];
 
-for (var i = 0; i < 150; i++) {
+for (var i = 0; i < SCALE.REVIEWS; i++) {
     var user = getRandomItem(userList);
     var product = getRandomItem(productList);
 
+    if (!user || !product) {
+        if (!user) console.log("Warning: null user at review " + i);
+        if (!product) console.log("Warning: null product at review " + i);
+        continue;
+    }
+
     db.reviews.insert({
         userId: user._id,
-        userName: user.firstName + " " + user.lastName,
         productId: product._id,
-        productName: product.name,
         rating: getRandomInt(1, 5),
         comment: getRandomItem(reviewTexts),
-        createdAt: getRandomDate(new Date(2023, 0, 1), new Date()),
-        helpfulVotes: getRandomInt(0, 50)
+        createdAt: getRandomDate(new Date(2023, 0, 1), new Date())
     });
 }
 
-// 8. Create Views
+// 11. Views & Scripts (Updated)
 
-// Public View: Join Orders with Products (Refactored to use db.join)
-db.saveView("orderDetails", `
-// @access public
-var orderId = @orderId;
-var order = db.orders.find(o => o._id == orderId);
-if (!order) return { error: "Order not found" };
-
-// 4-Way Join with ALIASES: items + products + categories + reviews
-return db.join(
-    alias(order.items, "orderitems"), 
-    alias(db.products, "products"), 
-    alias(db.categories, "categories"), 
-    alias(db.reviews, "reviews")
-)
-    .where(x => 
-        x.orderitems.productId == x.products._id && 
-        x.products.categoryId == x.categories._id &&
-        x.reviews.productId == x.products._id
-    )
-    .select(x => ({
-        productId: x.orderitems.productId,
-        name: x.products.name,
-        category: x.categories.name,
-        price: x.products.price,
-        quantity: x.orderitems.quantity,
-        total: Math.round(x.products.price * x.orderitems.quantity * 100) / 100,
-        recentReview: {
-            rating: x.reviews.rating,
-            comment: x.reviews.comment
-        }
-    })).toList();
-`);
-
-// Public View: Top Selling Products (Mock logic using rating for simplicity in demo)
-db.saveView("topRatedProducts", `
-// @access public
-var items = db.products.findall().select(p => ({
-    name: p.name,
-    price: p.price,
-    rating: p.rating,
-    category: p.categoryName
-})).toList();
-
-var jsArray = [];
-for(var i=0; i < items.length; i++) {
-    jsArray.push(items[i]);
-}
-
-return jsArray.sort((a, b) => b.rating - a.rating).slice(0, 10);
-`);
-
-// Public View Search Products
-// Public View: Search Products (Using new .contains() feature)
+// Public View: Search Products
 db.saveView("searchProducts", `
 // @access public
 var keyword = @keyword;
 if (!keyword) return [];
-// Case-insensitive search using .contains()
-return db.products.findall(p => p.name.contains(keyword) || p.description.contains(keyword)).toList();
+// Case-insensitive search
+return db.products.findall(p => p.name.contains(keyword)).toList();
 `);
 
-// Private View: User Orders
-db.saveView("userOrders", `
-// @access private
-var userId = @userId;
-return db.orders.findall(o => o.userId == userId).toList();
+// 12. View Using OpenAI (Demonstration)
+db.saveView("askAI", `
+// @access public
+var question = @question;
+var token = $OPENAI_KEY;
+if (!token) return { error: "No API Key" };
+var llm = openai("https://api.openai.com/v1", token);
+return llm.msg(question, {}, "gpt-3.5-turbo");
 `);
 
-
-// Private View: Dashboard Stats
-db.saveView("dashboardStats", `
-// @access private
-var totalUsers = db.users.findall().toList().length;
-var totalOrders = db.orders.findall().toList().length;
-var totalProducts = db.products.findall().toList().length;
-var totalRevenue = 0;
-
-db.orders.findall().foreach(o => {
-    totalRevenue += o.totalAmount;
-});
-
+console.log("Seeding Complete!");
 return {
-    users: totalUsers,
-    orders: totalOrders,
-    products: totalProducts,
-    revenue: Math.round(totalRevenue * 100) / 100
+    success: true,
+    stats: {
+        users: db.users.findall().count(),
+        products: db.products.findall().count(),
+        orders: db.orders.findall().count(),
+        reviews: db.reviews.findall().count()
+    },
+    message: "Database hydrated with ~" + (SCALE.USERS + SCALE.PRODUCTS + SCALE.ORDERS + SCALE.REVIEWS) + " records."
 };
-`);
-
-// 9. Triggers
-
-// Trigger 1: Audit Log for Product Price Changes
-db.saveTrigger("auditProductPrice", "products", `
-// @target products
-if (event.type === 'changed') {
-    var product = db.products.find(p => p._id == event.documentId);
-    if (product) {
-        // Log to a separate 'audit_logs' collection
-        // Note: In real app we might want to compare old vs new, but here we just log the event.
-        // To do that effectively we'd need 'oldValue' in event which isn't there yet, 
-        // so we just log "Product updated".
-        
-        console.log("Product updated: " + product.name + " (" + event.documentId + ")");
-        
-        // Example: If price massive, alert?
-        if (product.price > 5000) {
-           console.log("High value product updated!");
-        }
-    }
-}
-`);
-
-// Trigger 2: Low Stock Alert
-db.saveTrigger("lowStockAlert", "products", `
-// @target products
-if (event.type === 'changed' || event.type === 'created') {
-    var product = db.products.find(p => p._id == event.documentId);
-    if (product && product.stock < 10) {
-        console.log("ALERT: Low stock for " + product.name + "! Only " + product.stock + " left.");
-        // Simulate webhook call to inventory system
-        // webhook("https://inventory.example.com/alert", { productId: product._id, stock: product.stock }, {});
-    }
-}
-`);
-
-// Trigger 3: Welcome Email for New Users
-db.saveTrigger("welcomeEmail", "users", `
-// @target users
-if (event.type === 'created') {
-    var user = db.users.find(u => u._id == event.documentId);
-    if (user) {
-        console.log("Sending welcome email to: " + user.email);
-        // Simulate email service webhook
-        // webhook("https://email.example.com/send", { 
-        //    to: user.email, 
-        //    subject: "Welcome to AxarShop!", 
-        //    body: "Hi " + user.firstName + "..." 
-        // }, {});
-    }
-}
-`);
-
-// Return success message
-return { success: true, message: "E-Commerce database seeded successfully with new Triggers and Views!" };
