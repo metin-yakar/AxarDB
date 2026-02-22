@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AxarDB - Management Console</title>
-    <link rel="icon" type="image/png" href="AxarDBLogo.png">
+    <link rel="icon" type="image/png" href="logo.png">
     <link rel="stylesheet" href="css/style.css">
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +23,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="brand">
-                    <img src="AxarDBLogo.png" alt="AxarDB" class="logo-img">
+                    <img src="logo.png" alt="AxarDB" class="logo-img">
                     <h2>Collections</h2>
                 </div>
                 <button class="btn-add" id="btnAddDb" title="Add Database">
@@ -105,11 +105,30 @@
     <!-- Hidden Template for Context Menu -->
     <div id="contextMenu" class="context-menu" style="display: none;"></div>
 
+    <!-- Nested JSON Modal -->
+    <div id="nestedJsonModal" class="modal-overlay" style="display: none;">
+        <div class="nested-json-box"
+            style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; width: 90%; height: 80%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2);">
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="braces"></i> Object
+                    Viewer</h3>
+                <button class="btn-icon" onclick="closeNestedJsonModal()" title="Close">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div id="nestedJsonCardsContainer"
+                style="flex: 1; display: flex; overflow-x: auto; background: var(--bg-primary); scrollbar-width: thin;">
+                <!-- Cards will be rendered here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Login Modal -->
     <div id="loginModal" class="modal-overlay">
         <div class="login-box">
             <div class="login-header">
-                <img src="AxarDBLogo.png" alt="AxarDB" class="login-logo">
+                <img src="logo.png" alt="AxarDB" class="login-logo">
                 <h2>Welcome Back</h2>
                 <p style="color: var(--text-secondary); margin-top: 0.5rem;">Sign in to access the console</p>
             </div>

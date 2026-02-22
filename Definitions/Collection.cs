@@ -69,9 +69,9 @@ namespace AxarDB.Definitions
                 
                 if (doc != null)
                 {
-                    // Add to Cache
-                    // Size = Bytes estimate.
-                    long size = 1000 + (doc.Count * 100); 
+                    // Accurate Bytes estimate (UTF-16 string length * 2)
+                    long size = System.Text.Json.JsonSerializer.Serialize(doc).Length * 2L; 
+                    if (size < 1000) size = 1000; // minimum size threshold
                     
                     var entryOptions = new MemoryCacheEntryOptions
                     {
@@ -108,9 +108,12 @@ namespace AxarDB.Definitions
             lock (_indexLock) { _primaryIndex.Add(id); }
 
             // 3. Update/Invalidate Cache
+            long size = System.Text.Json.JsonSerializer.Serialize(document).Length * 2L;
+            if (size < 1000) size = 1000;
+            
             var entryOptions = new MemoryCacheEntryOptions
             {
-                Size = 1000 + (document.Count * 100),
+                Size = size,
                 SlidingExpiration = TimeSpan.FromMinutes(10)
             };
             _cache.Set(GetCacheKey(id), document, entryOptions);
@@ -130,27 +133,9 @@ namespace AxarDB.Definitions
             string[] ids;
             lock (_indexLock) { ids = _primaryIndex.ToArray(); }
             
-            // ConcurrentBag is safe
-            var results = new ConcurrentBag<Dictionary<string, object>>();
-            
-            var options = new ParallelOptions 
-            { 
-                MaxDegreeOfParallelism = Environment.ProcessorCount * 2,
-                CancellationToken = cancellationToken
-            };
-
-            try 
-            {
-                Parallel.ForEach(ids, options, id => 
-                {
-                    // No need to check token manually, Parallel.ForEach handles it via options
-                    var doc = GetDocument(id);
-                    if (doc != null) results.Add(doc);
-                });
-            }
-            catch (OperationCanceledException) { throw; }
-            
-            return results;
+            return ids.AsParallel().WithCancellation(cancellationToken)
+                      .Select(id => GetDocument(id))
+                      .Where(doc => doc != null)!;
         }
 
         public IEnumerable<Dictionary<string, object>> FindAll(Func<Dictionary<string, object>, bool> predicate, AxarDB.Query.QueryOptimizer.AnalysisResult? analysis = null, CancellationToken cancellationToken = default)
@@ -162,20 +147,10 @@ namespace AxarDB.Definitions
                  if (idx != null)
                  {
                      var ids = idx.Search(analysis.Value.Val!, analysis.Value.Op);
-                     var indexedResults = new ConcurrentBag<Dictionary<string, object>>();
                      
-                     var options = new ParallelOptions 
-                     { 
-                        MaxDegreeOfParallelism = Environment.ProcessorCount * 2,
-                        CancellationToken = cancellationToken
-                     };
-
-                     Parallel.ForEach(ids, options, id => 
-                     {
-                         var doc = GetDocument(id);
-                         if (doc != null && predicate(doc)) indexedResults.Add(doc);
-                     });
-                     return indexedResults;
+                     return ids.AsParallel().WithCancellation(cancellationToken)
+                               .Select(id => GetDocument(id))
+                               .Where(doc => doc != null && predicate(doc))!;
                  }
              }
 
@@ -183,24 +158,9 @@ namespace AxarDB.Definitions
              string[] allIds;
              lock (_indexLock) { allIds = _primaryIndex.ToArray(); }
 
-             var results = new ConcurrentBag<Dictionary<string, object>>();
-             
-             var scanOptions = new ParallelOptions 
-             { 
-                MaxDegreeOfParallelism = Environment.ProcessorCount * 2,
-                CancellationToken = cancellationToken
-             };
-
-             Parallel.ForEach(allIds, scanOptions, id => 
-             {
-                 var doc = GetDocument(id);
-                 if (doc != null && predicate(doc))
-                 {
-                     results.Add(doc);
-                 }
-             });
-             
-             return results;
+             return allIds.AsParallel().WithCancellation(cancellationToken)
+                          .Select(id => GetDocument(id))
+                          .Where(doc => doc != null && predicate(doc))!;
         }
 
         public void CreateIndex(string propertyName, string type)

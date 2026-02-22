@@ -8,13 +8,13 @@ db.audit_logs.findall().delete();
 
 // 2. Configuration for Scale
 const SCALE = {
-    USERS: 10000,      // 10k users
-    CATEGORIES: 50,    // 50 categories
-    PRODUCTS: 50000,   // 50k products
-    ORDERS: 100000,    // 100k orders
-    REVIEWS: 100000    // 100k reviews
+    USERS: 100,      // 10k users
+    CATEGORIES: 5,    // 50 categories
+    PRODUCTS: 500,   // 50k products
+    ORDERS: 1000,    // 100k orders
+    REVIEWS: 1000    // 100k reviews
 };
-// Total ~260k records. Adjust as needed for performance testing.
+// Total ~2605 records. Adjust as needed for performance testing.
 
 // 3. Helper Functions
 function getRandomInt(min, max) {

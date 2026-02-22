@@ -497,6 +497,14 @@
                         <p>Data processing with native JS syntax.</p>
                     </div>
                     <div class="feature-card">
+                        <h4>⚡ High Performance</h4>
+                        <p>Lazy evaluation via PLINQ and strictly capped 40% RAM cache usage.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📄 CSV Engine</h4>
+                        <p>Convert lists of objects to CSV, or parse raw CSV strings instantly.</p>
+                    </div>
+                    <div class="feature-card">
                         <h4>📊 Index Support</h4>
                         <p>Performance with ASC/DESC sorting.</p>
                     </div>
@@ -533,6 +541,10 @@
 
 <span class="comment">// Record count</span>
 <span class="keyword">var</span> count = db.users.<span class="function">findall</span>().<span class="function">count</span>();
+<span class="keyword">var</span> adults = db.users.<span class="function">findall</span>().<span class="function">count</span>(u => u.age > <span class="number">18</span>);
+
+<span class="comment">// Distinct unique values</span>
+<span class="keyword">var</span> roles = db.users.<span class="function">findall</span>().<span class="function">distinct</span>(u => u.role).<span class="function">toList</span>();
 
 <span class="comment">// Case-insensitive search</span>
 <span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);</code></pre>
@@ -815,7 +827,8 @@ db.users.<span class="function">insert</span>({
                     <li><strong>Basic Authentication:</strong> Required for /query and /collections</li>
                     <li><strong>Default User:</strong> <code>unlocker / unlocker</code></li>
                     <li><strong>Password Hashing:</strong> Supports both plain text and SHA256 hashed passwords in the
-                        <code>sysusers</code> collection.</li>
+                        <code>sysusers</code> collection.
+                    </li>
                     <li><strong>Injection Protection:</strong> @param placeholders are securely bound</li>
                     <li><strong>Malicious Code Check:</strong> eval, Function are blocked</li>
                 </ul>
@@ -851,6 +864,10 @@ console.<span class="function">log</span>(<span class="string">"Message"</span>)
 
 <span class="comment">// Create random string</span>
 <span class="keyword">var</span> token = <span class="function">randomString</span>(<span class="number">32</span>);
+
+<span class="comment">// Parse CSV or Generate CSV</span>
+<span class="keyword">var</span> parsed = <span class="function">csv</span>(<span class="string">"id,name\n1,john"</span>);
+<span class="keyword">var</span> strOut = <span class="function">csv</span>([{id: <span class="number">1</span>, name: <span class="string">"john"</span>}]);
 
 <span class="comment">// Deep copy object</span>
 <span class="keyword">var</span> copy = <span class="function">deepcopy</span>(original);

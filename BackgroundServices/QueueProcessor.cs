@@ -166,13 +166,13 @@ namespace AxarDB.BackgroundServices
             job["duration"] = durationMs;
             if (success)
             {
-                job["successResult"] = result;
-                job["errorMessage"] = null;
+                job["successResult"] = result!;
+                job["errorMessage"] = null!;
             }
             else
             {
-                job["successResult"] = null;
-                job["errorMessage"] = error;
+                job["successResult"] = null!;
+                job["errorMessage"] = error!;
             }
             
             // Persist update

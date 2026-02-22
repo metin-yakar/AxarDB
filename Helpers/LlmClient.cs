@@ -27,7 +27,7 @@ namespace AxarDB.Helpers
             _messages.Add(new { role = "system", content = msg });
         }
 
-        public object msg(string userMsg, object requestData, object expectedResponseModel = null)
+        public object? msg(string userMsg, object? requestData = null, object? expectedResponseModel = null)
         {
             // 1. Add User Message
             _messages.Add(new { role = "user", content = userMsg });
@@ -74,14 +74,11 @@ namespace AxarDB.Helpers
                 }
 
                 // 4. Handle Response
-                // If expectedResponseModel is provided (as a JSON string or object structure),
-                // we try to parse the LLM's response content into that structure.
-                // HOWEVER, typical LLM response (OpenAI format) is nested: choices[0].message.content
                 
                 using var doc = JsonDocument.Parse(responseString);
                 var root = doc.RootElement;
                 
-                string content = null;
+                string? content = null;
 
                 // Attempt to extract content from OpenAI format
                 if (root.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
@@ -124,12 +121,6 @@ namespace AxarDB.Helpers
                     catch (Exception ex)
                     {
                         Console.WriteLine($"[LlmClient] Failed to parse expected model: {ex.Message}. Returning raw content.");
-                        // Return error object or raw string? 
-                        // Prompt says: "res nesnesi expectedmodel olarak gelen nesne türüne göre olacaktır eğer expected model verilmemişse string döner."
-                        // If parsing fails, maybe return a status object indicating failure?
-                        // Or just return the string if it matches "string" type?
-                        // Let's assume on failure to parse, we return the string but wrapped if expectedModel was an object?
-                        // Requirement: "return result based on expected model type".
                         return content; 
                     }
                 }

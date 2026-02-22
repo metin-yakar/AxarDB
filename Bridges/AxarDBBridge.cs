@@ -102,7 +102,7 @@ namespace AxarDB.Bridges
             }
             else if (parameters is System.Dynamic.ExpandoObject exp)
             {
-                paramsDict = new Dictionary<string, object>(exp);
+                paramsDict = exp.ToDictionary(k => k.Key, v => v.Value ?? new object());
             }
             // If parameters is null or incompatible, we pass null.
             

@@ -97,7 +97,8 @@ After `findall()`, you can chain these methods **before** `.toList()`:
 | `.toList()` / `.ToList()` | **Required** — Convert ResultSet to array | `findall().toList()` |
 | `.take(n)` | Limit results to first N items | `findall().take(5).toList()` |
 | `.select(fn)` | Project/transform each document | `findall().select(u => u.name).toList()` |
-| `.count()` | Get total count (returns number, no `.toList()`) | `findall().count()` |
+| `.count(predicate?)` | Get total count or conditionally count matches | `findall().count(x => x.age > 18)` |
+| `.distinct(selector?)`| Get a list of unique values or objects | `findall().distinct(x => x.role).toList()` |
 | `.first()` | Get first matching item (no `.toList()`) | `findall().first()` |
 | `.foreach(fn)` | Execute callback for each item | `findall().foreach(u => console.log(u.name))` |
 | `.update(obj)` | Update all matching records | `findall(u => u.old == true).update({old: false})` |
@@ -440,6 +441,7 @@ Execution logs are stored in `queue_logs/` directory.
 | `toDecimal(str)` | `string -> decimal` | Parse string to decimal | `toDecimal("3.14")` → `3.14` |
 | `toJson(obj)` | `object -> string` | Serialize object to JSON | `toJson({a:1})` → `'{"a":1}'` |
 | `deepcopy(obj)` | `object -> object` | Deep clone an object | `var copy = deepcopy(original)` |
+| `csv(input)` | `string <-> object[]` | Bidirectional CSV parser/generator | `var objs = csv("a,b\n1,2")` |
 
 ### Date Functions
 | Function | Signature | Description | Example |

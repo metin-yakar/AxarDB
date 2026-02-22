@@ -70,7 +70,7 @@ namespace AxarDB.Wrappers
                          var dict = new Dictionary<string, object>();
                          foreach(var prop in element.EnumerateObject())
                          {
-                             dict[prop.Name] = Unwrap(prop.Value);
+                             dict[prop.Name] = Unwrap(prop.Value)!;
                          }
                          return new DocumentWrapper(dict);
                     default: return element.ToString();

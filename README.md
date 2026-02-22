@@ -22,8 +22,9 @@
 
 | Feature | Description |
 |:---|:---|
-| **📜 JavaScript Querying** | Use full JavaScript syntax. `db.users.findall(x => x.active == true).ToList()` (Supports `.toList()` too) |
-| **⚡ High Performance** | In-memory storage with `ConcurrentDictionary` and lazy evaluation using LINQ. |
+| **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active).toList()`. Supports new extensions like `count()` and `distinct()` on both ResultSets and Native Arrays. |
+| **⚡ High Performance** | In-memory storage with `ConcurrentDictionary`, lazy evaluation using PLINQ, and strictly-capped dynamic 40% Memory Cache expiration. |
+| **📄 CSV Engine** | Bidirectional robust CSV support. Convert text to Collections or Collections to CSV via `csv(input)`. |
 | **🔍 Smart Indexing** | Create ASC/DESC indexes on any field. Supports optimized range queries. |
 | **🔗 Joins** | Perform complex joins with easy aliases: `db.join(alias(u, "user"), alias(o, "order"))`. |
 | **🛢️ MySQL/MariaDB** | Native support for external SQL queries: `mysqlRead(conn, query)` and `mysqlExec(conn, query)`. |

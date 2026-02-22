@@ -22,8 +22,9 @@
 
 | Functie | Beschrijving |
 |:---|:---|
-| **📜 JavaScript Queries** | Gebruik volledige JS syntax. `db.users.findall(x => x.age > 18)` |
-| **⚡ Hoge Prestaties** | In-memory opslag met `ConcurrentDictionary`. |
+| **📜 JavaScript Queries** | Gebruik volledige JS syntax: `db.users.findall(x => x.active).toList()`. Ondersteunt nieuwe functies zoals `count()` en `distinct()` op zowel ResultSets als Native Arrays. |
+| **⚡ Hoge Prestaties** | In-memory opslag met `ConcurrentDictionary`, Luie Evaluatie (Lazy Evaluation) via PLINQ en een strikte dynamische cachelimiet van 40% RAM. |
+| **📄 CSV Engine** | Bidirectionele robuuste CSV-ondersteuning. Converteer tekst naar collecties of collecties naar CSV via `csv(input)`. |
 | **🛡️ Veilig** | Basic Auth (ondersteunt SHA256-hash) & **Injectie Preventie**. |
 | **🛠️ Hulpfuncties** | Ingebouwde functies: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
 

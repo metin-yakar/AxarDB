@@ -22,8 +22,9 @@
 
 | 機能 | 説明 |
 |:---|:---|
-| **📜 JavaScript クエリ** | 完全な JS 構文が使用可能。 `db.users.findall(x => x.age > 18)` |
-| **⚡ 高パフォーマンス** | `ConcurrentDictionary` を使用したインメモリ ストレージ。 |
+| **📜 JavaScript クエリ** | 完全な JS 構文: `db.users.findall(x => x.active).toList()`。 ResultSet および ネイティブ配列の両方で `count()` や `distinct()` などの新しい拡張機能がサポートされます。 |
+| **⚡ 高パフォーマンス** | `ConcurrentDictionary` を使用したインメモリ ストレージ、PLINQによる遅延評価（Lazy Evaluation）、および厳格な40%のRAMキャッシュ制限。 |
+| **📄 CSV エンジン** | 双方向の堅牢なCSVサポート。 `csv(input)` でテキストをコレクションに、またはコレクションをCSVに変換します。 |
 | **🔍 スマート インデックス** | ASC/DESC インデックス作成。 |
 | **🔗 ジョイン** | コレクション間の結合: `db.join(users, orders)`. |
 | **🛡️ セキュア** | Basic認証 (SHA256ハッシュ対応) と **インジェクション防止**。 |

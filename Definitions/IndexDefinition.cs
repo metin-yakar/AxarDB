@@ -87,7 +87,7 @@ namespace AxarDB.Definitions
              return Enumerable.Empty<string>();
         }
 
-        private bool IsNumeric(object expression)
+        private bool IsNumeric(object? expression)
         {
             if (expression == null)
                 return false;
