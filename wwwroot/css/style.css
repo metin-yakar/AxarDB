@@ -780,62 +780,92 @@ input[type="checkbox"]:checked::after {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     padding: 0;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 560px;
-    max-height: 70vh;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    width: 95%;
+    max-width: 600px;
+    max-height: 80vh;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    animation: modal-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-enter {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .history-modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.25rem 1.5rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
     border-bottom: 1px solid var(--border);
 }
 
 .history-modal-header h3 {
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.history-filter-bar {
+    padding: 1rem 1.5rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--border);
 }
 
 .history-list {
     flex: 1;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-}
-
-.history-filter-bar {
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0;
 }
 
 .history-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1.5rem;
-    border-bottom: 1px solid var(--border);
+    gap: 1.25rem;
+    padding: 1rem 1.5rem;
+    margin: 4px 12px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background 0.15s;
-}
-
-.history-item:last-child {
-    border-bottom: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border: 1px solid transparent;
 }
 
 .history-item:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
+    border-color: var(--border);
 }
 
 .history-item.active {
-    border-left: 3px solid var(--accent);
-    background: rgba(99, 102, 241, 0.06);
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05));
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.history-item-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.history-item:hover .history-item-icon {
+    background: var(--accent);
+    color: white;
 }
 
 .history-item-content {
@@ -844,41 +874,62 @@ input[type="checkbox"]:checked::after {
 }
 
 .history-item .preview {
-    font-family: 'Cascadia Code', 'Fira Code', monospace;
-    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+    font-size: 0.85rem;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.01em;
 }
 
 .history-item .timestamp {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .history-item .btn-delete {
-    background: none;
-    border: none;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.1);
     color: var(--text-secondary);
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
-    flex-shrink: 0;
     opacity: 0;
+    transform: scale(0.8);
 }
 
 .history-item:hover .btn-delete {
     opacity: 1;
+    transform: scale(1);
 }
 
 .history-item .btn-delete:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+/* Empty State Styling */
+.history-list .empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.history-list .empty-state i {
+    opacity: 0.3;
 }

@@ -996,12 +996,22 @@ function renderHistoryList() {
         : entries;
 
     if (entries.length === 0) {
-        list.innerHTML = '<div style="padding: 2rem; color: var(--text-secondary); text-align: center;">No saved queries</div>';
+        list.innerHTML = `
+            <div class="empty-state">
+                <i data-lucide="history" style="width:48px;height:48px;margin-bottom:1rem;opacity:0.2"></i>
+                <p>No query history yet</p>
+            </div>`;
+        initIcons();
         return;
     }
 
     if (filtered.length === 0) {
-        list.innerHTML = '<div style="padding: 2rem; color: var(--text-secondary); text-align: center;">No matching queries</div>';
+        list.innerHTML = `
+            <div class="empty-state">
+                <i data-lucide="search-x" style="width:48px;height:48px;margin-bottom:1rem;opacity:0.2"></i>
+                <p>No matching queries found</p>
+            </div>`;
+        initIcons();
         return;
     }
 
@@ -1015,15 +1025,20 @@ function renderHistoryList() {
         const timeStr = date.toLocaleString();
         const isActive = entry.id === activeHistoryId;
 
-        return `< div class="history-item ${isActive ? 'active' : ''}" data - id="${entry.id}" >
+        return `<div class="history-item ${isActive ? 'active' : ''}" data-id="${entry.id}">
+            <div class="history-item-icon">
+                <i data-lucide="terminal" style="width:16px;height:16px"></i>
+            </div>
             <div class="history-item-content" onclick="loadHistoryItem('${entry.id}')">
                 <div class="preview">${escapeHtml(preview)}</div>
                 <div class="timestamp">${timeStr}</div>
             </div>
-            <button class="btn-delete" onclick="event.stopPropagation(); deleteHistoryEntry('${entry.id}')" title="Delete">
-                <i data-lucide="trash-2" style="width:14px;height:14px"></i>
-            </button>
-        </div > `;
+            <div class="history-item-actions">
+                <button class="btn-delete" onclick="event.stopPropagation(); deleteHistoryEntry('${entry.id}')" title="Delete">
+                    <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+                </button>
+            </div>
+        </div>`;
     }).join('');
 
     initIcons();
