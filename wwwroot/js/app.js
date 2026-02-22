@@ -2,6 +2,7 @@
 let editor;
 let currentCollections = [];
 let queryResults = [];
+let currentDisplayData = []; // To easily reference data for grid actions
 let sortCol = null;
 let sortDir = 1;
 let filters = {};
@@ -9,6 +10,7 @@ let lastCollectionName = "sysusers";
 let activeHistoryId = null;
 let _historyDebounceTimer = null;
 let _suppressHistorySync = false;
+let activeQueryController = null;
 
 // --- Tab System ---
 let tabs = [];
@@ -451,18 +453,32 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
 }
 
 async function executeSelectedQuery() {
-    const script = editor.getValue();
     const btn = document.getElementById('btnExecute');
-    const originalText = btn.innerHTML;
+
+    if (activeQueryController) {
+        activeQueryController.abort();
+        activeQueryController = null;
+        return;
+    }
+
+    const script = editor.getValue();
+    const originalText = `<i data-lucide="play"></i> Execute (Ctrl+Enter)`;
 
     const match = script.match(/db\.([a-zA-Z0-9_]+)\./);
     if (match) lastCollectionName = match[1];
 
-    btn.disabled = true;
-    btn.innerHTML = 'Executing...';
+    btn.innerHTML = '<i data-lucide="square" style="fill: currentColor; width: 14px; height: 14px;"></i> Cancel Executing';
+    btn.style.backgroundColor = '#ef4444'; // Red background for cancel
+    if (window.lucide) lucide.createIcons();
+
+    activeQueryController = new AbortController();
 
     try {
-        const response = await fetchWithAuth('/query', { method: 'POST', body: script });
+        const response = await fetchWithAuth('/query', {
+            method: 'POST',
+            body: script,
+            signal: activeQueryController.signal
+        });
         const text = await response.text();
         let data = null;
         try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
@@ -500,11 +516,17 @@ async function executeSelectedQuery() {
             alert('Error: ' + (data?.detail || data?.error || data || 'Query failed'));
         }
     } catch (err) {
-        alert('Server unreachable or request failed');
-        console.error(err);
+        if (err.name === 'AbortError') {
+            console.log('Query cancelled by user');
+        } else {
+            alert('Server unreachable or request failed');
+            console.error(err);
+        }
     } finally {
-        btn.disabled = false;
+        activeQueryController = null;
         btn.innerHTML = originalText;
+        btn.style.backgroundColor = '';
+        if (window.lucide) lucide.createIcons();
     }
 }
 
@@ -514,6 +536,17 @@ function renderGrid() {
     const table = document.getElementById('resultsTable');
     const noResults = document.getElementById('noResults');
     const container = document.getElementById('gridContainer');
+
+    // Preserve focus state if user is typing in filter
+    const activeElement = document.activeElement;
+    let focusedFilterCol = null;
+    let selectionStart = 0;
+    let selectionEnd = 0;
+    if (activeElement && activeElement.classList.contains('filter-input')) {
+        focusedFilterCol = activeElement.getAttribute('data-filter-col');
+        selectionStart = activeElement.selectionStart;
+        selectionEnd = activeElement.selectionEnd;
+    }
 
     // Clear previous view
     tableHead.innerHTML = '';
@@ -598,6 +631,8 @@ function renderGrid() {
         if (query) displayData = displayData.filter(row => String(row[key] || '').toLowerCase().includes(query));
     });
 
+    currentDisplayData = displayData;
+
     let hRow = `<tr>
         <th style="width: 50px">#</th>
         ${keys.map((k, i) => `
@@ -605,7 +640,7 @@ function renderGrid() {
                 <div class="sort-header" onclick="setSort('${k}')">
                     ${k} <i data-lucide="${sortCol === k ? (sortDir === 1 ? 'chevron-up' : 'chevron-down') : 'chevrons-up-down'}" size="12"></i>
                 </div>
-                <input class="filter-input" placeholder="Filter..." value="${filters[k] || ''}" oninput="setFilter('${k}', this.value)">
+                <input class="filter-input" data-filter-col="${k}" placeholder="Filter..." value="${escapeHtml(filters[k] || '')}" oninput="setFilter('${k}', this.value)">
                 <div class="col-resizer" onmousedown="initColResize(event, this)"></div>
             </th>`).join('')}
     </tr>`;
@@ -617,19 +652,94 @@ function renderGrid() {
             <td>
                 <div class="row-action-btn" onclick="handleRowAction(event, ${idx})">${idx + 1}</div>
             </td>
-            ${keys.map(k => `<td>${formatValue(row[k], k)}</td>`).join('')}
+            ${keys.map(k => `<td>${formatValue(row[k], k, idx)}</td>`).join('')}
         </tr>
     `).join('');
     initIcons();
+
+    // Restore focus
+    if (focusedFilterCol) {
+        const inputToFocus = container.querySelector(`input[data-filter-col="${focusedFilterCol}"]`);
+        if (inputToFocus) {
+            inputToFocus.focus();
+            try {
+                inputToFocus.setSelectionRange(selectionStart, selectionEnd);
+            } catch (e) { } // Ignore if types don't support selection
+        }
+    }
 }
 
-function formatValue(v, key) {
+function formatValue(v, key, rowIdx = -1) {
     if (v === null || v === undefined) return '';
-    if (key === '_id' || key.toLowerCase().endsWith('id')) return `<span class="badge badge-id">${v}</span>`;
+    if (key === '_id' || key.toLowerCase().endsWith('id')) return `<span class="badge badge-id">${escapeHtml(String(v))}</span>`;
     if (typeof v === 'boolean') return `<span class="badge badge-bool">${v}</span>`;
     if (typeof v === 'number') return `<span class="badge badge-number">${v}</span>`;
-    if (typeof v === 'object') return `<pre style="font-size:10px; margin:0">${JSON.stringify(v)}</pre>`;
-    return `<span class="badge badge-string">${v}</span>`;
+    if (typeof v === 'object') {
+        const str = JSON.stringify(v);
+        const shortStr = str.length > 40 ? str.substring(0, 40) + '...' : str;
+        return `<div class="badge badge-json" onclick="openNestedJsonModal(${rowIdx}, '${key}')" style="cursor:pointer; border: 1px solid var(--accent); background: rgba(99, 102, 241, 0.1); color: var(--text-primary); text-transform:none; font-family:monospace; display:inline-flex; align-items:center; gap:4px;" title="Click to view details"><i data-lucide="braces" style="width:12px;height:12px;"></i>${escapeHtml(shortStr)}</div>`;
+    }
+    return `<span class="badge badge-string">${escapeHtml(String(v))}</span>`;
+}
+
+// --- Nested JSON Modal Logic ---
+let nestedJsonCards = [];
+
+window.openNestedJsonModal = function (rowIdx, key) {
+    if (rowIdx < 0 || rowIdx >= currentDisplayData.length) return;
+    const obj = currentDisplayData[rowIdx][key];
+    if (!obj || typeof obj !== 'object') return;
+
+    nestedJsonCards = [{ title: key, obj: obj }];
+    renderNestedJsonModal();
+    document.getElementById('nestedJsonModal').style.display = 'flex';
+};
+
+window.closeNestedJsonModal = function () {
+    document.getElementById('nestedJsonModal').style.display = 'none';
+};
+
+window.pushNestedJsonCard = function (parentIdx, key) {
+    nestedJsonCards = nestedJsonCards.slice(0, parentIdx + 1);
+    const parentObj = nestedJsonCards[parentIdx].obj;
+    const childObj = parentObj[key];
+    nestedJsonCards.push({ title: Array.isArray(parentObj) ? `[${key}]` : key, obj: childObj });
+    renderNestedJsonModal();
+};
+
+function renderNestedJsonModal() {
+    const container = document.getElementById('nestedJsonCardsContainer');
+    container.innerHTML = nestedJsonCards.map((card, idx) => {
+        let itemsHtml = '';
+        if (typeof card.obj === 'object' && card.obj !== null) {
+            const isArray = Array.isArray(card.obj);
+            Object.keys(card.obj).forEach(k => {
+                const val = card.obj[k];
+                const isObj = typeof val === 'object' && val !== null;
+                const valStr = isObj ? (Array.isArray(val) ? `[Array(${val.length})]` : '{Object}') : escapeHtml(String(val));
+                itemsHtml += `<div class="nested-json-item" ${isObj ? `onclick="pushNestedJsonCard(${idx}, '${escapeHtml(k).replace(/'/g, "\\'")}')"` : ''} style="padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; ${isObj ? 'cursor:pointer;' : ''}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                    <span style="font-weight: 500; color: var(--accent); margin-right: 12px; font-size: 0.85rem;">${escapeHtml(k)}</span>
+                    <span style="color: ${isObj ? 'var(--text-secondary)' : 'var(--text-primary)'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; font-size: 0.85rem;" title="${!isObj ? escapeHtml(String(val)) : ''}">${valStr}</span>
+                    ${isObj ? '<i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--text-secondary);margin-left:8px;flex-shrink:0;"></i>' : ''}
+                </div>`;
+            });
+        }
+        return `
+            <div class="nested-json-card" style="min-width: 300px; width: 300px; height: 100%; border-right: 1px solid var(--border); display: flex; flex-direction: column;">
+                <div class="card-header" style="padding: 12px 16px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); font-weight: 600; font-size:0.9rem; position: sticky; top: 0; color: var(--text-primary); display:flex; align-items:center; gap:8px;">
+                    ${escapeHtml(card.title)}
+                </div>
+                <div class="card-body" style="flex: 1; overflow-y: auto;">
+                    ${itemsHtml || '<div style="padding:1rem;color:var(--text-secondary);text-align:center;">Empty</div>'}
+                </div>
+            </div>
+        `;
+    }).join('');
+    if (window.lucide) lucide.createIcons();
+    // Scroll right smoothly without blocking thread
+    setTimeout(() => {
+        container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+    }, 10);
 }
 
 function setSort(col) {
@@ -688,7 +798,7 @@ function exportData(data, format) {
     }
     const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/csv' });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `export_${new Date().getTime()}.${format}`; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = `export_${new Date().getTime()}.${format} `; a.click();
 }
 
 async function fetchWithAuth(url, options = {}) {
@@ -697,7 +807,7 @@ async function fetchWithAuth(url, options = {}) {
         document.getElementById('loginModal').style.display = 'flex';
         throw new Error('Auth failed');
     }
-    const res = await fetch(url, { ...options, headers: { 'Authorization': `Basic ${auth}`, ...options.headers } });
+    const res = await fetch(url, { ...options, headers: { 'Authorization': `Basic ${auth} `, ...options.headers } });
     if (res.status === 401) {
         localStorage.removeItem('AxarDB_auth');
         document.getElementById('loginModal').style.display = 'flex';
@@ -753,13 +863,13 @@ function initButtons() {
         const name = prompt("Enter new collection name:");
         if (name) {
             setEditorValue(`// Create Collection '${name}' by inserting a document
-// Collections are created automatically on first write
-db.${name}.insert({ 
-    created: new Date(), 
-    desc: "Initial document" 
-});
-// List collections to confirm
-showCollections();`);
+    // Collections are created automatically on first write
+    db.${name}.insert({
+        created: new Date(),
+        desc: "Initial document"
+    });
+    // List collections to confirm
+    showCollections(); `);
         }
     };
 
@@ -797,7 +907,7 @@ function extractViewParams(code) {
         const paramName = match[1];
         if (params[paramName] !== undefined) continue;
         // Try to find default: parameters.xxx || defaultValue
-        const defaultRegex = new RegExp(`parameters\\.${paramName}\\s*\\|\\|\\s*(.+?)\\s*;`);
+        const defaultRegex = new RegExp(`parameters\\.${paramName} \\s *\\|\\|\\s * (.+?) \\s *; `);
         const defaultMatch = code.match(defaultRegex);
         if (defaultMatch) {
             const raw = defaultMatch[1].trim();
@@ -906,7 +1016,7 @@ function renderHistoryList() {
         const timeStr = date.toLocaleString();
         const isActive = entry.id === activeHistoryId;
 
-        return `<div class="history-item ${isActive ? 'active' : ''}" data-id="${entry.id}">
+        return `< div class="history-item ${isActive ? 'active' : ''}" data - id="${entry.id}" >
             <div class="history-item-content" onclick="loadHistoryItem('${entry.id}')">
                 <div class="preview">${escapeHtml(preview)}</div>
                 <div class="timestamp">${timeStr}</div>
@@ -914,7 +1024,7 @@ function renderHistoryList() {
             <button class="btn-delete" onclick="event.stopPropagation(); deleteHistoryEntry('${entry.id}')" title="Delete">
                 <i data-lucide="trash-2" style="width:14px;height:14px"></i>
             </button>
-        </div>`;
+        </div > `;
     }).join('');
 
     initIcons();
