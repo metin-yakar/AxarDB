@@ -81,6 +81,16 @@ namespace AxarDB
            foreach (var item in _results) action(item);
         }
 
-        public int count() => _results.Count;
+        public int count(Func<object, bool>? predicate = null)
+        {
+            if (predicate == null) return _results.Count;
+            return _results.Count(w => predicate(w.Data));
+        }
+
+        public AxarList distinct(Func<object, object>? selector = null)
+        {
+            if (selector == null) return new AxarList(_results.Select(w => (object)w.Data).Distinct());
+            return new AxarList(_results.Select(w => selector(w.Data)).Distinct());
+        }
     }
 }

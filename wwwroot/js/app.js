@@ -277,7 +277,7 @@ db.${name}
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall(x => true).take(5).ToList()`); executeSelectedQuery(); } },
+                    { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall().take(5)`); executeSelectedQuery(); } },
                     { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } }
                 ]);
             };

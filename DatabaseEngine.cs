@@ -247,6 +247,7 @@ namespace AxarDB
             engine.SetValue("toDecimal", new Func<string, decimal>(AxarDB.Helpers.ScriptUtils.ToDecimal));
             engine.SetValue("guid", new Func<string>(() => Guid.NewGuid().ToString()));
             engine.SetValue("toJson", new Func<object, string>(o => System.Text.Json.JsonSerializer.Serialize(o, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })));
+            engine.SetValue("csv", new Func<object, object>(AxarDB.Helpers.ScriptUtils.Csv));
             
             // Join Alias Utility
             engine.SetValue("alias", new Func<object, string, AliasWrapper>((source, name) => new AliasWrapper(source, name)));
@@ -306,6 +307,29 @@ namespace AxarDB
                 
                 Array.prototype.toList = function() { return this; };
                 
+                Array.prototype.count = function(predicate) {
+                    if (!predicate) return this.length;
+                    let c = 0;
+                    for (let i = 0; i < this.length; i++) {
+                        if (predicate(this[i])) c++;
+                    }
+                    return c;
+                };
+
+                Array.prototype.distinct = function(selector) {
+                    let unique = [];
+                    let set = new Set();
+                    for (let i = 0; i < this.length; i++) {
+                        let val = selector ? selector(this[i]) : this[i];
+                        let key = typeof val === 'object' && val !== null ? JSON.stringify(val) : val;
+                        if (!set.has(key)) {
+                            set.add(key);
+                            unique.push(val);
+                        }
+                    }
+                    return unique;
+                };
+
                 // Alias contains to includes for String
                 if (!String.prototype.contains) {
                     String.prototype.contains = String.prototype.includes;
