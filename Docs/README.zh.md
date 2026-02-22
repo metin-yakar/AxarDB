@@ -22,8 +22,9 @@
 
 | 特性 | 描述 |
 |:---|:---|
-| **📜 JavaScript 查询** | 使用 JS 语法查询。 `db.users.findall(x => x.age > 18)` |
-| **⚡ 高性能** | 使用 `ConcurrentDictionary` 的内存存储。 |
+| **📜 JavaScript 查询** | 完整的 JS 语法：`db.users.findall(x => x.active).toList()`。在 ResultSets 和原生数组上支持 `count()` 和 `distinct()` 等新扩展。 |
+| **⚡ 高性能** | 采用 `ConcurrentDictionary` 的内存存储，基于 PLINQ 的延迟计算（Lazy Evaluation），以及严格限制的 40% 动态 RAM 缓存。 |
+| **📄 CSV 引擎** | 双向强大的 CSV 支持。通过 `csv(input)` 将文本转换为集合或将集合转换为 CSV。 |
 | **🔍 智能索引** | 支持 ASC/DESC 索引。 |
 | **🔗 连接 (Joins)** | 集合连接： `db.join(users, orders)`。 |
 | **🛡️ 安全** | 基本认证 (支持 SHA256 哈希) 与 **注入防护**。 |

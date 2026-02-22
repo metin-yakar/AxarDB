@@ -269,9 +269,8 @@ async function loadCollections() {
                 setEditorValue(`// Find, Filter, Limit and List for '${name}'
 // Returns top 10 documents
 db.${name}
-  .findall(x => true) // No filter
-  .take(10)
-  .ToList()`);
+  .findall() // No filter
+  .take(10)`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {

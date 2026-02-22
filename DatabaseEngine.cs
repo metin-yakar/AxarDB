@@ -41,7 +41,7 @@ namespace AxarDB
             }
             catch
             {
-                return o.ToString();
+                return o?.ToString() ?? "null";
             }
         }
 
@@ -132,7 +132,7 @@ namespace AxarDB
                  // OR I simply use Logger.LogRequest if it fits? 
                  // Logger.LogRequest takes (ip, user, json, duration, success).
                  
-                 AxarDB.Logging.Logger.LogRequest(context.IpAddress, context.User, $"[MySQL] {query}", durationMs, success, error);
+                 AxarDB.Logging.Logger.LogRequest(context.IpAddress, context.User, $"[MySQL] {query}", durationMs, success, error ?? "");
                  
                  
                  if (!success && !string.IsNullOrEmpty(error))
@@ -175,7 +175,7 @@ namespace AxarDB
                     {
                         var val = reader.GetValue(i);
                         if (val == DBNull.Value) val = null;
-                        row[reader.GetName(i)] = val;
+                        row[reader.GetName(i)] = val!;
                     }
                     results.Add(row);
                 }
@@ -344,14 +344,15 @@ namespace AxarDB
 
             _storage = new AxarDB.Storage.DiskStorage(Path.Combine(_basePath, "Data"));
             
-            // Dynamic Memory Limit: 70% of Total Available Memory
+            // Dynamic Memory Limit: 40% of Total Available Memory for Cache
             var gcInfo = GC.GetGCMemoryInfo();
             long totalBytes = gcInfo.TotalAvailableMemoryBytes;
-            long limit = (long)(totalBytes * 0.7);
+            long limit = (long)(totalBytes * 0.4);
 
             var cacheOptions = new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions
             {
-                SizeLimit = limit
+                SizeLimit = limit,
+                CompactionPercentage = 0.2
             };
             _sharedCache = new Microsoft.Extensions.Caching.Memory.MemoryCache(cacheOptions);
 
@@ -401,7 +402,7 @@ namespace AxarDB
                 {
                     if (vDoc.TryGetValue("key", out var k) && vDoc.TryGetValue("value", out var v))
                     {
-                        string keyStr = k.ToString();
+                        string? keyStr = k.ToString();
                         // Replace $key with serialized value.
                         if (!string.IsNullOrEmpty(keyStr))
                         {
@@ -439,10 +440,7 @@ namespace AxarDB
             var engine = new Engine(options => {
                  options.AllowClr();
                  options.CancellationToken(cancellationToken);
-                 var memoryLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 2;
-                 AxarDB.Logging.Logger.LogDebug($"Setting JS Engine Memory Limit: {memoryLimit / 1024 / 1024} MB");
                  options.LimitRecursion(100);
-                 options.LimitMemory(memoryLimit); // 50% of available memory
                  options.TimeoutInterval(TimeSpan.FromMinutes(10)); // Default timeout
             });
 
@@ -561,14 +559,14 @@ namespace AxarDB
             {
                 { "_id", id },
                 { "queryTemplate", template },
-                { "parameters", parameters }, // Stored as provided (Dict or Array)
-                { "options", options },
+                { "parameters", parameters! }, // Stored as provided (Dict or Array)
+                { "options", options! },
                 { "createdAt", DateTime.UtcNow },
-                { "executionTime", null }, // null means pending
+                { "executionTime", null! }, // null means pending
                 { "priority", 0 }, // Default priority
                 { "duration", 0 },
-                { "successResult", null },
-                { "errorMessage", null }
+                { "successResult", null! },
+                { "errorMessage", null! }
             };
 
             // Handle options if provided
@@ -680,9 +678,7 @@ namespace AxarDB
                 var engine = new Engine(options => {
                      options.AllowClr();
                      options.CancellationToken(cancellationToken);
-                     var memoryLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 2;
                      options.LimitRecursion(100);
-                     options.LimitMemory(memoryLimit); // 50% of available memory
                      options.TimeoutInterval(TimeSpan.FromMinutes(10));
                 });
                 
@@ -962,7 +958,6 @@ namespace AxarDB
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
             string? error = null;
-            bool success = false;
 
             try
             {
@@ -995,7 +990,7 @@ namespace AxarDB
                     {
                         var val = reader.GetValue(i);
                         if (val == DBNull.Value) val = null;
-                        row[reader.GetName(i)] = val;
+                        row[reader.GetName(i)] = val!;
                     }
                     results.Add(row);
                 }
@@ -1018,7 +1013,6 @@ namespace AxarDB
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
             string? error = null;
-            bool success = false;
 
             try
             {

@@ -164,7 +164,7 @@ namespace AxarDB.Bridges
             if (obj is IDictionary<string, object> idict) return new Dictionary<string, object>(idict);
             if (obj is System.Dynamic.ExpandoObject expando)
             {
-                return new Dictionary<string, object>(expando);
+                return expando.ToDictionary(k => k.Key, v => v.Value ?? new object());
             }
             return null;
         }
