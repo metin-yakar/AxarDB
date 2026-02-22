@@ -22,8 +22,9 @@
 
 | Merkmal | Beschreibung |
 |:---|:---|
-| **📜 JavaScript-Abfragen** | Volle JS-Syntax. `db.users.findall(x => x.age > 18)` |
-| **⚡ Hohe Leistung** | In-Memory-Speicher mit `ConcurrentDictionary`. |
+| **📜 JavaScript-Abfragen** | Volle JS-Syntax: `db.users.findall(x => x.active).toList()`. Unterstützt neue Erweiterungen wie `count()` und `distinct()` sowohl auf ResultSets als auch auf nativen Arrays. |
+| **⚡ Hohe Leistung** | In-Memory-Speicher mit `ConcurrentDictionary`, Lazy Evaluation über PLINQ und streng begrenztem dynamischen 40% RAM-Cache. |
+| **📄 CSV Engine** | Bidirektionale robuste CSV-Unterstützung. Konvertieren Sie Text in Sammlungen oder Sammlungen in CSV über `csv(input)`. |
 | **🔍 Intelligente Indizierung** | ASC/DESC Indexe. |
 | **🔗 Joins** | Sammlungen verknüpfen: `db.join(users, orders)`. |
 | **🛡️ Sicher** | Basic Auth (unterstützt SHA256-Hashing) & **Injektionsschutz**. |

@@ -22,8 +22,9 @@
 
 | Caratteristica | Descrizione |
 |:---|:---|
-| **📜 Query JavaScript** | Sintassi JS completa. `db.users.findall(x => x.age > 18)` |
-| **⚡ Alte Prestazioni** | Archiviazione in-memory con `ConcurrentDictionary`. |
+| **📜 Query JavaScript** | Sintassi JS completa: `db.users.findall(x => x.active).toList()`. Supporta nuove estensioni come `count()` e `distinct()` sia su ResultSets che su array nativi. |
+| **⚡ Alte Prestazioni** | Archiviazione in-memory con `ConcurrentDictionary`, Lazy Evaluation tramiite PLINQ e limite rigoroso del 40% di RAM per la cache dinamica. |
+| **📄 Motore CSV** | Robusto supporto bidirezionale CSV. Converti testo in collezioni o collezioni in CSV tramite `csv(input)`. |
 | **🛡️ Sicuro** | Basic Auth (supporta hash SHA256) & **Protezione da Injection**. |
 | **🛠️ Utilità** | Funzioni helper integrate: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
 

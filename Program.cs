@@ -82,6 +82,12 @@ if (args.Contains("--benchmark"))
     return;
 }
 
+if (args.Contains("--test-memory"))
+{
+    MemoryTest.Run();
+    return;
+}
+
 
 // Global Exception Handler Middleware
 app.Use(async (context, next) =>
@@ -106,7 +112,7 @@ app.Use(async (context, next) =>
     var user = "anonymous";
     
     // Extract user from Basic Auth if present
-    string authHeader = context.Request.Headers["Authorization"];
+    string? authHeader = context.Request.Headers["Authorization"];
     if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Basic "))
     {
         try
@@ -156,7 +162,7 @@ app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/query") || context.Request.Path.StartsWithSegments("/collections"))
     {
-        string authHeader = context.Request.Headers["Authorization"];
+        string? authHeader = context.Request.Headers["Authorization"];
         if (authHeader != null && authHeader.StartsWith("Basic "))
         {
             var encoding = Encoding.GetEncoding("iso-8859-1");
@@ -214,7 +220,7 @@ app.MapPost("/query", async (HttpContext context) =>
         ...
         */
         string user = "anonymous";
-        string authHeader = context.Request.Headers["Authorization"];
+        string? authHeader = context.Request.Headers["Authorization"];
         if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Basic "))
         {
              try {
@@ -251,7 +257,7 @@ app.MapGet("/views/{viewName}", async (string viewName, HttpContext context) =>
     if (access == "private")
     {
         // Require Auth
-        string authHeader = context.Request.Headers["Authorization"];
+        string? authHeader = context.Request.Headers["Authorization"];
         bool authenticated = false;
         if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Basic "))
         {

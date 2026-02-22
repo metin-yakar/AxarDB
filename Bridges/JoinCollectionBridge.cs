@@ -49,7 +49,7 @@ namespace AxarDB.Bridges
                     try 
                     {
                         var result = _engine.Invoke(selector, new object[] { d });
-                        return result.ToObject();
+                        return result.ToObject() ?? d;
                     }
                     catch { return d; }
                 }

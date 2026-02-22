@@ -173,5 +173,82 @@ namespace AxarDB.Helpers
         {
             return ConvertToDateTime(dateObj).AddDays(days);
         }
+
+        public static object Csv(object input)
+        {
+            if (input == null) return string.Empty;
+
+            if (input is string csvString)
+            {
+                var lines = Split(csvString.Replace("\r\n", "\n"), "\n").Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+                if (lines.Count == 0) return new List<Dictionary<string, object>>();
+                
+                var headers = Split(lines[0], ",").Select(h => h.Trim()).ToList();
+                var result = new List<Dictionary<string, object>>();
+
+                for (int i = 1; i < lines.Count; i++)
+                {
+                    var values = Split(lines[i], ",");
+                    var row = new Dictionary<string, object>();
+                    for (int j = 0; j < headers.Count; j++)
+                    {
+                        if (j < values.Length)
+                        {
+                            var val = values[j].Trim();
+                            if (decimal.TryParse(val, out var num)) row[headers[j]] = num;
+                            else if (bool.TryParse(val, out var b)) row[headers[j]] = b;
+                            else row[headers[j]] = val;
+                        }
+                        else
+                        {
+                            row[headers[j]] = string.Empty;
+                        }
+                    }
+                    result.Add(row);
+                }
+                return result;
+            }
+            else
+            {
+                try
+                {
+                    var serialized = System.Text.Json.JsonSerializer.Serialize(input);
+                    var deserialized = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(serialized);
+                    
+                    if (deserialized == null || deserialized.Count == 0) return string.Empty;
+
+                    var headers = deserialized[0].Keys.ToList();
+                    var sb = new StringBuilder();
+                    sb.AppendLine(string.Join(",", headers));
+
+                    foreach (var row in deserialized)
+                    {
+                        var values = new List<string>();
+                        foreach (var header in headers)
+                        {
+                            if (row.TryGetValue(header, out var val) && val != null)
+                            {
+                                var valStr = val.ToString() ?? string.Empty;
+                                if (valStr.Contains(",") || valStr.Contains("\"") || valStr.Contains("\n"))
+                                {
+                                    valStr = $"\"{valStr.Replace("\"", "\"\"")}\"";
+                                }
+                                values.Add(valStr);
+                            }
+                            else
+                            {
+                                values.Add(string.Empty);
+                            }
+                        }
+                        sb.AppendLine(string.Join(",", values));
+                    }
+                    return sb.ToString().TrimEnd();
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+        }
     }
 }

@@ -5,20 +5,26 @@ namespace AxarDB
 {
     public class ResultSet : IEnumerable<DocumentWrapper>
     {
-        private readonly List<DocumentWrapper> _results;
+        private readonly IEnumerable<DocumentWrapper> _results;
         private readonly AxarDB.Definitions.Collection? _collection; 
 
         public ResultSet(IEnumerable<Dictionary<string, object>> source, AxarDB.Definitions.Collection? collection = null) 
         {
-            _results = source.Select(d => new DocumentWrapper(d)).ToList();
+            _results = source.Select(d => new DocumentWrapper(d));
+            _collection = collection;
+        }
+
+        private ResultSet(IEnumerable<DocumentWrapper> source, AxarDB.Definitions.Collection? collection = null) 
+        {
+            _results = source;
             _collection = collection;
         }
 
         public IEnumerator<DocumentWrapper> GetEnumerator() => _results.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => _results.GetEnumerator();
 
-        public List<DocumentWrapper> ToList() => _results;
-        public List<DocumentWrapper> toList() => _results;
+        public List<DocumentWrapper> ToList() => _results.ToList();
+        public List<DocumentWrapper> toList() => _results.ToList();
 
         public DocumentWrapper? first()
         {
@@ -27,7 +33,7 @@ namespace AxarDB
 
         public ResultSet take(int count)
         {
-            var taken = _results.Take(count).Select(w => w.Data);
+            var taken = _results.Take(count);
             return new ResultSet(taken, _collection);
         }
 
@@ -44,11 +50,11 @@ namespace AxarDB
             Dictionary<string, object>? fields = null;
             if (updateFields is Dictionary<string, object> d) fields = d;
             else if (updateFields is IDictionary<string, object> id) fields = new Dictionary<string, object>(id);
-            else if (updateFields is System.Dynamic.ExpandoObject ex) fields = new Dictionary<string, object>(ex);
+            else if (updateFields is System.Dynamic.ExpandoObject ex) fields = ex.ToDictionary(k => k.Key, v => v.Value ?? new object());
             
             if (fields == null) return;
 
-            foreach(var wrapper in _results)
+            foreach(var wrapper in _results.ToList())
             {
                 var doc = wrapper.Data;
                 foreach(var kv in fields)
@@ -73,7 +79,8 @@ namespace AxarDB
 
             _collection.Delete(d => d.TryGetValue("_id", out var id) && idsToDelete.Contains(id.ToString()!));
             
-            _results.Clear();
+            // _results in delete can't be cleared since it's an IEnumerable now.
+            // The user must not iterate a ResultSet after deleting it.
         }
 
         public void @foreach(Action<DocumentWrapper> action)
@@ -81,6 +88,16 @@ namespace AxarDB
            foreach (var item in _results) action(item);
         }
 
-        public int count() => _results.Count;
+        public int count(Func<object, bool>? predicate = null)
+        {
+            if (predicate == null) return _results.Count();
+            return _results.Count(w => predicate(w.Data));
+        }
+
+        public AxarList distinct(Func<object, object>? selector = null)
+        {
+            if (selector == null) return new AxarList(_results.Select(w => (object)w.Data).Distinct());
+            return new AxarList(_results.Select(w => selector(w.Data)).Distinct());
+        }
     }
 }
