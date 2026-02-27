@@ -63,13 +63,13 @@ Get up and running in seconds:
 # Default (Port 5000)
 docker run -d -p 5000:5000 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest
 
-# Custom Port (e.g., 5001)
-docker run -d -p 5001:5001 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest -- -p 5001
+# Custom Port and CORS (e.g., 5001, allowing local 3000)
+docker run -d -p 5001:5001 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest -- -p 5001 --cors "http://localhost:3000"
 ```
 
 Or using `dotnet run` for development:
 ```bash
-dotnet run -- -p 5001
+dotnet run -- -p 5001 --cors "*"
 ```
 
 Or using `docker-compose`:

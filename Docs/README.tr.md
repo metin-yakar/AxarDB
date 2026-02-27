@@ -56,6 +56,12 @@ Saniyeler içinde ayağa kaldırın:
 docker run -d -p 5000:5000 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest
 ```
 
+### Özel Port ve CORS Tanımı
+```bash
+# Sadece belirli bir domain'e izin vermek için
+dotnet run -- -p 5001 --cors "http://localhost:3000"
+```
+
 ```
 
 ---

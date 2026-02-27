@@ -610,6 +610,11 @@ res = client.call_view("MyView", {"minAge": 18})
 # Fully automated (CI/CD)
 ./AxarDB.Cli -u admin -p pass -f query.js -o result.json
 
+# CORS Configuration
+# By default, AxarDB allows all origins (*). 
+# You can restrict it using the --cors parameter.
+dotnet run -- --cors "http://localhost:3000,http://example.com"
+
 # Show collections
 ./AxarDB.Cli --show-collections
 
