@@ -45,6 +45,7 @@ if (args.Length > 0 && args[0] == "script")
 // Parse Arguments
 int port = 5000;
 string? targetPath = null;
+string? corsOrigins = null;
 
 for (int i = 0; i < args.Length; i++)
 {
@@ -55,6 +56,10 @@ for (int i = 0; i < args.Length; i++)
     if (args[i] == "--targetpath" && i + 1 < args.Length)
     {
         targetPath = args[i + 1];
+    }
+    if (args[i] == "--cors" && i + 1 < args.Length)
+    {
+        corsOrigins = args[i + 1];
     }
 }
 
@@ -72,9 +77,31 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 var dbEngine = new DatabaseEngine(targetPath);
 builder.Services.AddSingleton(dbEngine);
 builder.Services.AddHostedService<AxarDB.BackgroundServices.QueueProcessor>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        if (string.IsNullOrEmpty(corsOrigins) || corsOrigins == "*")
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            var origins = corsOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            policy.WithOrigins(origins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+    });
+});
+
 dbEngine.InitializeTriggers();
 
 var app = builder.Build();
+app.UseCors();
 
 if (args.Contains("--benchmark"))
 {
