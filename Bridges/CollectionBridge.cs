@@ -7,15 +7,22 @@ namespace AxarDB.Bridges
 {
     public class CollectionBridge
     {
+        private readonly DatabaseEngine _dbEngine;
         public readonly Collection _collection;
         private readonly Engine? _engine;
         private readonly CancellationToken _cancellationToken;
 
-        public CollectionBridge(Collection collection, Engine? engine = null, CancellationToken cancellationToken = default)
+        public CollectionBridge(DatabaseEngine dbEngine, Collection collection, Engine? engine = null, CancellationToken cancellationToken = default)
         {
+            _dbEngine = dbEngine;
             _collection = collection;
             _engine = engine;
             _cancellationToken = cancellationToken;
+        }
+
+        public void delete()
+        {
+            _dbEngine.DeleteCollection(_collection.Name);
         }
 
         public void reload()

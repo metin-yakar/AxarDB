@@ -337,6 +337,30 @@ namespace AxarDB
             ");
         }
 
+        public void DeleteCollection(string name)
+        {
+            if (_collections.TryRemove(name, out _))
+            {
+                // Already removed from in-memory dictionary
+            }
+
+            // Disk Delete
+            var path = Path.Combine(_basePath, "Data", name);
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+
+            // Cache Invalidation for all documents in this collection
+            // Since we use "{Name}:{id}" as key, we can't easily bulk delete from IMemoryCache 
+            // without keeping track of all keys or using a different cache structure.
+            // However, since the collection object is gone and disk is gone, 
+            // the old cache entries will eventually expire. 
+            // For a "clean" delete, we'd need a way to scan keys. 
+            // Given IMemoryCache doesn't support pattern matching, we'll rely on expiration 
+            // OR we accept that orphan cache entries might exist until they expire.
+        }
+
         public DatabaseEngine(string? basePath = null)
         {
             _basePath = basePath ?? AppDomain.CurrentDomain.BaseDirectory;
@@ -453,7 +477,7 @@ namespace AxarDB
 
             // Expose 'UnlockDB' constructor: new UnlockDB("name")
             engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => {
-                return new CollectionBridge(GetCollection(name), engine, cancellationToken);
+                return new CollectionBridge(this, GetCollection(name), engine, cancellationToken);
             }));
 
             // Expose 'showCollections'
@@ -685,7 +709,7 @@ namespace AxarDB
                 // Bridges
                 var dbBridge = new AxarDBBridge(this, engine, cancellationToken);
                 engine.SetValue("db", dbBridge);
-                engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(GetCollection(name), engine, cancellationToken)));
+                engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(this, GetCollection(name), engine, cancellationToken)));
                 engine.SetValue("showCollections", new Func<List<string>>(() => _collections.Keys.ToList())); // Simplified for view
                 RegisterUtils(engine, context);
                 // Ideally ExecuteScript should be refactored. 
