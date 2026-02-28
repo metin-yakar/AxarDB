@@ -85,7 +85,7 @@ namespace AxarDB
                 
                 object? responseData;
                 try {
-                     responseData = System.Text.Json.JsonSerializer.Deserialize<object>(responseString);
+                     responseData = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(responseString);
                 } catch {
                      responseData = responseString;
                 }
@@ -155,7 +155,7 @@ namespace AxarDB
                 if (parameters != null)
                 {
                      var json = System.Text.Json.JsonSerializer.Serialize(parameters);
-                     var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                     var dict = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(json) as System.Collections.Generic.IDictionary<string, object>;
                      if (dict != null)
                      {
                          foreach(var kvp in dict)
@@ -205,7 +205,7 @@ namespace AxarDB
                 if (parameters != null)
                 {
                      var json = System.Text.Json.JsonSerializer.Serialize(parameters);
-                     var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                     var dict = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(json) as System.Collections.Generic.IDictionary<string, object>;
                      if (dict != null)
                      {
                          foreach(var kvp in dict)
@@ -337,6 +337,30 @@ namespace AxarDB
             ");
         }
 
+        public void DeleteCollection(string name)
+        {
+            if (_collections.TryRemove(name, out _))
+            {
+                // Already removed from in-memory dictionary
+            }
+
+            // Disk Delete
+            var path = Path.Combine(_basePath, "Data", name);
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+
+            // Cache Invalidation for all documents in this collection
+            // Since we use "{Name}:{id}" as key, we can't easily bulk delete from IMemoryCache 
+            // without keeping track of all keys or using a different cache structure.
+            // However, since the collection object is gone and disk is gone, 
+            // the old cache entries will eventually expire. 
+            // For a "clean" delete, we'd need a way to scan keys. 
+            // Given IMemoryCache doesn't support pattern matching, we'll rely on expiration 
+            // OR we accept that orphan cache entries might exist until they expire.
+        }
+
         public DatabaseEngine(string? basePath = null)
         {
             _basePath = basePath ?? AppDomain.CurrentDomain.BaseDirectory;
@@ -377,10 +401,10 @@ namespace AxarDB
             return _collections.GetOrAdd(name, n => new Collection(n, _storage, _sharedCache));
         }
 
-        public object? ExecuteScript(string script, Dictionary<string, object>? parameters = null, ScriptContext? context = null, CancellationToken cancellationToken = default)
+        public object? ExecuteScript(string script, System.Collections.Generic.IDictionary<string, object>? parameters = null, ScriptContext? context = null, CancellationToken cancellationToken = default)
         {
             var ctx = context ?? ScriptContext.Default; 
-            AxarDB.Logging.Logger.LogDebug($"[Engine] Executing script (Length: {script.Length})...");
+            AxarDB.Logging.Logger.LogDebug($"[Engine] Executing script:\n{script}");
             // ---------------------------------------------------------
             // VAULTS FEATURE INITIALIZATION
             // ---------------------------------------------------------
@@ -444,8 +468,8 @@ namespace AxarDB
                  options.TimeoutInterval(TimeSpan.FromMinutes(10)); // Default timeout
             });
 
-            // Expose console.log for CLI scripts
-            engine.SetValue("console", new { log = new Action<object>(o => Console.WriteLine(FormatLog(o))) });
+            // Expose console.log for CLI scripts and debugging
+            engine.SetValue("console", new { log = new Action<object>(o => AxarDB.Logging.Logger.LogDebug(FormatLog(o))) });
 
             // Expose 'db'
             var dbBridge = new AxarDBBridge(this, engine, cancellationToken);
@@ -453,7 +477,7 @@ namespace AxarDB
 
             // Expose 'UnlockDB' constructor: new UnlockDB("name")
             engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => {
-                return new CollectionBridge(GetCollection(name), engine, cancellationToken);
+                return new CollectionBridge(this, GetCollection(name), engine, cancellationToken);
             }));
 
             // Expose 'showCollections'
@@ -503,7 +527,7 @@ namespace AxarDB
 
         public bool Authenticate(string username, string password)
         {
-            AxarDB.Logging.Logger.LogDebug($"[Auth] Authenticating user '{username}'...");
+            AxarDB.Logging.Logger.LogDebug($"[Auth] Authenticating user '{username}'");
             var sysusers = GetCollection("sysusers");
             
             // Try matching plain password first
@@ -576,7 +600,7 @@ namespace AxarDB
                 try 
                 {
                     var json = System.Text.Json.JsonSerializer.Serialize(options);
-                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                    var dict = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(json) as System.Collections.Generic.IDictionary<string, object>;
                     if (dict != null && dict.ContainsKey("priority"))
                     {
                          job["priority"] = Convert.ToInt32(dict["priority"]);
@@ -607,7 +631,7 @@ namespace AxarDB
             return path;
         }
 
-        public object? ExecuteView(string viewName, Dictionary<string, object>? parameters, string clientIp, string user, CancellationToken cancellationToken = default)
+        public object? ExecuteView(string viewName, System.Collections.Generic.IDictionary<string, object>? parameters, string clientIp, string user, CancellationToken cancellationToken = default)
         {
             var context = new ScriptContext 
             { 
@@ -685,7 +709,7 @@ namespace AxarDB
                 // Bridges
                 var dbBridge = new AxarDBBridge(this, engine, cancellationToken);
                 engine.SetValue("db", dbBridge);
-                engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(GetCollection(name), engine, cancellationToken)));
+                engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(this, GetCollection(name), engine, cancellationToken)));
                 engine.SetValue("showCollections", new Func<List<string>>(() => _collections.Keys.ToList())); // Simplified for view
                 RegisterUtils(engine, context);
                 // Ideally ExecuteScript should be refactored. 
@@ -969,7 +993,7 @@ namespace AxarDB
                 if (parameters != null)
                 {
                     var paramJson = System.Text.Json.JsonSerializer.Serialize(parameters);
-                    var paramDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(paramJson);
+                    var paramDict = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(paramJson) as System.Collections.Generic.IDictionary<string, object>;
                     
                     if (paramDict != null)
                     {
@@ -1024,7 +1048,7 @@ namespace AxarDB
                 if (parameters != null)
                 {
                     var paramJson = System.Text.Json.JsonSerializer.Serialize(parameters);
-                    var paramDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(paramJson);
+                    var paramDict = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(paramJson) as System.Collections.Generic.IDictionary<string, object>;
                     
                     if (paramDict != null)
                     {

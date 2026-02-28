@@ -277,7 +277,8 @@ db.${name}
                 e.preventDefault();
                 showContextMenu(e, [
                     { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall().take(5)`); executeSelectedQuery(); } },
-                    { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } }
+                    { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } },
+                    { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
                 ]);
             };
             tree.appendChild(item);
@@ -356,7 +357,16 @@ db.saveView("ActiveUsers", \`
                             }
                         }
                     },
-                    { label: 'Delete View', action: () => { setEditorValue(`db.deleteView("${vName}")`); executeSelectedQuery(); loadCollections(); } }
+                    {
+                        label: 'Delete View',
+                        action: async () => {
+                            if (confirm(`Delete view '${vName}'?`)) {
+                                const res = await fetchWithAuth(`/views/${vName}`, { method: 'DELETE' });
+                                if (res.ok) loadCollections();
+                                else alert('Failed to delete view');
+                            }
+                        }
+                    }
                 ]);
             };
             tree.appendChild(item);
@@ -419,7 +429,16 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
                             if (res.ok) setEditorValue(await res.json());
                         }
                     },
-                    { label: 'Delete Trigger', action: () => { setEditorValue(`db.deleteTrigger("${tName}")`); executeSelectedQuery(); loadCollections(); } }
+                    {
+                        label: 'Delete Trigger',
+                        action: async () => {
+                            if (confirm(`Delete trigger '${tName}'?`)) {
+                                const res = await fetchWithAuth(`/triggers/${tName}`, { method: 'DELETE' });
+                                if (res.ok) loadCollections();
+                                else alert('Failed to delete trigger');
+                            }
+                        }
+                    }
                 ]);
             };
             tree.appendChild(item);
@@ -798,6 +817,20 @@ function exportData(data, format) {
     const blob = new Blob([content], { type: format === 'json' ? 'application/json' : 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = `export_${new Date().getTime()}.${format} `; a.click();
+}
+
+async function deleteCollection(name) {
+    try {
+        const res = await fetchWithAuth(`/collections/${name}`, { method: 'DELETE' });
+        if (res.ok) {
+            loadCollections();
+        } else {
+            const data = await res.json();
+            alert('Delete failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Delete failed: ' + err.message);
+    }
 }
 
 async function fetchWithAuth(url, options = {}) {

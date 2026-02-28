@@ -223,6 +223,12 @@ app.MapGet("/collections", () =>
     return Results.Json(dbEngine.ExecuteScript("showCollections()"));
 });
 
+app.MapDelete("/collections/{name}", (string name) => 
+{
+    dbEngine.DeleteCollection(name);
+    return Results.Ok(new { success = true });
+});
+
 app.MapGet("/docs", () => Results.Redirect("/docs.html"));
 
 app.MapPost("/query", async (HttpContext context) =>
@@ -329,6 +335,18 @@ app.MapGet("/views/{viewName}", async (string viewName, HttpContext context) =>
     {
         return Results.Problem(ex.Message);
     }
+});
+
+app.MapDelete("/views/{viewName}", (string viewName) => 
+{
+    dbEngine.DeleteView(viewName);
+    return Results.Ok(new { success = true });
+});
+
+app.MapDelete("/triggers/{triggerName}", (string triggerName) => 
+{
+    dbEngine.DeleteTrigger(triggerName);
+    return Results.Ok(new { success = true });
 });
 
 app.Run();

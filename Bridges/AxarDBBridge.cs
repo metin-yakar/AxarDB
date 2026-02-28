@@ -20,8 +20,13 @@ namespace AxarDB.Bridges
         {
             // db.users -> returns CollectionBridge for "users"
             var collection = _dbEngine.GetCollection(binder.Name);
-            result = new CollectionBridge(collection, _jintEngine, _cancellationToken);
+            result = new CollectionBridge(_dbEngine, collection, _jintEngine, _cancellationToken);
             return true;
+        }
+
+        public void deleteCollection(string name)
+        {
+            _dbEngine.DeleteCollection(name);
         }
 
         public AliasWrapper alias(object source, string name) => new AliasWrapper(source, name);
