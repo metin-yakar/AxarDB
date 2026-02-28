@@ -34,14 +34,12 @@ namespace AxarDB.Helpers
 
             // 2. Prepare Request Body
             var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            
-            // Deserialize requestData to a Dictionary to merge fields
             var requestBody = new Dictionary<string, object>();
             
             if (requestData != null)
             {
                 string jsonPart = JsonSerializer.Serialize(requestData);
-                var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonPart);
+                var dict = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(jsonPart) as System.Collections.Generic.IDictionary<string, object>;
                 if (dict != null)
                 {
                     foreach (var kvp in dict)
@@ -115,7 +113,7 @@ namespace AxarDB.Helpers
                         }
 
                         // Parse to generic object/dictionary
-                        var resultObj = JsonSerializer.Deserialize<object>(cleanContent.Trim());
+                        var resultObj = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(cleanContent.Trim());
                         return resultObj;
                     }
                     catch (Exception ex)

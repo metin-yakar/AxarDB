@@ -343,6 +343,11 @@
             color: #3b82f6;
         }
 
+        .method-delete {
+            background: #ef444420;
+            color: #ef4444;
+        }
+
         .info-box {
             background: #3b82f610;
             border: 1px solid #3b82f640;
@@ -572,7 +577,12 @@ db.users.<span class="function">update</span>(u => u.name == <span class="string
 db.users.<span class="function">findall</span>(u => u.inactive).<span class="function">update</span>({ status: <span class="string">"archived"</span> });</code></pre>
 
                 <h3>delete</h3>
-                <pre><code>db.users.<span class="function">findall</span>(u => u.inactive == <span class="keyword">true</span>).<span class="function">delete</span>();</code></pre>
+                <pre><code><span class="comment">// Delete Documents (Filtered)</span>
+db.users.<span class="function">findall</span>(u => u.inactive == <span class="keyword">true</span>).<span class="function">delete</span>();
+
+<span class="comment">// Delete Entire Collection (RAM + Disk)</span>
+db.users.<span class="function">delete</span>();
+db.<span class="function">deleteCollection</span>(<span class="string">"users"</span>);</code></pre>
 
                 <h3>foreach</h3>
                 <pre><code>db.users.<span class="function">findall</span>().<span class="function">foreach</span>(user => {
@@ -798,9 +808,16 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
                             <td>✓</td>
                         </tr>
                         <tr>
+                        <tr>
                             <td><code>/collections</code></td>
                             <td><span class="method method-get">GET</span></td>
                             <td>List collections</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td><code>/collections/{name}</code></td>
+                            <td><span class="method method-delete">DELETE</span></td>
+                            <td>Delete collection (RAM + Disk)</td>
                             <td>✓</td>
                         </tr>
                         <tr>
@@ -808,6 +825,18 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
                             <td><span class="method method-get">GET</span></td>
                             <td>Run public view</td>
                             <td>@access</td>
+                        </tr>
+                        <tr>
+                            <td><code>/views/{name}</code></td>
+                            <td><span class="method method-delete">DELETE</span></td>
+                            <td>Delete view</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td><code>/triggers/{name}</code></td>
+                            <td><span class="method method-delete">DELETE</span></td>
+                            <td>Delete trigger</td>
+                            <td>✓</td>
                         </tr>
                     </tbody>
                 </table>
@@ -872,9 +901,33 @@ console.<span class="function">log</span>(<span class="string">"Message"</span>)
 <span class="comment">// Deep copy object</span>
 <span class="keyword">var</span> copy = <span class="function">deepcopy</span>(original);
 
+<span class="comment">// HTTP GET request</span>
+<span class="keyword">var</span> res = <span class="function">httpGet</span>(<span class="string">"https://api.example.com"</span>, { <span class="string">"Auth"</span>: <span class="string">"..."</span> });
+
+<span class="comment">// OpenAI compatible LLM Client</span>
+<span class="keyword">var</span> ai = <span class="function">openai</span>(url, token);
+
+<span class="comment">// AES Encryption / Decryption</span>
+<span class="keyword">var</span> secret = <span class="function">encrypt</span>(<span class="string">"hello"</span>, <span class="string">"salt"</span>);
+<span class="keyword">var</span> plain = <span class="function">decrypt</span>(secret, <span class="string">"salt"</span>);
+
+<span class="comment">// Hash functions (MD5)</span>
+<span class="keyword">var</span> m = <span class="function">md5</span>(<span class="string">"test"</span>);
+
 <span class="comment">// Date manipulation</span>
 <span class="keyword">var</span> nextWeek = <span class="function">addDays</span>(<span class="keyword">new</span> Date(), <span class="number">7</span>);
-<span class="keyword">var</span> later = <span class="function">addMinutes</span>(<span class="keyword">new</span> Date(), <span class="number">15</span>);</code></pre>
+<span class="keyword">var</span> later = <span class="function">addMinutes</span>(<span class="keyword">new</span> Date(), <span class="number">15</span>);
+<span class="keyword">var</span> hourLater = <span class="function">addHours</span>(<span class="keyword">new</span> Date(), <span class="number">1</span>);
+
+<span class="comment">// Converters</span>
+<span class="keyword">var</span> b64 = <span class="function">toBase64</span>(<span class="string">"text"</span>);
+<span class="keyword">var</span> txt = <span class="function">fromBase64</span>(b64);
+<span class="keyword">var</span> num = <span class="function">toDecimal</span>(<span class="string">"10.5"</span>);
+<span class="keyword">var</span> json = <span class="function">toJson</span>({a: <span class="number">1</span>});
+
+<span class="comment">// Randoms</span>
+<span class="keyword">var</span> n = <span class="function">randomNumber</span>(<span class="number">1</span>, <span class="number">100</span>);
+<span class="keyword">var</span> d = <span class="function">randomDecimal</span>(<span class="number">0</span>, <span class="number">1</span>);</code></pre>
             </section>
 
         </div>
