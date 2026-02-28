@@ -135,6 +135,26 @@ namespace AxarDB.Helpers
             return 0;
         }
 
+        public static object? SafeDeserializeJson(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            try
+            {
+                var settings = new Newtonsoft.Json.JsonSerializerSettings
+                {
+                    Converters = new System.Collections.Generic.List<Newtonsoft.Json.JsonConverter> 
+                    { 
+                        new Newtonsoft.Json.Converters.ExpandoObjectConverter() 
+                    }
+                };
+                return Newtonsoft.Json.JsonConvert.DeserializeObject<object>(json, settings);
+            }
+            catch
+            {
+                return json;
+            }
+        }
+
         public static object? DeepCopy(object? obj)
         {
             if (obj == null) return null;
@@ -213,7 +233,20 @@ namespace AxarDB.Helpers
                 try
                 {
                     var serialized = System.Text.Json.JsonSerializer.Serialize(input);
-                    var deserialized = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(serialized);
+                    var deserializedObj = SafeDeserializeJson(serialized);
+                    var deserialized = new List<IDictionary<string, object>>();
+                    
+                    if (deserializedObj is IEnumerable<object> list)
+                    {
+                        foreach (var item in list)
+                        {
+                            if (item is IDictionary<string, object> dict) deserialized.Add(dict);
+                        }
+                    }
+                    else if (deserializedObj is IDictionary<string, object> singleDict)
+                    {
+                        deserialized.Add(singleDict);
+                    }
                     
                     if (deserialized == null || deserialized.Count == 0) return string.Empty;
 

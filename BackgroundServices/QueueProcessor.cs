@@ -72,7 +72,7 @@ namespace AxarDB.BackgroundServices
             
             DateTime startTime = DateTime.UtcNow;
             
-            AxarDB.Logging.Logger.LogDebug($"[Queue] Executing Job {jobId}...");
+            AxarDB.Logging.Logger.LogDebug($"[Queue] Executing Job {jobId}");
 
             bool success = false;
             string? error = null;
@@ -107,7 +107,7 @@ namespace AxarDB.BackgroundServices
                 // So it MUST be a Dictionary<string, object>.
                 // I will cast parameters to Dictionary<string, object>.
                 
-                Dictionary<string, object>? scriptParams = null;
+                System.Collections.Generic.IDictionary<string, object>? scriptParams = null;
                 
                 if (parameters is Dictionary<string, object> dictParams)
                 {
@@ -115,24 +115,17 @@ namespace AxarDB.BackgroundServices
                 }
                 else if (parameters is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Object)
                 {
-                   // Conversion might be needed if deserialized as JsonElement
-                   // But AxarDB storage usually keeps it as Dict or primitives if using proper converters.
-                   // Let's rely on standard cast or conversion utility if needed.
-                   // For now, assume it's stored compatible or convert.
                    try {
                        var json = System.Text.Json.JsonSerializer.Serialize(parameters);
-                       scriptParams = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                       scriptParams = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(json) as System.Collections.Generic.IDictionary<string, object>;
                    } catch {}
                 }
                 else if (parameters != null)
                 {
-                     // Try best effort conversion
                      try {
                          var json = System.Text.Json.JsonSerializer.Serialize(parameters);
-                         scriptParams = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
+                         scriptParams = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(json) as System.Collections.Generic.IDictionary<string, object>;
                      } catch {
-                         // Fallback: If array, maybe mapped to @0, @1?
-                         // For now let's enforce Object for named params as per existing Engine
                      }
                 }
 
