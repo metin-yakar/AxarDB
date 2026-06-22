@@ -200,11 +200,6 @@ If you love this project, consider supporting its development!
 |:---:|:---:|
 | <a href="https://buymeacoffee.com/metinyakar"><img src="./buymecoffie.png" style="width:100px;height:100px;"/></a> | ![QR](https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=0x1245CEB6c9A5485286975eEC1B2F9D496016761C) |
 
-### 📅 Consulting & Training
-
-Need help integrating AxarDB or want advice on AI-driven development and Code Automation?
-**[Book a session on Cal.com](https://cal.com/metin-yakar-dfij9e)**
-
 ---
 
 ## 📄 License
