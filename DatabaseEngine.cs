@@ -408,6 +408,28 @@ namespace AxarDB
             return _collections.GetOrAdd(name, n => new Collection(n, _storage, _sharedCache));
         }
 
+        public List<string> GetCollections()
+        {
+            var list = new HashSet<string>();
+            foreach (var key in _collections.Keys)
+            {
+                if (key.StartsWith("sys"))
+                {
+                    list.Add(key);
+                }
+            }
+            var dataPath = Path.Combine(_basePath, "Data");
+            if (Directory.Exists(dataPath))
+            {
+                var dirs = Directory.GetDirectories(dataPath).Select(Path.GetFileName).Where(n => n != null);
+                foreach (var dir in dirs)
+                {
+                    list.Add(dir!);
+                }
+            }
+            return list.OrderBy(x => x).ToList();
+        }
+
         public object? ExecuteScript(string script, System.Collections.Generic.IDictionary<string, object>? parameters = null, ScriptContext? context = null, CancellationToken cancellationToken = default)
         {
             var ctx = context ?? ScriptContext.Default; 
@@ -496,20 +518,7 @@ namespace AxarDB
             }));
 
             // Expose 'showCollections'
-            engine.SetValue("showCollections", new Func<List<string>>(() => {
-                var list = _collections.Keys.ToList();
-                // Also scan the Data folder for existing collections that might not be loaded yet
-                var dataPath = Path.Combine(_basePath, "Data");
-                if (Directory.Exists(dataPath))
-                {
-                    var dirs = Directory.GetDirectories(dataPath).Select(Path.GetFileName).Where(n => n != null).Cast<string>();
-                    foreach (var dir in dirs)
-                    {
-                        if (!list.Contains(dir)) list.Add(dir);
-                    }
-                }
-                return list.OrderBy(x => x).ToList();
-            }));
+            engine.SetValue("showCollections", new Func<List<string>>(() => GetCollections()));
 
             engine.SetValue("getIndexes", new Func<string, object>((name) => {
                 var col = GetCollection(name);
@@ -725,7 +734,7 @@ namespace AxarDB
                 var dbBridge = new AxarDBBridge(this, engine, cancellationToken);
                 engine.SetValue("db", dbBridge);
                 engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(this, GetCollection(name), engine, cancellationToken)));
-                engine.SetValue("showCollections", new Func<List<string>>(() => _collections.Keys.ToList())); // Simplified for view
+                engine.SetValue("showCollections", new Func<List<string>>(() => GetCollections())); // Simplified for view
 
                 // Expose 'memory' — top-level in-memory store with TTL support
                 var memoryBridge = new AxarDB.Bridges.MemoryBridge(_memoryStore, engine, cancellationToken);
