@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AxarDB - Monitoring Dashboard</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #0f0f11;
+            --bg-secondary: #16161a;
+            --bg-card: #1e1e24;
+            --border: #2d2d34;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --purple: #a855f7;
+            --emerald: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand img {
+            width: 32px;
+            height: 32px;
+        }
+
+        .brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .brand span {
+            color: var(--accent);
+        }
+
+        .refresh-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .main-container {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            flex: 1;
+        }
+
+        /* Overview Cards */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .metric-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+
+        .metric-card.purple::before { background: var(--purple); }
+        .metric-card.success::before { background: var(--success); }
+        .metric-card.warning::before { background: var(--warning); }
+        .metric-card.danger::before { background: var(--danger); }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--accent);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        .metric-footer {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Charts section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .chart-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 320px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+        }
+
+        .chart-container {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Tabs Navigation */
+        .tabs-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            gap: 1rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 300px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Tables & Lists */
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+
+        th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .badge-get { background-color: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge-post { background-color: rgba(99, 102, 241, 0.1); color: var(--accent); border: 1px solid rgba(99, 102, 241, 0.2); }
+        .badge-delete { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .badge-status-ok { background-color: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .badge-status-err { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+        .empty-state {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .empty-state i {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container { padding: 1rem; }
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <img src="logo.png" alt="AxarDB Logo">
+            <h1>Axar<span>DB</span> Metrics</h1>
+        </div>
+        <div class="refresh-badge">
+            <div class="refresh-dot"></div>
+            <span>Auto Refresh: 5s</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Overview Grid -->
+        <div class="overview-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span>UPTIME</span>
+                    <i data-lucide="clock" size="16"></i>
+                </div>
+                <div class="metric-value" id="valUptime">0m</div>
+                <div class="metric-footer">System running duration</div>
+            </div>
+            <div class="metric-card purple">
+                <div class="metric-header">
+                    <span>TOTAL REQUESTS</span>
+                    <i data-lucide="arrow-left-right" size="16"></i>
+                </div>
+                <div class="metric-value" id="valRequests">0</div>
+                <div class="metric-footer">Cumulative counts</div>
+            </div>
+            <div class="metric-card danger">
+                <div class="metric-header">
+                    <span>ERROR RATE (100)</span>
+                    <i data-lucide="alert-triangle" size="16"></i>
+                </div>
+                <div class="metric-value" id="valErrorRate">0%</div>
+                <div class="metric-footer">Failed query ratio</div>
+            </div>
+            <div class="metric-card success">
+                <div class="metric-header">
+                    <span>PROCESS MEMORY</span>
+                    <i data-lucide="cpu" size="16"></i>
+                </div>
+                <div class="metric-value" id="valMemory">0 MB</div>
+                <div class="metric-footer">Working Set allocation</div>
+            </div>
+            <div class="metric-card warning">
+                <div class="metric-header">
+                    <span>DISK USAGE (DB/BULK)</span>
+                    <i data-lucide="hard-drive" size="16"></i>
+                </div>
+                <div class="metric-value" id="valDisk">0K / 0K</div>
+                <div class="metric-footer">Total stored data size</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span>Queries / Minute</span>
+                    <i data-lucide="bar-chart-2" size="16"></i>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartQueries"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span>Memory Usage History (MB)</span>
+                    <i data-lucide="trending-up" size="16"></i>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartMemory"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('db')">
+                <i data-lucide="database" size="16"></i> Database Metrics
+            </button>
+            <button class="tab-btn" onclick="switchTab('memory')">
+                <i data-lucide="cpu" size="16"></i> Memory Store (TTL)
+            </button>
+            <button class="tab-btn" onclick="switchTab('costs')">
+                <i data-lucide="zap" size="16"></i> View & Trigger Costs
+            </button>
+        </div>
+
+        <!-- Tab Content 1: Database -->
+        <div id="tab-db" class="tab-content active">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Recent Requests & Queries</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>IP Address</th>
+                            <th>Method</th>
+                            <th>Path</th>
+                            <th>Status</th>
+                            <th>Duration (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dbRequestsBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-secondary);">No requests recorded yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content 2: Memory Store -->
+        <div id="tab-memory" class="tab-content">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Active TTL Memory Collections</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Collection Name</th>
+                            <th>Record Count</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memoryCollectionsBody">
+                        <tr>
+                            <td colspan="3" style="text-align: center; color: var(--text-secondary);">Loading active memory tables...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab Content 3: Costs -->
+        <div id="tab-costs" class="tab-content">
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; font-weight: 600;">Operation Execution Costs</h3>
+            
+            <h4 style="margin-bottom: 0.75rem; color: var(--accent); font-weight: 600;">Views</h4>
+            <div class="table-wrapper" style="margin-bottom: 2rem;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>View Name</th>
+                            <th>Call Count</th>
+                            <th>Avg Duration</th>
+                            <th>Min Duration</th>
+                            <th>Max Duration</th>
+                            <th>Errors</th>
+                            <th>Last Called</th>
+                        </tr>
+                    </thead>
+                    <tbody id="viewsCostsBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-secondary);">No view executions recorded</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4 style="margin-bottom: 0.75rem; color: var(--purple); font-weight: 600;">Triggers</h4>
+            <div class="table-wrapper" style="margin-bottom: 2rem;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Trigger Name</th>
+                            <th>Call Count</th>
+                            <th>Avg Duration</th>
+                            <th>Min Duration</th>
+                            <th>Max Duration</th>
+                            <th>Errors</th>
+                            <th>Last Called</th>
+                        </tr>
+                    </thead>
+                    <tbody id="triggersCostsBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-secondary);">No trigger executions recorded</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4 style="margin-bottom: 0.75rem; color: var(--success); font-weight: 600;">Background Queue Jobs</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Job Template (First 30 chars)</th>
+                            <th>Execution Count</th>
+                            <th>Avg Duration</th>
+                            <th>Min Duration</th>
+                            <th>Max Duration</th>
+                            <th>Errors</th>
+                            <th>Last Called</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queuesCostsBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-secondary);">No queue operations executed</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const auth = localStorage.getItem('AxarDB_auth');
+        if (!auth) {
+            window.location.href = '/index.html';
+        }
+
+        // Initialize Lucide
+        lucide.createIcons();
+
+        // Active tab switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.getAttribute('onclick').includes(tabId));
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        // Chart definitions
+        let queryChart, memChart;
+
+        function initCharts() {
+            const queryCtx = document.getElementById('chartQueries').getContext('2d');
+            const memCtx = document.getElementById('chartMemory').getContext('2d');
+
+            queryChart = new Chart(queryCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Queries/Min',
+                        data: [],
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#2d2d34' }, ticks: { color: '#9ca3af' } },
+                        y: { grid: { color: '#2d2d34' }, ticks: { color: '#9ca3af' }, beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            memChart = new Chart(memCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'RAM (MB)',
+                        data: [],
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#2d2d34' }, ticks: { color: '#9ca3af' } },
+                        y: { grid: { color: '#2d2d34' }, ticks: { color: '#9ca3af' } }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Fetch metrics data
+        async function fetchMetrics() {
+            try {
+                const [metricsRes, memRes] = await Promise.all([
+                    fetch('/metrics', { headers: { 'Authorization': `Basic ${auth}` } }),
+                    fetch('/memory/list', { headers: { 'Authorization': `Basic ${auth}` } })
+                ]);
+
+                if (!metricsRes.ok) throw new Error('Failed to fetch metrics');
+                const metrics = await metricsRes.json();
+                
+                let memoryList = [];
+                if (memRes.ok) memoryList = await memRes.json();
+
+                updateUI(metrics, memoryList);
+            } catch (err) {
+                console.error("Metrics fetch error:", err);
+            }
+        }
+
+        function formatDuration(minutes) {
+            if (minutes < 60) return `${Math.round(minutes)}m`;
+            const hours = Math.floor(minutes / 60);
+            const remainingMins = Math.round(minutes % 60);
+            return `${hours}h ${remainingMins}m`;
+        }
+
+        function updateUI(data, memoryList) {
+            // Update summary cards
+            document.getElementById('valUptime').textContent = formatDuration(data.summary.uptime);
+            document.getElementById('valRequests').textContent = data.summary.totalRequests;
+            document.getElementById('valErrorRate').textContent = data.summary.errorsLast100 + '%';
+            document.getElementById('valMemory').textContent = data.summary.ramMB + ' MB';
+            document.getElementById('valDisk').textContent = `${data.summary.dbDiskKB} KB / ${data.summary.bulkDiskKB} KB`;
+
+            // Update time series chart (Queries)
+            const queryLabels = data.timeSeries.map(t => t.time);
+            const queryData = data.timeSeries.map(t => t.count);
+            queryChart.data.labels = queryLabels;
+            queryChart.data.datasets[0].data = queryData;
+            queryChart.update();
+
+            // Update system samples (RAM)
+            const ramLabels = data.systemSamples.map(s => s.time);
+            const ramData = data.systemSamples.map(s => s.ramMB);
+            memChart.data.labels = ramLabels;
+            memChart.data.datasets[0].data = ramData;
+            memChart.update();
+
+            // Update recent requests table
+            const tbody = document.getElementById('dbRequestsBody');
+            if (data.recentRequests.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No requests recorded yet</td></tr>`;
+            } else {
+                tbody.innerHTML = data.recentRequests.map(r => {
+                    const methodClass = `badge badge-${r.method.toLowerCase()}`;
+                    const statusClass = r.status < 400 ? 'badge badge-status-ok' : 'badge badge-status-err';
+                    return `
+                        <tr>
+                            <td style="color: var(--text-secondary);">${r.time}</td>
+                            <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary);">${r.ip || 'unknown'}</td>
+                            <td><span class="${methodClass}">${r.method}</span></td>
+                            <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${r.path}</td>
+                            <td><span class="${statusClass}">${r.status}</span></td>
+                            <td style="font-family: 'JetBrains Mono', monospace; font-weight: 500;">${r.ms} ms</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Update memory collections tab
+            const memTbody = document.getElementById('memoryCollectionsBody');
+            if (memoryList.length === 0) {
+                memTbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No active memory tables</td></tr>`;
+            } else {
+                memTbody.innerHTML = memoryList.map(mc => `
+                    <tr>
+                        <td style="font-weight: 600; color: var(--purple);">${mc.name}</td>
+                        <td style="font-family: 'JetBrains Mono', monospace;">${mc.count}</td>
+                        <td><span class="badge" style="background: rgba(168, 85, 247, 0.1); color: var(--purple);">TTL / RAM</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            // Helper to render aggregate tables
+            function renderAgg(list, tbodyId, colorClass) {
+                const el = document.getElementById(tbodyId);
+                if (list.length === 0) {
+                    el.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No operations executed</td></tr>`;
+                    return;
+                }
+                el.innerHTML = list.map(item => {
+                    const errorBadge = item.errors > 0 ? 
+                        `<span class="badge badge-status-err">${item.errors}</span>` : 
+                        `<span class="badge badge-status-ok">0</span>`;
+                    
+                    const lastDate = new Date(item.lastCalled).toLocaleTimeString();
+
+                    return `
+                        <tr>
+                            <td style="font-weight: 600; color: ${colorClass};">${item.name}</td>
+                            <td style="font-family: 'JetBrains Mono', monospace;">${item.calls}</td>
+                            <td style="font-family: 'JetBrains Mono', monospace;">${item.avgMs} ms</td>
+                            <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-secondary);">${item.minMs} ms</td>
+                            <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-secondary);">${item.maxMs} ms</td>
+                            <td>${errorBadge}</td>
+                            <td style="color: var(--text-secondary);">${lastDate}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            renderAgg(data.views, 'viewsCostsBody', 'var(--accent)');
+            renderAgg(data.triggers, 'triggersCostsBody', 'var(--purple)');
+            renderAgg(data.queues, 'queuesCostsBody', 'var(--success)');
+        }
+
+        // Init page
+        initCharts();
+        fetchMetrics();
+        setInterval(fetchMetrics, 5000); // 5 seconds refresh
+    </script>
+</body>
+</html>

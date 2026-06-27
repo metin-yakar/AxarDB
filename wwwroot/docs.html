@@ -421,6 +421,12 @@
                 <a class="nav-link" data-target="data-write">
                     <i data-lucide="edit-3"></i> Data Writing
                 </a>
+                <a class="nav-link" data-target="memory-store">
+                    <i data-lucide="cpu"></i> Memory Store (TTL)
+                </a>
+                <a class="nav-link" data-target="bulk-store">
+                    <i data-lucide="hard-drive"></i> Bulk Store (JSONL)
+                </a>
                 <a class="nav-link" data-target="joins">
                     <i data-lucide="git-merge"></i> Join Operations
                 </a>
@@ -448,6 +454,9 @@
                 </a>
                 <a class="nav-link" data-target="queue">
                     <i data-lucide="clock"></i> Queue Operations
+                </a>
+                <a class="nav-link" data-target="monitoring">
+                    <i data-lucide="activity"></i> Monitoring
                 </a>
             </div>
 
@@ -487,6 +496,14 @@
                 </p>
                 <p>AxarDB is a NoSQL database server that works with JavaScript-based queries using the Jint
                     JavaScript engine. It runs on ASP.NET Core 8.0.</p>
+                
+                <div class="info-box" style="border-left-color: var(--accent); background: rgba(99, 102, 241, 0.05);">
+                    <strong>🚀 Latest Updates:</strong>
+                    <ul>
+                        <li><strong>Multi-Language UTF-8 HTTP Encoding:</strong> Full UTF-8 support for query string parameters, resolving encoding issues for non-Latin alphabets (Turkish, Arabic, Russian, Chinese, Japanese, etc.).</li>
+                        <li><strong>Lazy Collection Directory Creation:</strong> Collection folders are generated only when the first write operation (<code>insert</code>) occurs, preventing clutter from read-only checks on non-existent collections.</li>
+                    </ul>
+                </div>
             </section>
 
             <!-- Features -->
@@ -504,6 +521,18 @@
                     <div class="feature-card">
                         <h4>⚡ High Performance</h4>
                         <p>Lazy evaluation via PLINQ and strictly capped 40% RAM cache usage.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>🧠 Memory Store</h4>
+                        <p>TTL-based temporary RAM-only storage for sessions and caching.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>💾 Bulk Store</h4>
+                        <p>High-performance JSONL static storage with auto-reload and LRU caching.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>📊 Monitoring</h4>
+                        <p>Real-time query metrics, memory usage, and cost tracing dashboard.</p>
                     </div>
                     <div class="feature-card">
                         <h4>📄 CSV Engine</h4>
@@ -552,7 +581,10 @@
 <span class="keyword">var</span> roles = db.users.<span class="function">findall</span>().<span class="function">distinct</span>(u => u.role).<span class="function">toList</span>();
 
 <span class="comment">// Case-insensitive search</span>
-<span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);</code></pre>
+<span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);
+
+<span class="comment">// Pagination (skip and take)</span>
+<span class="keyword">var</span> page2 = db.users.<span class="function">findall</span>().<span class="function">skip</span>(<span class="number">10</span>).<span class="function">take</span>(<span class="number">10</span>).<span class="function">toList</span>();</code></pre>
                 <div class="info-box">
                     <strong>💡 Important:</strong> <code>findall()</code> returns a ResultSet. To use it as an array,
                     <code>.toList()</code> must be called.
@@ -588,6 +620,58 @@ db.<span class="function">deleteCollection</span>(<span class="string">"users"</
                 <pre><code>db.users.<span class="function">findall</span>().<span class="function">foreach</span>(user => {
     console.<span class="function">log</span>(user.name);
 });</code></pre>
+            </section>
+
+            <!-- Memory Store -->
+            <section class="section" id="memory-store">
+                <h2>Memory Store (TTL-based Temporary Storage)</h2>
+                <p>The <code>memory</code> object provides transient, high-speed RAM-only storage. Ideal for sessions, transient state, and cache tables. Data is never persisted to disk, and records expire after a specified TTL (Time-To-Live).</p>
+                
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>RAM-Only:</strong> Zero disk write overhead, providing maximum throughput.</li>
+                    <li><strong>TTL Expiration:</strong> Supports automatic expiration with custom intervals (in hours). Defaults to 1 hour if not specified.</li>
+                    <li><strong>Background Cleanup:</strong> Expired entries are evicted lazily on access and periodically via a background thread.</li>
+                </ul>
+
+                <h3>Usage Examples</h3>
+                <pre><code><span class="comment">// Insert with default TTL of 1 hour</span>
+memory.sessions.<span class="function">insert</span>({ userId: <span class="string">"user_123"</span>, token: <span class="string">"xyz"</span> });
+
+<span class="comment">// Insert with custom TTL (e.g. 2.5 hours)</span>
+memory.sessions.<span class="function">insert</span>({ userId: <span class="string">"user_456"</span> }, <span class="number">2.5</span>);
+
+<span class="comment">// Query active memory records</span>
+<span class="keyword">var</span> active = memory.sessions.<span class="function">findall</span>(s => s.token != <span class="keyword">null</span>).<span class="function">toList</span>();
+
+<span class="comment">// Delete from memory</span>
+memory.sessions.<span class="function">findall</span>(s => s.userId == <span class="string">"user_123"</span>).<span class="function">delete</span>();</code></pre>
+            </section>
+
+            <!-- Bulk Store -->
+            <section class="section" id="bulk-store">
+                <h2>Bulk Store (JSONL for Large Static Datasets)</h2>
+                <p>The <code>bulk</code> object allows fast read and write operations on large static datasets (e.g. zip codes, countries, log exports) stored as JSON Lines (JSONL) files in the <code>Bulk/</code> folder.</p>
+                
+                <h3>Key Features</h3>
+                <ul>
+                    <li><strong>High-Performance JSONL:</strong> Optimized for bulk loading and static lookups without server-level locks.</li>
+                    <li><strong>LRU Memory Cache:</strong> Automatically caches records in memory up to a 50 MB budget, evicting the least recently used collections.</li>
+                    <li><strong>Auto-Reload & Watcher:</strong> Monitor changes to files on disk via a FileSystemWatcher to automatically refresh memory cache. Can also be reloaded manually.</li>
+                </ul>
+
+                <h3>Usage Examples</h3>
+                <pre><code><span class="comment">// Bulk insert an array of objects</span>
+bulk.countries.<span class="function">insert</span>([
+    { name: <span class="string">"Turkey"</span>, code: <span class="string">"TR"</span> },
+    { name: <span class="string">"Germany"</span>, code: <span class="string">"DE"</span> }
+]);
+
+<span class="comment">// Find record from bulk store (uses LRU Cache)</span>
+<span class="keyword">var</span> tr = bulk.countries.<span class="function">find</span>(c => c.code == <span class="string">"TR"</span>);
+
+<span class="comment">// Manually reload cache for a collection</span>
+bulk.<span class="function">reload</span>(<span class="string">"countries"</span>);</code></pre>
             </section>
 
             <!-- Joins -->
@@ -786,6 +870,20 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
                 <div class="info-box">
                     <strong>💡 Priority:</strong> Higher priority jobs run first. Default is 0.
                 </div>
+            </section>
+
+            <!-- Monitoring Dashboard -->
+            <section class="section" id="monitoring">
+                <h2>Real-time Monitoring Dashboard</h2>
+                <p>AxarDB includes a built-in real-time monitoring dashboard accessible at <code>/monitor</code> or <code>/monitoring.html</code>. It provides a visual interface to monitor server performance, database activity, and active memory stores.</p>
+                
+                <h3>Dashboard Features</h3>
+                <ul>
+                    <li><strong>Metrics Charts:</strong> Displays live time-series tracking of queries/min and RAM allocation.</li>
+                    <li><strong>Database Logs:</strong> Shows a rolling log of the last 50 HTTP requests, including HTTP methods, endpoints, response statuses, and durations.</li>
+                    <li><strong>Memory Collections:</strong> Inspects active TTL collections, indicating active counts and memory state.</li>
+                    <li><strong>Cost Analytics:</strong> Tracks call counts, average, minimum, maximum durations, and error rates of Views, Triggers, and Background Queue Jobs.</li>
+                </ul>
             </section>
 
             <!-- HTTP API -->

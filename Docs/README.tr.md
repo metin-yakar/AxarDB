@@ -25,9 +25,11 @@
 |:---|:---|
 | **📜 JavaScript Sorguları** | Tam JavaScript sözdizimi kullanın: `db.users.findall(x => x.active).toList()`. ResultSet ve Native dizi üzerinde yepyeni `count()` ve `distinct()` uzantılarını destekler. |
 | **⚡ Yüksek Performans** | `ConcurrentDictionary`, PLINQ ile Tembel Değerlendirme (Lazy Eval) ve katı %40 RAM kapasite limitli Dinamik Önbellek Yönetimi. |
+| **🧠 Bellek İçi Depo (Memory Store)** | `memory.sessions.insert({...})` ile TTL destekli geçici depolama. Oturum, önbellek ve kısa ömürlü veriler için idealdir. |
 | **📄 CSV Motoru** | İki yönlü, güçlü CSV desteği. `csv(girdi)` fonksiyonu ile metinleri anında nesnelere, nesne listelerini ise CSV dosyalarına çevirin. |
 | **🔍 Akıllı İndeksleme** | Herhangi bir alanda ASC/DESC indeks oluşturun. |
 | **🔗 Join Desteği** | Koleksiyonlar arası güçlü join ve alias (takma ad) desteği. |
+| **📄 Sayfalama (Pagination)** | `skip(n).take(n)` zinciriyle kolayca sayfalama yapın. |
 | **🛡️ Güvenli** | Basic Auth (SHA256 hash desteği ile) ve **Injection Koruması**. |
 | **🐋 Docker Uyumlu** | Tek komutla çalıştırın: `docker run`. |
 | **🛠️ Araçlar** | Dahili yardımcı fonksiyonlar: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
@@ -128,6 +130,92 @@ var responseWithHeader = httpGet("https://api.example.com/secure", { "Authorizat
 // POST isteği
 webhook("https://api.example.com/notify", { message: "Hello" });
 ```
+
+---
+
+## 🧠 Memory Store (Geçici Bellek Deposu)
+
+`memory` nesnesi, `db` ile tamamen aynı şekilde kullanılır; ancak veriler **yalnızca sunucu belleğinde** tutulur ve diske yazılmaz. Her kayıt için yaşam süresi (TTL) belirlenebilir.
+
+> `memory` nesnesi `db` gibi doğrudan (top-level) kullanılır.
+
+```javascript
+// Varsayılan TTL ile ekle (1 saat)
+memory.sessions.insert({ userId: "abc123", token: "xyz" });
+
+// Özel TTL ile ekle (2.5 saat)
+memory.sessions.insert({ userId: "def456", token: "abc" }, 2.5);
+
+// Tüm kayıtları getir
+var sessions = memory.sessions.findall().toList();
+
+// Filtreleyerek getir
+var session = memory.sessions.find(s => s.userId == "abc123");
+
+// Sil
+memory.sessions.findall(s => s.token == "xyz").delete();
+```
+
+| Özellik | `db` | `memory` |
+|:---|:---|:---|
+| Kalıcılık | ✅ Disk | ❌ Yalnızca RAM |
+| TTL Desteği | ❌ Yok | ✅ Otomatik silme (varsayılan 1 saat) |
+| Kullanım | Kalıcı veriler | Oturum, önbellek, geçici veriler |
+
+---
+
+## 📄 Sayfalama (skip & take)
+
+`skip(n)` ve `take(n)` zinciriyle kolayca sayfalama yapın:
+
+```javascript
+// 1. sayfa (1-10 arası kayıtlar)
+var page1 = db.users.findall().take(10).toList();
+
+// 2. sayfa (11-20 arası kayıtlar)
+var page2 = db.users.findall().skip(10).take(10).toList();
+
+// 3. sayfa (21-30 arası kayıtlar)
+var page3 = db.users.findall().skip(20).take(10).toList();
+```
+
+---
+
+## 📦 Bulk Store (JSONL Toplu Veri Deposu)
+
+`bulk` nesnesi, `Bulk/` klasörü içinde JSONL (JSON Lines) formatında tutulan verileri yönetir. Ülke listeleri, posta kodları gibi büyük ama sabit veri setlerinde diski yormadan yüksek hızlı sorgulama yapılması için tasarlanmıştır.
+
+> `bulk` nesnesi `db` ve `memory` gibi doğrudan (top-level) kullanılır.
+
+```javascript
+// Toplu veri yükleme (Array formatında nesne listesi alır)
+bulk.countries.insert([
+  { name: "Türkiye", code: "TR", population: 85000000 },
+  { name: "Almanya", code: "DE", population: 83000000 }
+]);
+
+// Tüm verileri çek
+var list = bulk.countries.findall().toList();
+
+// Belirli bir kaydı bul
+var tr = bulk.countries.find(c => c.code == "TR");
+
+// Önbelleği manuel yenile
+bulk.reload("countries");
+```
+
+---
+
+## 📊 İzleme Arayüzü (Monitoring)
+
+AxarDB, veritabanının anlık durumunu izleyebilmeniz için dahili bir izleme paneli sunar.
+
+- **Erişim**: `/monitor` veya doğrudan `/monitoring.html` adresinden erişilebilir.
+- **Özellikler**:
+  - İstek/sn ve anlık hata oranları.
+  - Grafiksel bellek (RAM) ve disk kullanımı takibi.
+  - View, Trigger ve Kuyruk (Queue) işlemlerinin ortalama ve maksimum çalışma maliyetleri.
+  - Son 50 HTTP isteğinin detaylı dökümü.
 
 ---
 

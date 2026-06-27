@@ -1,6 +1,9 @@
 // AxarDB Web Interface
 let editor;
 let currentCollections = [];
+let currentMemoryCollections = [];
+let currentBulkCollections = [];
+let collectionFields = { db: {}, memory: {}, bulk: {} };
 let queryResults = [];
 let currentDisplayData = []; // To easily reference data for grid actions
 let sortCol = null;
@@ -163,6 +166,138 @@ function initEditor() {
             padding: { top: 16 }
         });
 
+        monaco.languages.registerCompletionItemProvider('javascript', {
+            triggerCharacters: ['.'],
+            provideCompletionItems: function(model, position) {
+                const textBefore = model.getValueInRange({
+                    startLineNumber: 1,
+                    startColumn: 1,
+                    endLineNumber: position.lineNumber,
+                    endColumn: position.column
+                });
+                
+                const wordInfo = model.getWordUntilPosition(position);
+                const range = {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: wordInfo.startColumn,
+                    endColumn: wordInfo.endColumn
+                };
+
+                const textBeforeWord = textBefore.substring(0, textBefore.length - wordInfo.word.length);
+
+                if (textBeforeWord.endsWith('.')) {
+                    const lineUntilDot = textBeforeWord.substring(0, textBeforeWord.length - 1);
+                    const tokenMatch = lineUntilDot.match(/([a-zA-Z0-9_]+)$/);
+                    
+                    if (tokenMatch) {
+                        const token = tokenMatch[1];
+                        
+                        // Case A: db., memory., bulk.
+                        if (token === 'db') {
+                            return {
+                                suggestions: currentCollections.map(name => ({
+                                    label: name,
+                                    kind: monaco.languages.CompletionItemKind.Class,
+                                    insertText: name,
+                                    detail: "Database Collection",
+                                    range: range
+                                }))
+                            };
+                        }
+                        if (token === 'memory') {
+                            return {
+                                suggestions: currentMemoryCollections.map(name => ({
+                                    label: name,
+                                    kind: monaco.languages.CompletionItemKind.Class,
+                                    insertText: name,
+                                    detail: "TTL Memory Collection",
+                                    range: range
+                                }))
+                            };
+                        }
+                        if (token === 'bulk') {
+                            return {
+                                suggestions: currentBulkCollections.map(name => ({
+                                    label: name,
+                                    kind: monaco.languages.CompletionItemKind.Class,
+                                    insertText: name,
+                                    detail: "JSONL Bulk Collection",
+                                    range: range
+                                }))
+                            };
+                        }
+
+                        // Case B: db.collection., memory.collection., bulk.collection., or after any ResultSet chain
+                        const isDbCol = currentCollections.includes(token);
+                        const isMemCol = currentMemoryCollections.includes(token);
+                        const isBulkCol = currentBulkCollections.includes(token);
+                        const chainRegex = /\b(db|memory|bulk)\.([a-zA-Z0-9_]+)\b/;
+                        
+                        if (isDbCol || isMemCol || isBulkCol || chainRegex.test(lineUntilDot)) {
+                            const methods = [
+                                { label: 'findall', insertText: 'findall()', detail: 'Find all documents in collection', kind: monaco.languages.CompletionItemKind.Method },
+                                { label: 'find', insertText: 'find(${1:u} => $2)', detail: 'Find first matching document', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'insert', insertText: 'insert($1)', detail: 'Insert a new document', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'update', insertText: 'update($1)', detail: 'Update matching documents', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'delete', insertText: 'delete()', detail: 'Delete matching documents or collection', kind: monaco.languages.CompletionItemKind.Method },
+                                { label: 'index', insertText: 'index(${1:x} => x.$2)', detail: 'Create an index', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'contains', insertText: 'contains(${1:x} => x.$2)', detail: 'Case-insensitive search', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'take', insertText: 'take(${1:10})', detail: 'Limit result size', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'skip', insertText: 'skip(${1:10})', detail: 'Skip results (pagination)', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'select', insertText: 'select(${1:x} => $2)', detail: 'Project/map fields', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'toList', insertText: 'toList()', detail: 'Convert to list (alias of ToList)', kind: monaco.languages.CompletionItemKind.Method },
+                                { label: 'ToList', insertText: 'ToList()', detail: 'Convert to list', kind: monaco.languages.CompletionItemKind.Method },
+                                { label: 'first', insertText: 'first()', detail: 'Get first document', kind: monaco.languages.CompletionItemKind.Method },
+                                { label: 'count', insertText: 'count(${1:x} => $2)', detail: 'Count documents', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'distinct', insertText: 'distinct(${1:x} => x.$2)', detail: 'Distinct values', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'foreach', insertText: 'foreach(${1:x} => $2)', detail: 'Iterate over documents', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'where', insertText: 'where(${1:x} => $2)', detail: 'Filter records', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet }
+                            ];
+                            return {
+                                suggestions: methods.map(m => ({ ...m, range: range }))
+                            };
+                        }
+
+                        // Case C: parameter. (e.g. u. in u => u.)
+                        const resolvedCol = resolveCollectionForParam(lineUntilDot, token);
+                        if (resolvedCol) {
+                            const type = resolvedCol.type;
+                            const name = resolvedCol.name;
+                            const fields = (collectionFields[type] && collectionFields[type][name]) || [];
+                            return {
+                                suggestions: fields.map(f => ({
+                                    label: f,
+                                    kind: monaco.languages.CompletionItemKind.Field,
+                                    insertText: f,
+                                    detail: `Field in ${type}.${name}`,
+                                    range: range
+                                }))
+                            };
+                        }
+                    }
+                } else {
+                    // Case D: Top-level keywords / functions
+                    const globals = [
+                        { label: 'db', insertText: 'db', detail: 'Database collections bridge', kind: monaco.languages.CompletionItemKind.Keyword },
+                        { label: 'memory', insertText: 'memory', detail: 'TTL In-memory collections bridge', kind: monaco.languages.CompletionItemKind.Keyword },
+                        { label: 'bulk', insertText: 'bulk', detail: 'JSONL Bulk collections bridge', kind: monaco.languages.CompletionItemKind.Keyword },
+                        { label: 'alias', insertText: 'alias(${1:db.collection}, "${2:aliasName}")', detail: 'Alias a collection in joins', kind: monaco.languages.CompletionItemKind.Function, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                        { label: 'mysqlRead', insertText: 'mysqlRead("${1:connectionString}", "${2:SELECT * FROM table}")', detail: 'Read from MySQL/MariaDB database', kind: monaco.languages.CompletionItemKind.Function, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                        { label: 'mysqlExec', insertText: 'mysqlExec("${1:connectionString}", "${2:UPDATE table SET col = @val}", ${3:{ val: 1 }})', detail: 'Execute command on MySQL/MariaDB database', kind: monaco.languages.CompletionItemKind.Function, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                        { label: 'pgsqlRead', insertText: 'pgsqlRead("${1:connectionString}", "${2:SELECT * FROM table}")', detail: 'Read from PostgreSQL database', kind: monaco.languages.CompletionItemKind.Function, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                        { label: 'pgsqlExec', insertText: 'pgsqlExec("${1:connectionString}", "${2:UPDATE table SET col = @val}", ${3:{ val: 1 }})', detail: 'Execute command on PostgreSQL database', kind: monaco.languages.CompletionItemKind.Function, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                        { label: 'queue', insertText: 'queue("${1:db.logs.insert({msg: \'Background job\'})}")', detail: 'Queue a background script task', kind: monaco.languages.CompletionItemKind.Function, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet }
+                    ];
+                    return {
+                        suggestions: globals.map(g => ({ ...g, range: range }))
+                    };
+                }
+                
+                return { suggestions: [] };
+            }
+        });
+
         editor.addAction({
             id: 'execute-query',
             label: 'Execute Query',
@@ -220,11 +355,13 @@ function initResizers() {
 async function loadCollections() {
     const tree = document.getElementById('collectionTree');
     try {
-        // Fetch collections, views, and triggers in parallel
-        const [colRes, viewRes, trigRes] = await Promise.all([
+        // Fetch collections, views, triggers, memory, and bulk collections in parallel
+        const [colRes, viewRes, trigRes, memRes, bulkRes] = await Promise.all([
             fetchWithAuth('/collections'),
             fetchWithAuth('/query', { method: 'POST', body: 'db.listViews()' }),
-            fetchWithAuth('/query', { method: 'POST', body: 'db.listTriggers()' })
+            fetchWithAuth('/query', { method: 'POST', body: 'db.listTriggers()' }),
+            fetchWithAuth('/memory/list'),
+            fetchWithAuth('/bulk/list')
         ]);
 
         if (!colRes.ok) throw new Error('Auth failed');
@@ -243,13 +380,25 @@ async function loadCollections() {
             if (!Array.isArray(triggers)) triggers = [];
         }
 
+        let memoryCollections = [];
+        if (memRes.ok) {
+            memoryCollections = await memRes.json();
+        }
+        currentMemoryCollections = memoryCollections.map(mc => mc.name);
+
+        let bulkCollections = [];
+        if (bulkRes.ok) {
+            bulkCollections = await bulkRes.json();
+        }
+        currentBulkCollections = bulkCollections.map(bc => bc.name);
+
         // Render Tree Atomically
         tree.innerHTML = '';
 
         // 1. DATA HEADER
         const dataHeader = document.createElement('div');
         dataHeader.className = 'tree-header';
-        dataHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 10px 0 5px 5px; display:block">DATA</span>';
+        dataHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 10px 0 5px 5px; display:block">DATABASE COLLECTIONS</span>';
         tree.appendChild(dataHeader);
 
         // 2. COLLECTIONS
@@ -279,6 +428,74 @@ db.${name}
                     { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall().take(5)`); executeSelectedQuery(); } },
                     { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } },
                     { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
+                ]);
+            };
+            tree.appendChild(item);
+        });
+
+        // 2.1 MEMORY HEADER
+        const memHeader = document.createElement('div');
+        memHeader.innerHTML = '<span style="font-weight:bold; color:#a855f7; font-size:0.8rem; margin: 15px 0 5px 5px; display:block">MEMORY COLLECTIONS (TTL)</span>';
+        tree.appendChild(memHeader);
+
+        if (memoryCollections.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'tree-item';
+            emptyItem.style.opacity = '0.5';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.innerHTML = '<i data-lucide="info"></i> <span>No active memory tables</span>';
+            tree.appendChild(emptyItem);
+        }
+
+        memoryCollections.forEach(mc => {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.style.color = '#c084fc';
+            item.innerHTML = `<i data-lucide="cpu"></i> <span>${mc.name} (${mc.count})</span>`;
+            item.onclick = () => {
+                setEditorValue(`// Query Temporary Memory Store
+memory.${mc.name}.findall().take(10).toList()`);
+                executeSelectedQuery();
+            };
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e, [
+                    { label: `Default Query`, action: () => { setEditorValue(`memory.${mc.name}.findall().toList()`); executeSelectedQuery(); } },
+                    { label: `Clear ${mc.name}`, action: () => { setEditorValue(`memory.${mc.name}.findall().delete()`); } }
+                ]);
+            };
+            tree.appendChild(item);
+        });
+
+        // 2.2 BULK HEADER
+        const bulkHeader = document.createElement('div');
+        bulkHeader.innerHTML = '<span style="font-weight:bold; color:#10b981; font-size:0.8rem; margin: 15px 0 5px 5px; display:block">BULK COLLECTIONS (JSONL)</span>';
+        tree.appendChild(bulkHeader);
+
+        if (bulkCollections.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'tree-item';
+            emptyItem.style.opacity = '0.5';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.innerHTML = '<i data-lucide="info"></i> <span>No bulk tables</span>';
+            tree.appendChild(emptyItem);
+        }
+
+        bulkCollections.forEach(bc => {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.style.color = '#34d399';
+            item.innerHTML = `<i data-lucide="archive"></i> <span>${bc.name} (${bc.recordCount})</span>`;
+            item.onclick = () => {
+                setEditorValue(`// Query Bulk (JSONL) collection
+bulk.${bc.name}.findall().take(10).toList()`);
+                executeSelectedQuery();
+            };
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e, [
+                    { label: `Default Query`, action: () => { setEditorValue(`bulk.${bc.name}.findall().toList()`); executeSelectedQuery(); } },
+                    { label: `Reload ${bc.name}`, action: () => { setEditorValue(`bulk.reload("${bc.name}")`); executeSelectedQuery(); } }
                 ]);
             };
             tree.appendChild(item);
@@ -465,6 +682,7 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
         if (filterInput.value) filterInput.oninput();
 
         initIcons();
+        triggerFetchCollectionFields(collections, currentMemoryCollections, currentBulkCollections);
     } catch (err) {
         if (err.message === 'Auth failed') document.getElementById('loginModal').style.display = 'flex';
     }
@@ -1081,4 +1299,78 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+// --- Autocomplete Helpers ---
+
+async function triggerFetchCollectionFields(dbCols, memCols, bulkCols) {
+    if (dbCols.length === 0 && memCols.length === 0 && bulkCols.length === 0) return;
+
+    const dbParts = dbCols.map(c => `"${c}": (function() { try { return db.${c}.findall().take(5).toList(); } catch(e) { return []; } })()`);
+    const memParts = memCols.map(c => `"${c}": (function() { try { return memory.${c}.findall().take(5).toList(); } catch(e) { return []; } })()`);
+    const bulkParts = bulkCols.map(c => `"${c}": (function() { try { return bulk.${c}.findall().take(5).toList(); } catch(e) { return []; } })()`);
+
+    const batchScript = `({
+        db: { ${dbParts.join(', ')} },
+        memory: { ${memParts.join(', ')} },
+        bulk: { ${bulkParts.join(', ')} }
+    })`;
+
+    try {
+        const res = await fetchWithAuth('/query', {
+            method: 'POST',
+            body: batchScript
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        // Reset cache
+        collectionFields = { db: {}, memory: {}, bulk: {} };
+
+        // Parse unique keys
+        for (const type of ['db', 'memory', 'bulk']) {
+            if (data[type]) {
+                for (const colName in data[type]) {
+                    const docs = data[type][colName];
+                    const keys = new Set();
+                    if (Array.isArray(docs)) {
+                        for (const doc of docs) {
+                            if (doc && typeof doc === 'object') {
+                                for (const key in doc) {
+                                    keys.add(key);
+                                }
+                            }
+                        }
+                    }
+                    collectionFields[type][colName] = Array.from(keys);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch collection fields: ", e);
+    }
+}
+
+function resolveCollectionForParam(textBeforeCursor, paramName) {
+    const lambdaRegex = new RegExp(`\\b${paramName}\\s*=>|\\(\\s*${paramName}\\s*(?:,\\s*[a-zA-Z0-9_]+\\s*)*\\)\\s*=>|\\bfunction\\s*\\(\\s*${paramName}\\s*\\)`);
+    
+    let match;
+    let lastDefIdx = -1;
+    const regexGlobal = new RegExp(lambdaRegex.source, 'g');
+    while ((match = regexGlobal.exec(textBeforeCursor)) !== null) {
+        lastDefIdx = match.index;
+    }
+
+    const searchString = lastDefIdx !== -1 ? textBeforeCursor.substring(0, lastDefIdx) : textBeforeCursor;
+    const colRegex = /\b(db|memory|bulk)\.([a-zA-Z0-9_]+)\b/g;
+    let colMatch;
+    let lastColMatch = null;
+    while ((colMatch = colRegex.exec(searchString)) !== null) {
+        lastColMatch = colMatch;
+    }
+
+    if (lastColMatch) {
+        return { type: lastColMatch[1], name: lastColMatch[2] };
+    }
+    return null;
 }
