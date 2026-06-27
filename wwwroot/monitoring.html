@@ -432,6 +432,7 @@
                     <thead>
                         <tr>
                             <th>Time</th>
+                            <th>IP Address</th>
                             <th>Method</th>
                             <th>Path</th>
                             <th>Status</th>
@@ -440,7 +441,7 @@
                     </thead>
                     <tbody id="dbRequestsBody">
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-secondary);">No requests recorded yet</td>
+                            <td colspan="6" style="text-align: center; color: var(--text-secondary);">No requests recorded yet</td>
                         </tr>
                     </tbody>
                 </table>
@@ -674,7 +675,7 @@
             // Update recent requests table
             const tbody = document.getElementById('dbRequestsBody');
             if (data.recentRequests.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No requests recorded yet</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No requests recorded yet</td></tr>`;
             } else {
                 tbody.innerHTML = data.recentRequests.map(r => {
                     const methodClass = `badge badge-${r.method.toLowerCase()}`;
@@ -682,6 +683,7 @@
                     return `
                         <tr>
                             <td style="color: var(--text-secondary);">${r.time}</td>
+                            <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary);">${r.ip || 'unknown'}</td>
                             <td><span class="${methodClass}">${r.method}</span></td>
                             <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">${r.path}</td>
                             <td><span class="${statusClass}">${r.status}</span></td>

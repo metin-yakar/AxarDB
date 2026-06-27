@@ -37,7 +37,7 @@ namespace AxarDB.Metrics
 
         // ─── Models ───────────────────────────────────────────────────────────
 
-        public record RequestMetric(DateTime Timestamp, string Method, string Path, int StatusCode, long DurationMs, long RequestBytes, long ResponseBytes);
+        public record RequestMetric(DateTime Timestamp, string Ip, string Method, string Path, int StatusCode, long DurationMs, long RequestBytes, long ResponseBytes);
         public record ScriptMetric(DateTime Timestamp, string Type, string Name, long DurationMs, bool Success, string? Error);
         public record SystemSample(DateTime Timestamp, long RamMB, double CpuPercent);
 
@@ -53,9 +53,9 @@ namespace AxarDB.Metrics
 
         // ─── Record Methods ───────────────────────────────────────────────────
 
-        public void RecordRequest(string method, string path, int statusCode, long durationMs, long reqBytes = 0, long resBytes = 0)
+        public void RecordRequest(string ip, string method, string path, int statusCode, long durationMs, long reqBytes = 0, long resBytes = 0)
         {
-            var m = new RequestMetric(DateTime.UtcNow, method, path, statusCode, durationMs, reqBytes, resBytes);
+            var m = new RequestMetric(DateTime.UtcNow, ip, method, path, statusCode, durationMs, reqBytes, resBytes);
             _requests.Enqueue(m);
 
             if (Interlocked.Increment(ref _requestCount) > MaxRequests)
@@ -161,6 +161,7 @@ namespace AxarDB.Metrics
                 recentRequests = recent.Reverse().Take(50).Select(r => new
                 {
                     time = r.Timestamp.ToString("HH:mm:ss"),
+                    ip = r.Ip,
                     method = r.Method,
                     path = r.Path,
                     status = r.StatusCode,
