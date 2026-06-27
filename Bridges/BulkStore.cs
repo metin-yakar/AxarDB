@@ -1,0 +1,213 @@
+using System.Collections.Concurrent;
+using System.Text.Json;
+
+namespace AxarDB.Bridges
+{
+    /// <summary>
+    /// Manages JSONL-based bulk collections stored in the "Bulk/" folder.
+    /// Supports lazy loading, in-memory caching, and auto-reload via FileSystemWatcher.
+    /// Max memory footprint is capped at ~50 MB across all cached collections.
+    /// </summary>
+    public class BulkStore : IDisposable
+    {
+        private readonly string _bulkPath;
+        private readonly ConcurrentDictionary<string, BulkCacheEntry> _cache = new();
+        private readonly FileSystemWatcher _watcher;
+        private readonly JsonSerializerOptions _jsonOptions;
+
+        // Approximate 50MB cap: we track total serialized byte size
+        private long _totalCachedBytes = 0;
+        private const long MaxCacheBytes = 50 * 1024 * 1024; // 50 MB
+
+        public BulkStore(string basePath)
+        {
+            _bulkPath = Path.Combine(basePath, "Bulk");
+            if (!Directory.Exists(_bulkPath))
+                Directory.CreateDirectory(_bulkPath);
+
+            _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            // FileSystemWatcher for auto-reload
+            _watcher = new FileSystemWatcher(_bulkPath, "*.jsonl")
+            {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+                EnableRaisingEvents = true,
+                IncludeSubdirectories = false
+            };
+
+            _watcher.Changed += OnFileChanged;
+            _watcher.Created += OnFileChanged;
+            _watcher.Deleted += OnFileDeleted;
+            _watcher.Renamed += OnFileRenamed;
+        }
+
+        private class BulkCacheEntry
+        {
+            public List<Dictionary<string, object>> Documents { get; set; } = new();
+            public DateTime LoadedAt { get; set; }
+            public long ApproximateBytes { get; set; }
+        }
+
+        // ─── File System Events ───────────────────────────────────────────────
+
+        private void OnFileChanged(object sender, FileSystemEventArgs e)
+        {
+            var name = Path.GetFileNameWithoutExtension(e.Name ?? "");
+            if (!string.IsNullOrEmpty(name))
+                InvalidateCache(name);
+        }
+
+        private void OnFileDeleted(object sender, FileSystemEventArgs e)
+        {
+            var name = Path.GetFileNameWithoutExtension(e.Name ?? "");
+            if (_cache.TryRemove(name, out var entry))
+                Interlocked.Add(ref _totalCachedBytes, -entry.ApproximateBytes);
+        }
+
+        private void OnFileRenamed(object sender, RenamedEventArgs e)
+        {
+            var oldName = Path.GetFileNameWithoutExtension(e.OldName ?? "");
+            var newName = Path.GetFileNameWithoutExtension(e.Name ?? "");
+            if (_cache.TryRemove(oldName, out var entry))
+                Interlocked.Add(ref _totalCachedBytes, -entry.ApproximateBytes);
+            if (!string.IsNullOrEmpty(newName))
+                InvalidateCache(newName);
+        }
+
+        private void InvalidateCache(string name)
+        {
+            if (_cache.TryRemove(name, out var old))
+                Interlocked.Add(ref _totalCachedBytes, -old.ApproximateBytes);
+        }
+
+        // ─── Public API ───────────────────────────────────────────────────────
+
+        /// <summary>Returns names of all existing JSONL collections.</summary>
+        public IEnumerable<string> ListCollections()
+        {
+            if (!Directory.Exists(_bulkPath)) yield break;
+            foreach (var f in Directory.EnumerateFiles(_bulkPath, "*.jsonl"))
+                yield return Path.GetFileNameWithoutExtension(f);
+        }
+
+        /// <summary>Returns all documents from the named JSONL collection (cached).</summary>
+        public IEnumerable<Dictionary<string, object>> GetDocuments(string name)
+        {
+            if (_cache.TryGetValue(name, out var entry))
+                return entry.Documents;
+
+            return LoadAndCache(name);
+        }
+
+        /// <summary>Insert/append documents to a JSONL file, creating it if it doesn't exist.</summary>
+        public void Insert(string name, IEnumerable<Dictionary<string, object>> documents)
+        {
+            var path = GetFilePath(name);
+            var lines = new List<string>();
+
+            foreach (var doc in documents)
+            {
+                if (!doc.ContainsKey("_id"))
+                    doc["_id"] = Guid.NewGuid().ToString();
+                lines.Add(JsonSerializer.Serialize(doc));
+            }
+
+            // Append to file
+            File.AppendAllLines(path, lines);
+
+            // Invalidate cache so it reloads fresh
+            InvalidateCache(name);
+        }
+
+        /// <summary>Manually reload a specific collection from disk.</summary>
+        public void Reload(string name)
+        {
+            InvalidateCache(name);
+            LoadAndCache(name);
+        }
+
+        /// <summary>Reload all collections.</summary>
+        public void ReloadAll()
+        {
+            foreach (var name in ListCollections())
+                Reload(name);
+        }
+
+        /// <summary>Delete documents matching a predicate and rewrite the JSONL file.</summary>
+        public void Delete(string name, Func<Dictionary<string, object>, bool> predicate)
+        {
+            var docs = GetDocuments(name).ToList();
+            var remaining = docs.Where(d => !predicate(d)).ToList();
+            var path = GetFilePath(name);
+            File.WriteAllLines(path, remaining.Select(d => JsonSerializer.Serialize(d)));
+            InvalidateCache(name);
+        }
+
+        // ─── Internal ─────────────────────────────────────────────────────────
+
+        private IEnumerable<Dictionary<string, object>> LoadAndCache(string name)
+        {
+            var path = GetFilePath(name);
+            if (!File.Exists(path)) return Enumerable.Empty<Dictionary<string, object>>();
+
+            var docs = new List<Dictionary<string, object>>();
+            long bytes = 0;
+
+            try
+            {
+                foreach (var line in File.ReadLines(path))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    try
+                    {
+                        var doc = JsonSerializer.Deserialize<Dictionary<string, object>>(line, _jsonOptions);
+                        if (doc != null)
+                        {
+                            docs.Add(doc);
+                            bytes += line.Length * 2; // approximate UTF-16 byte size
+                        }
+                    }
+                    catch { /* Skip malformed lines */ }
+                }
+            }
+            catch (IOException) { return Enumerable.Empty<Dictionary<string, object>>(); }
+
+            // Enforce 50MB cap: evict oldest if over budget
+            EnforceMemoryCap(bytes);
+
+            var entry = new BulkCacheEntry
+            {
+                Documents = docs,
+                LoadedAt = DateTime.UtcNow,
+                ApproximateBytes = bytes
+            };
+
+            _cache[name] = entry;
+            Interlocked.Add(ref _totalCachedBytes, bytes);
+            return docs;
+        }
+
+        private void EnforceMemoryCap(long incomingBytes)
+        {
+            if (_totalCachedBytes + incomingBytes <= MaxCacheBytes) return;
+
+            // Evict oldest entries until we have room
+            var ordered = _cache.OrderBy(kv => kv.Value.LoadedAt).ToList();
+            foreach (var kv in ordered)
+            {
+                if (_totalCachedBytes + incomingBytes <= MaxCacheBytes) break;
+                if (_cache.TryRemove(kv.Key, out var removed))
+                    Interlocked.Add(ref _totalCachedBytes, -removed.ApproximateBytes);
+            }
+        }
+
+        private string GetFilePath(string name)
+            => Path.Combine(_bulkPath, $"{name}.jsonl");
+
+        public void Dispose()
+        {
+            _watcher.EnableRaisingEvents = false;
+            _watcher.Dispose();
+        }
+    }
+}

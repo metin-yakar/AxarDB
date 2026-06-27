@@ -220,11 +220,13 @@ function initResizers() {
 async function loadCollections() {
     const tree = document.getElementById('collectionTree');
     try {
-        // Fetch collections, views, and triggers in parallel
-        const [colRes, viewRes, trigRes] = await Promise.all([
+        // Fetch collections, views, triggers, memory, and bulk collections in parallel
+        const [colRes, viewRes, trigRes, memRes, bulkRes] = await Promise.all([
             fetchWithAuth('/collections'),
             fetchWithAuth('/query', { method: 'POST', body: 'db.listViews()' }),
-            fetchWithAuth('/query', { method: 'POST', body: 'db.listTriggers()' })
+            fetchWithAuth('/query', { method: 'POST', body: 'db.listTriggers()' }),
+            fetchWithAuth('/memory/list'),
+            fetchWithAuth('/bulk/list')
         ]);
 
         if (!colRes.ok) throw new Error('Auth failed');
@@ -243,13 +245,23 @@ async function loadCollections() {
             if (!Array.isArray(triggers)) triggers = [];
         }
 
+        let memoryCollections = [];
+        if (memRes.ok) {
+            memoryCollections = await memRes.json();
+        }
+
+        let bulkCollections = [];
+        if (bulkRes.ok) {
+            bulkCollections = await bulkRes.json();
+        }
+
         // Render Tree Atomically
         tree.innerHTML = '';
 
         // 1. DATA HEADER
         const dataHeader = document.createElement('div');
         dataHeader.className = 'tree-header';
-        dataHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 10px 0 5px 5px; display:block">DATA</span>';
+        dataHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 10px 0 5px 5px; display:block">DATABASE COLLECTIONS</span>';
         tree.appendChild(dataHeader);
 
         // 2. COLLECTIONS
@@ -279,6 +291,74 @@ db.${name}
                     { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall().take(5)`); executeSelectedQuery(); } },
                     { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } },
                     { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
+                ]);
+            };
+            tree.appendChild(item);
+        });
+
+        // 2.1 MEMORY HEADER
+        const memHeader = document.createElement('div');
+        memHeader.innerHTML = '<span style="font-weight:bold; color:#a855f7; font-size:0.8rem; margin: 15px 0 5px 5px; display:block">MEMORY COLLECTIONS (TTL)</span>';
+        tree.appendChild(memHeader);
+
+        if (memoryCollections.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'tree-item';
+            emptyItem.style.opacity = '0.5';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.innerHTML = '<i data-lucide="info"></i> <span>No active memory tables</span>';
+            tree.appendChild(emptyItem);
+        }
+
+        memoryCollections.forEach(mc => {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.style.color = '#c084fc';
+            item.innerHTML = `<i data-lucide="cpu"></i> <span>${mc.name} (${mc.count})</span>`;
+            item.onclick = () => {
+                setEditorValue(`// Query Temporary Memory Store
+memory.${mc.name}.findall().take(10).toList()`);
+                executeSelectedQuery();
+            };
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e, [
+                    { label: `Default Query`, action: () => { setEditorValue(`memory.${mc.name}.findall().toList()`); executeSelectedQuery(); } },
+                    { label: `Clear ${mc.name}`, action: () => { setEditorValue(`memory.${mc.name}.findall().delete()`); } }
+                ]);
+            };
+            tree.appendChild(item);
+        });
+
+        // 2.2 BULK HEADER
+        const bulkHeader = document.createElement('div');
+        bulkHeader.innerHTML = '<span style="font-weight:bold; color:#10b981; font-size:0.8rem; margin: 15px 0 5px 5px; display:block">BULK COLLECTIONS (JSONL)</span>';
+        tree.appendChild(bulkHeader);
+
+        if (bulkCollections.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'tree-item';
+            emptyItem.style.opacity = '0.5';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.innerHTML = '<i data-lucide="info"></i> <span>No bulk tables</span>';
+            tree.appendChild(emptyItem);
+        }
+
+        bulkCollections.forEach(bc => {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.style.color = '#34d399';
+            item.innerHTML = `<i data-lucide="archive"></i> <span>${bc.name} (${bc.recordCount})</span>`;
+            item.onclick = () => {
+                setEditorValue(`// Query Bulk (JSONL) collection
+bulk.${bc.name}.findall().take(10).toList()`);
+                executeSelectedQuery();
+            };
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e, [
+                    { label: `Default Query`, action: () => { setEditorValue(`bulk.${bc.name}.findall().toList()`); executeSelectedQuery(); } },
+                    { label: `Reload ${bc.name}`, action: () => { setEditorValue(`bulk.reload("${bc.name}")`); executeSelectedQuery(); } }
                 ]);
             };
             tree.appendChild(item);

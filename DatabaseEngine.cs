@@ -19,6 +19,12 @@ namespace AxarDB
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _sharedCache;
         private static readonly HttpClient _httpClient = new HttpClient();
         private readonly string _basePath;
+        private readonly AxarDB.Bridges.MemoryStore _memoryStore = new();
+        private readonly AxarDB.Bridges.BulkStore _bulkStore;
+
+        public AxarDB.Bridges.BulkStore BulkStore => _bulkStore;
+        public AxarDB.Bridges.MemoryStore MemoryStore => _memoryStore;
+        public string BasePath => _basePath;
 
         private string FormatLog(object o)
         {
@@ -367,6 +373,7 @@ namespace AxarDB
             if (!Directory.Exists(_basePath)) Directory.CreateDirectory(_basePath);
 
             _storage = new AxarDB.Storage.DiskStorage(Path.Combine(_basePath, "Data"));
+            _bulkStore = new AxarDB.Bridges.BulkStore(_basePath);
             
             // Dynamic Memory Limit: 40% of Total Available Memory for Cache
             var gcInfo = GC.GetGCMemoryInfo();
@@ -474,6 +481,14 @@ namespace AxarDB
             // Expose 'db'
             var dbBridge = new AxarDBBridge(this, engine, cancellationToken);
             engine.SetValue("db", dbBridge);
+
+            // Expose 'memory' — top-level in-memory store with TTL support
+            var memoryBridge = new AxarDB.Bridges.MemoryBridge(_memoryStore, engine, cancellationToken);
+            engine.SetValue("memory", memoryBridge);
+
+            // Expose 'bulk' — top-level JSONL store
+            var bulkBridge = new AxarDB.Bridges.BulkBridge(_bulkStore, engine);
+            engine.SetValue("bulk", bulkBridge);
 
             // Expose 'UnlockDB' constructor: new UnlockDB("name")
             engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => {
@@ -711,6 +726,14 @@ namespace AxarDB
                 engine.SetValue("db", dbBridge);
                 engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => new CollectionBridge(this, GetCollection(name), engine, cancellationToken)));
                 engine.SetValue("showCollections", new Func<List<string>>(() => _collections.Keys.ToList())); // Simplified for view
+
+                // Expose 'memory' — top-level in-memory store with TTL support
+                var memoryBridge = new AxarDB.Bridges.MemoryBridge(_memoryStore, engine, cancellationToken);
+                engine.SetValue("memory", memoryBridge);
+
+                // Expose 'bulk' — top-level JSONL store
+                var bulkBridge = new AxarDB.Bridges.BulkBridge(_bulkStore, engine);
+                engine.SetValue("bulk", bulkBridge);
                 RegisterUtils(engine, context);
                 // Ideally ExecuteScript should be refactored. 
                 // Let's just add the Console capture here.
@@ -729,6 +752,8 @@ namespace AxarDB
             finally
             {
                 sw.Stop();
+                AxarDB.Metrics.MetricsCollector.Instance.RecordScript("view", viewName, sw.ElapsedMilliseconds, error == null, error);
+                
                 // Logging
                 var logEntry = new 
                 {
@@ -912,6 +937,7 @@ namespace AxarDB
             {
                 sw.Stop();
                 LogTriggerExecution(triggerName, sw.ElapsedMilliseconds, consoleLogs, error);
+                AxarDB.Metrics.MetricsCollector.Instance.RecordScript("trigger", triggerName, sw.ElapsedMilliseconds, error == null, error);
             }
         }
 

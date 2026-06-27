@@ -172,11 +172,27 @@ app.Use(async (context, next) =>
         // Only log /query requests to avoid cluttering with health checks or root hits if desired, 
         // but the prompt says "herhangi bir istek", so I log everything.
         Logger.LogRequest(ip, user, requestBody, sw.ElapsedMilliseconds, context.Response.StatusCode < 400);
+        AxarDB.Metrics.MetricsCollector.Instance.RecordRequest(
+            context.Request.Method, 
+            context.Request.Path, 
+            context.Response.StatusCode, 
+            sw.ElapsedMilliseconds, 
+            context.Request.ContentLength ?? 0, 
+            context.Response.ContentLength ?? 0
+        );
     }
     catch (Exception ex)
     {
         sw.Stop();
         Logger.LogRequest(ip, user, requestBody, sw.ElapsedMilliseconds, false, ex.Message);
+        AxarDB.Metrics.MetricsCollector.Instance.RecordRequest(
+            context.Request.Method, 
+            context.Request.Path, 
+            500, 
+            sw.ElapsedMilliseconds, 
+            context.Request.ContentLength ?? 0, 
+            0
+        );
         throw; // Re-throw to be caught by global exception handler
     }
 });
@@ -187,7 +203,11 @@ app.UseStaticFiles();
 // Basic Authentication Middleware
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/query") || context.Request.Path.StartsWithSegments("/collections"))
+    if (context.Request.Path.StartsWithSegments("/query") || 
+        context.Request.Path.StartsWithSegments("/collections") ||
+        context.Request.Path.StartsWithSegments("/memory/list") ||
+        context.Request.Path.StartsWithSegments("/bulk/list") ||
+        context.Request.Path.StartsWithSegments("/metrics"))
     {
         string? authHeader = context.Request.Headers["Authorization"];
         if (authHeader != null && authHeader.StartsWith("Basic "))
@@ -237,9 +257,11 @@ app.MapPost("/query", async (HttpContext context) =>
     var script = await reader.ReadToEndAsync();
     
     // Extract query parameters for injection safety
+    // Use FirstOrDefault() instead of ToString() to correctly handle multi-value params
+    // and preserve UTF-8 characters (Arabic, Japanese, Chinese, etc.)
     var queryParams = context.Request.Query.ToDictionary(
         k => k.Key, 
-        v => (object)v.Value.ToString()
+        v => (object)(v.Value.FirstOrDefault() ?? string.Empty)
     );
     
     try 
@@ -319,8 +341,9 @@ app.MapGet("/views/{viewName}", async (string viewName, HttpContext context) =>
         user = "public_user";
     }
 
-    // 2. Prepare Params
-    var queryParams = context.Request.Query.ToDictionary(k => k.Key, v => (object)v.Value.ToString());
+    // Prepare Params
+    // Use FirstOrDefault() to correctly handle multi-value params and preserve UTF-8 characters
+    var queryParams = context.Request.Query.ToDictionary(k => k.Key, v => (object)(v.Value.FirstOrDefault() ?? string.Empty));
 
     try
     {
@@ -348,6 +371,44 @@ app.MapDelete("/triggers/{triggerName}", (string triggerName) =>
     dbEngine.DeleteTrigger(triggerName);
     return Results.Ok(new { success = true });
 });
+
+app.MapGet("/memory/list", () =>
+{
+    var list = dbEngine.MemoryStore.GetCollectionNames()
+        .Select(name => new
+        {
+            name = name,
+            count = dbEngine.MemoryStore.GetRecordCount(name)
+        })
+        .ToList();
+    return Results.Json(list);
+});
+
+app.MapGet("/bulk/list", () =>
+{
+    var list = dbEngine.BulkStore.ListCollections()
+        .Select(name => {
+            var path = Path.Combine(dbEngine.BasePath, "Bulk", $"{name}.jsonl");
+            var info = new FileInfo(path);
+            return new
+            {
+                name = name,
+                file = $"{name}.jsonl",
+                recordCount = dbEngine.BulkStore.GetDocuments(name).Count(),
+                sizeKB = info.Exists ? info.Length / 1024.0 : 0
+            };
+        })
+        .ToList();
+    return Results.Json(list);
+});
+
+app.MapGet("/metrics", () =>
+{
+    var snapshot = AxarDB.Metrics.MetricsCollector.Instance.GetSnapshot(Path.Combine(dbEngine.BasePath, "Data"));
+    return Results.Json(snapshot);
+});
+
+app.MapGet("/monitor", () => Results.Redirect("/monitoring.html"));
 
 app.Run();
 

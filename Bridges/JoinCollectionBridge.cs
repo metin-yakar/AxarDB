@@ -58,6 +58,16 @@ namespace AxarDB.Bridges
             return new JoinCollectionBridge(mapped, _engine);
        }
 
+       public JoinCollectionBridge skip(int count)
+       {
+           return new JoinCollectionBridge(_joinedData.Skip(count), _engine);
+       }
+
+       public JoinCollectionBridge take(int count)
+       {
+           return new JoinCollectionBridge(_joinedData.Take(count), _engine);
+       }
+
        public List<object> toList()
        {
            return _joinedData.ToList();
