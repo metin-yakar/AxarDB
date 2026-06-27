@@ -512,6 +512,10 @@ namespace AxarDB
             var bulkBridge = new AxarDB.Bridges.BulkBridge(_bulkStore, engine);
             engine.SetValue("bulk", bulkBridge);
 
+            // Expose 'log' — read-only log store
+            var logBridge = new AxarDB.Bridges.LogBridge(_basePath, engine, cancellationToken);
+            engine.SetValue("log", logBridge);
+
             // Expose 'UnlockDB' constructor: new UnlockDB("name")
             engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => {
                 return new CollectionBridge(this, GetCollection(name), engine, cancellationToken);
@@ -743,6 +747,10 @@ namespace AxarDB
                 // Expose 'bulk' — top-level JSONL store
                 var bulkBridge = new AxarDB.Bridges.BulkBridge(_bulkStore, engine);
                 engine.SetValue("bulk", bulkBridge);
+
+                // Expose 'log' — read-only log store
+                var logBridge = new AxarDB.Bridges.LogBridge(_basePath, engine, cancellationToken);
+                engine.SetValue("log", logBridge);
                 RegisterUtils(engine, context);
                 // Ideally ExecuteScript should be refactored. 
                 // Let's just add the Console capture here.

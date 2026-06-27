@@ -173,6 +173,7 @@ app.Use(async (context, next) =>
         // but the prompt says "herhangi bir istek", so I log everything.
         Logger.LogRequest(ip, user, requestBody, sw.ElapsedMilliseconds, context.Response.StatusCode < 400);
         AxarDB.Metrics.MetricsCollector.Instance.RecordRequest(
+            ip,
             context.Request.Method, 
             context.Request.Path, 
             context.Response.StatusCode, 
@@ -186,6 +187,7 @@ app.Use(async (context, next) =>
         sw.Stop();
         Logger.LogRequest(ip, user, requestBody, sw.ElapsedMilliseconds, false, ex.Message);
         AxarDB.Metrics.MetricsCollector.Instance.RecordRequest(
+            ip,
             context.Request.Method, 
             context.Request.Path, 
             500, 
