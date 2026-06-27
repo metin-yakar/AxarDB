@@ -96,6 +96,7 @@ After `findall()`, you can chain these methods **before** `.toList()`:
 |:---|:---|:---|
 | `.toList()` / `.ToList()` | **Required** — Convert ResultSet to array | `findall().toList()` |
 | `.take(n)` | Limit results to first N items | `findall().take(5).toList()` |
+| `.skip(n)` | Skip the first N items | `findall().skip(10).toList()` |
 | `.select(fn)` | Project/transform each document | `findall().select(u => u.name).toList()` |
 | `.count(predicate?)` | Get total count or conditionally count matches | `findall().count(x => x.age > 18)` |
 | `.distinct(selector?)`| Get a list of unique values or objects | `findall().distinct(x => x.role).toList()` |
@@ -389,7 +390,81 @@ var affected = pgsqlExec(conn, "UPDATE reports SET status = 'archived' WHERE id 
 
 - View execution context is preserved in logs.
 
-## 11. Queue Operations (Background Jobs)
+## 11. Memory Store (Temporary In-Memory Storage)
+
+The `memory` object works exactly like `db`, but stores data **only in server RAM** — nothing is written to disk. Each record has a TTL (Time-To-Live) and is automatically removed when it expires.
+
+> **NOTE**: `memory` is a top-level object, just like `db`. Use it directly — not as `db.memory`.
+
+### Insert with TTL
+```javascript
+// Insert with default TTL (1 hour)
+memory.sessions.insert({ userId: "abc", token: "xyz" });
+
+// Insert with custom TTL (2.5 hours)
+memory.sessions.insert({ userId: "abc", token: "xyz" }, 2.5);
+
+// Insert with 0.5 hours (30 minutes)
+memory.cache.insert({ key: "homepage", html: "<h1>Hi</h1>" }, 0.5);
+```
+
+### Find Data
+```javascript
+// Get all entries from memory collection
+var sessions = memory.sessions.findall().toList();
+
+// Filter with a predicate
+var active = memory.sessions.findall(s => s.active == true).toList();
+
+// Find a single entry
+var session = memory.sessions.find(s => s.userId == "abc");
+if (session) {
+    console.log(session.token);
+}
+```
+
+### Delete Data
+```javascript
+// Delete all entries
+memory.sessions.findall().delete();
+
+// Delete by filter
+memory.sessions.findall(s => s.userId == "expired_user").delete();
+```
+
+### Key Differences from `db`
+| Feature | `db` | `memory` |
+|:---|:---|:---|
+| Persistence | ✅ Disk (survives restart) | ❌ RAM only (lost on restart) |
+| TTL support | ❌ No expiry | ✅ Auto-expires (default 1h) |
+| Use case | Permanent data | Sessions, caches, temp data |
+
+## 12. Bulk Store (JSONL Storage)
+
+The `bulk` object manages collections of data serialized in the JSONL (JSON Lines) format inside the `Bulk/` folder. It is designed to handle large, static lookup tables (such as countries, postal codes, product catalogs) efficiently without causing performance locks from individual JSON file reads on disk.
+
+> **NOTE**: `bulk` is a top-level object, just like `db` and `memory`. Use it directly — not as `db.bulk`.
+
+### Bulk Operations
+- **Bulk Insert / Initialize**: `bulk.countries.insert([...ArrayOfObjects])`
+- **Bulk Retrieve**: `bulk.countries.findall().toList()`
+- **Bulk Find**: `bulk.countries.find(c => c.code == "TR")`
+- **Bulk Delete**: `bulk.countries.findall(c => c.code == "US").delete()`
+- **Bulk Count**: `bulk.countries.count()`
+- **Manual Cache Reload**: `bulk.reload("countries")` or `bulk.reload()` (all collections)
+
+```javascript
+// Bulk initialize
+bulk.countries.insert([
+  { name: "Turkey", code: "TR", population: 85000000 },
+  { name: "Germany", code: "DE", population: 83000000 }
+]);
+
+// Querying bulk
+var european = bulk.countries.findall(c => c.population > 80000000).toList();
+```
+
+## 13. Queue Operations (Background Jobs)
 
 Use `queue()` to schedule scripts for background execution.
 
@@ -406,7 +481,7 @@ var jobId = queue("db.logs.insert({ msg: @msg })", { msg: "Hello" }, { priority:
 ### Logging
 Execution logs are stored in `queue_logs/` directory.
 
-## 12. Utility Functions Reference
+## 14. Utility Functions Reference
 
 ### Cryptographic & Encoding
 | Function | Signature | Description | Example |
@@ -635,8 +710,10 @@ dotnet run -- --cors "http://localhost:3000,http://example.com"
 
 ### Common Query Patterns
 ```javascript
-// Pagination (skip/take pattern)
-var page2 = db.products.findall().take(10).toList(); // First 10
+// Pagination — skip + take pattern
+var page1 = db.products.findall().take(10).toList();          // Page 1 (records 1-10)
+var page2 = db.products.findall().skip(10).take(10).toList(); // Page 2 (records 11-20)
+var page3 = db.products.findall().skip(20).take(10).toList(); // Page 3 (records 21-30)
 
 // Aggregation by iterating
 var total = 0;

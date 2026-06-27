@@ -1,0 +1,284 @@
+using Jint;
+using Jint.Native;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using AxarDB.Wrappers;
+
+namespace AxarDB.Bridges
+{
+    public class LogCollectionBridge
+    {
+        private readonly string _basePath;
+        private readonly string _type;
+        private readonly Engine? _engine;
+        private readonly CancellationToken _cancellationToken;
+
+        public LogCollectionBridge(string basePath, string type, Engine? engine = null, CancellationToken cancellationToken = default)
+        {
+            _basePath = basePath;
+            _type = type;
+            _engine = engine;
+            _cancellationToken = cancellationToken;
+        }
+
+        private IEnumerable<Dictionary<string, object>> LoadLogs()
+        {
+            string folderName = _type switch
+            {
+                "request" => "request_logs",
+                "error" => "error_logs",
+                "debug" => "debug_logs",
+                _ => _type + "_logs"
+            };
+
+            var dirPath = Path.Combine(_basePath, folderName);
+            if (!Directory.Exists(dirPath))
+            {
+                return Enumerable.Empty<Dictionary<string, object>>();
+            }
+
+            var list = new List<Dictionary<string, object>>();
+            try
+            {
+                var files = Directory.GetFiles(dirPath, "*.txt").OrderBy(f => f);
+                foreach (var file in files)
+                {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    var lines = File.ReadAllLines(file);
+                    foreach (var line in lines)
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        Dictionary<string, object>? parsed = null;
+                        if (_type == "request")
+                        {
+                            parsed = ParseRequestLogLine(line);
+                        }
+                        else if (_type == "error")
+                        {
+                            parsed = ParseErrorLogLine(line);
+                        }
+                        else if (_type == "debug")
+                        {
+                            parsed = ParseDebugLogLine(line);
+                        }
+                        else
+                        {
+                            parsed = new Dictionary<string, object> { { "raw", line } };
+                        }
+
+                        if (parsed != null)
+                        {
+                            list.Add(parsed);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LogBridge] Error reading logs: {ex.Message}");
+            }
+
+            return list;
+        }
+
+        private Dictionary<string, object>? ParseRequestLogLine(string line)
+        {
+            try
+            {
+                int tsStart = line.IndexOf('[');
+                if (tsStart == -1) return null;
+                int tsEnd = line.IndexOf(']', tsStart);
+                if (tsEnd == -1) return null;
+                string timestamp = line.Substring(tsStart + 1, tsEnd - tsStart - 1);
+
+                int ipStart = line.IndexOf('[', tsEnd + 1);
+                if (ipStart == -1) return null;
+                int ipEnd = line.IndexOf(']', ipStart);
+                if (ipEnd == -1) return null;
+                string ip = line.Substring(ipStart + 1, ipEnd - ipStart - 1);
+
+                int userStart = line.IndexOf('[', ipEnd + 1);
+                if (userStart == -1) return null;
+                int userEnd = line.IndexOf(']', userStart);
+                if (userEnd == -1) return null;
+                string user = line.Substring(userStart + 1, userEnd - userStart - 1);
+
+                int statusEnd = line.LastIndexOf(']');
+                if (statusEnd == -1) return null;
+                int statusStart = line.LastIndexOf('[', statusEnd);
+                if (statusStart == -1) return null;
+                string status = line.Substring(statusStart + 1, statusEnd - statusStart - 1);
+
+                int durationEnd = line.LastIndexOf(']', statusStart - 1);
+                if (durationEnd == -1) return null;
+                int durationStart = line.LastIndexOf('[', durationEnd);
+                if (durationStart == -1) return null;
+                string durationStr = line.Substring(durationStart + 1, durationEnd - durationStart - 1);
+                if (durationStr.EndsWith("ms")) durationStr = durationStr.Substring(0, durationStr.Length - 2);
+                long.TryParse(durationStr, out long durationMs);
+
+                int jsonStart = userEnd + 5;
+                int jsonEnd = durationStart - 5;
+                string rawJson = "";
+                if (jsonEnd > jsonStart)
+                {
+                    rawJson = line.Substring(jsonStart, jsonEnd - jsonStart);
+                }
+
+                object? requestData = null;
+                if (!string.IsNullOrEmpty(rawJson))
+                {
+                    try
+                    {
+                        requestData = AxarDB.Helpers.ScriptUtils.SafeDeserializeJson(rawJson);
+                    }
+                    catch
+                    {
+                        requestData = rawJson;
+                    }
+                }
+
+                return new Dictionary<string, object>
+                {
+                    { "timestamp", timestamp },
+                    { "ip", ip },
+                    { "user", user },
+                    { "request", requestData ?? rawJson },
+                    { "duration", durationMs },
+                    { "status", status }
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private Dictionary<string, object>? ParseErrorLogLine(string line)
+        {
+            try
+            {
+                int tsStart = line.IndexOf('[');
+                if (tsStart == -1) return null;
+                int tsEnd = line.IndexOf(']', tsStart);
+                if (tsEnd == -1) return null;
+                string timestamp = line.Substring(tsStart + 1, tsEnd - tsStart - 1);
+                string message = line.Substring(tsEnd + 1).Trim();
+
+                return new Dictionary<string, object>
+                {
+                    { "timestamp", timestamp },
+                    { "message", message }
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private Dictionary<string, object>? ParseDebugLogLine(string line)
+        {
+            try
+            {
+                int tsStart = line.IndexOf('[');
+                if (tsStart == -1) return null;
+                int tsEnd = line.IndexOf(']', tsStart);
+                if (tsEnd == -1) return null;
+                string timestamp = line.Substring(tsStart + 1, tsEnd - tsStart - 1);
+                
+                string remainder = line.Substring(tsEnd + 1).Trim();
+                if (remainder.StartsWith("[DEBUG]"))
+                {
+                    remainder = remainder.Substring(7).Trim();
+                }
+                
+                return new Dictionary<string, object>
+                {
+                    { "timestamp", timestamp },
+                    { "message", remainder }
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public ResultSet findall(JsValue? predicate = null)
+        {
+            var logs = LoadLogs();
+            if (predicate == null || predicate.IsNull() || predicate.IsUndefined())
+            {
+                return new ResultSet(logs, null);
+            }
+
+            Func<Dictionary<string, object>, bool> csPredicate = (d) => 
+            {
+                 if (_engine == null) return true;
+                 lock (_engine)
+                 {
+                     try
+                     {
+                        var result = _engine.Invoke(predicate, new object[] { new Wrappers.DocumentWrapper(d) });
+                        return result.AsBoolean();
+                     }
+                     catch { return false; }
+                 }
+            };
+
+            var filtered = logs.Where(csPredicate);
+            return new ResultSet(filtered, null);
+        }
+
+        public Wrappers.DocumentWrapper? find(Func<object, bool> predicate)
+        {
+            Func<Dictionary<string, object>, bool> safePredicate = (d) => 
+            {
+                if (_engine == null) return predicate(new Wrappers.DocumentWrapper(d));
+                lock (_engine) 
+                {
+                    try { return predicate(new Wrappers.DocumentWrapper(d)); } catch { return false; }
+                }
+            };
+
+            var doc = LoadLogs().FirstOrDefault(safePredicate);
+            return doc != null ? new Wrappers.DocumentWrapper(doc) : null;
+        }
+
+        public AxarList select(Func<object, object> selector)
+        {
+            Func<Dictionary<string, object>, object> safeSelector = (d) => 
+            {
+                if (_engine == null) return selector(new Wrappers.DocumentWrapper(d));
+                lock (_engine) { return selector(new Wrappers.DocumentWrapper(d)); }
+            };
+
+            var list = LoadLogs().Select(safeSelector);
+            return new AxarList(list);
+        }
+
+        public Wrappers.DocumentWrapper? first()
+        {
+            var firstDoc = LoadLogs().FirstOrDefault();
+            return firstDoc != null ? new Wrappers.DocumentWrapper(firstDoc) : null;
+        }
+
+        public int count(Func<object, bool>? predicate = null)
+        {
+            if (predicate == null) return LoadLogs().Count();
+            
+            Func<Dictionary<string, object>, bool> safePredicate = (d) => 
+            {
+                if (_engine == null) return predicate(new Wrappers.DocumentWrapper(d));
+                lock (_engine) 
+                {
+                    try { return predicate(new Wrappers.DocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            return LoadLogs().Count(safePredicate);
+        }
+    }
+}

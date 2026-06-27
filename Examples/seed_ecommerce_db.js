@@ -235,6 +235,28 @@ var llm = openai("https://api.openai.com/v1", token);
 return llm.msg(question, {}, "gpt-3.5-turbo");
 `);
 
+// 13. [NEW] Bulk Collections Example (JSONL Storage for Lookup Tables)
+console.log("Seeding Static Bulk Lookup Tables...");
+bulk.taxRates.insert([
+    { country: "TR", rate: 0.20, category: "Standard" },
+    { country: "DE", rate: 0.19, category: "Standard" },
+    { country: "US", rate: 0.08, category: "StateTax" }
+]);
+console.log("Bulk Collection (taxRates) Count: " + bulk.taxRates.findall().count());
+
+// 14. [NEW] Memory Collections Example (TTL In-Memory Temporary Storage)
+console.log("Seeding Temporary Memory Cache & Sessions...");
+memory.activeCarts.insert({ cartId: "cart_999", userId: userList[0]._id, items: ["prod_1", "prod_2"] }, 0.5); // 30 mins TTL
+memory.activeCarts.insert({ cartId: "cart_888", userId: userList[1]._id, items: ["prod_3"] }); // default 1 hour TTL
+console.log("Active Memory Carts Count: " + memory.activeCarts.findall().count());
+
+// 15. [NEW] Pagination Example (Skip & Take)
+console.log("Testing Pagination with skip(n)...");
+var firstFive = db.products.findall().take(5).toList();
+var pageTwo = db.products.findall().skip(5).take(5).toList();
+console.log("Page 1 (first 5) sample: " + (firstFive[0] ? firstFive[0].name : "None"));
+console.log("Page 2 (next 5) sample: " + (pageTwo[0] ? pageTwo[0].name : "None"));
+
 console.log("Seeding Complete!");
 return {
     success: true,
