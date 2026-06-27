@@ -37,6 +37,12 @@ namespace AxarDB
             return new ResultSet(taken, _collection);
         }
 
+        public ResultSet skip(int count)
+        {
+            var skipped = _results.Skip(count);
+            return new ResultSet(skipped, _collection);
+        }
+
         public AxarList select(Func<object, object> selector)
         {
             var list = _results.Select(d => selector(d));

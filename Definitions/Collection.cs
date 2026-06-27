@@ -19,7 +19,10 @@ namespace AxarDB.Definitions
         {
             Name = name;
             _storage = storage;
-            _storage.EnsureCollection(Name);
+            // NOTE: EnsureCollection is NOT called here intentionally.
+            // The collection directory is created lazily on the first write (Insert).
+            // This prevents empty directories from being created for collections
+            // that are only read (e.g. db.nonExistent.findall()).
             _cache = sharedCache;
             
         // 1. Load Primary Index (IDs only) - FAST
@@ -101,6 +104,9 @@ namespace AxarDB.Definitions
             }
             string id = document["_id"].ToString()!;
             
+            // Ensure the collection directory exists on first write (lazy creation)
+            _storage.EnsureCollection(Name);
+
             // 1. Disk Persist
             _storage.SaveDocument(Name, document);
 

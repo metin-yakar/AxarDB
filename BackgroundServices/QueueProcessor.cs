@@ -173,6 +173,9 @@ namespace AxarDB.BackgroundServices
 
             // Log to queue_logs
             LogExecution(jobId, startTime, endTime, durationMs, success, error, result);
+
+            // Record Queue Metric
+            AxarDB.Metrics.MetricsCollector.Instance.RecordScript("queue", template.Length > 30 ? template.Substring(0, 30) + "..." : template, durationMs, success, error);
         }
 
         private void LogExecution(string jobId, DateTime start, DateTime end, long duration, bool success, string? error, object? result)
