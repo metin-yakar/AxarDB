@@ -104,6 +104,9 @@ namespace AxarDB.Definitions
             }
             string id = document["_id"].ToString()!;
             
+            // Validate system collection structure
+            ValidateSystemCollectionStructure(document);
+
             // Ensure the collection directory exists on first write (lazy creation)
             _storage.EnsureCollection(Name);
 
@@ -253,6 +256,151 @@ namespace AxarDB.Definitions
                 {
                     foreach (var index in Indices) index.IndexDocument(doc);
                 }
+            }
+        }
+
+        // --- System Collection Validation Infrastructure ---
+        private static readonly Dictionary<string, HashSet<string>> SystemCollectionSchemas = new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "sysusers", new HashSet<string> { "_id", "username", "password" } },
+            { "sysvaults", new HashSet<string> { "_id", "key", "value", "created" } },
+            { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage" } }
+        };
+
+        private static readonly Dictionary<string, Dictionary<string, Type>> SystemCollectionTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            {
+                "sysusers", new Dictionary<string, Type>
+                {
+                    { "_id", typeof(string) },
+                    { "username", typeof(string) },
+                    { "password", typeof(string) }
+                }
+            },
+            {
+                "sysvaults", new Dictionary<string, Type>
+                {
+                    { "_id", typeof(string) },
+                    { "key", typeof(string) },
+                    { "created", typeof(DateTime) }
+                }
+            },
+            {
+                "sysqueue", new Dictionary<string, Type>
+                {
+                    { "_id", typeof(string) },
+                    { "queryTemplate", typeof(string) },
+                    { "createdAt", typeof(DateTime) },
+                    { "priority", typeof(int) },
+                    { "duration", typeof(long) }
+                }
+            }
+        };
+
+        private static readonly HashSet<string> FlexibleFields = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "value", "parameters", "options", "successResult"
+        };
+
+        private void ValidateSystemCollectionStructure(Dictionary<string, object> document)
+        {
+            if (!Name.StartsWith("sys")) return;
+
+            HashSet<string>? expectedKeys = null;
+            Dictionary<string, Type>? expectedTypes = null;
+
+            if (SystemCollectionSchemas.TryGetValue(Name, out var predefinedKeys))
+            {
+                expectedKeys = predefinedKeys;
+                SystemCollectionTypes.TryGetValue(Name, out expectedTypes);
+            }
+            else
+            {
+                // Fallback to dynamic schema from first document
+                var firstDoc = FindAll().FirstOrDefault();
+                if (firstDoc != null)
+                {
+                    expectedKeys = new HashSet<string>(firstDoc.Keys);
+                    expectedTypes = firstDoc.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.GetType() ?? typeof(object));
+                }
+            }
+
+            if (expectedKeys != null)
+            {
+                // Check if keys match exactly (no fields added, no fields removed)
+                if (document.Count != expectedKeys.Count || !document.Keys.All(expectedKeys.Contains))
+                {
+                    var docKeysStr = string.Join(", ", document.Keys);
+                    var expKeysStr = string.Join(", ", expectedKeys);
+                    throw new InvalidOperationException($"Document structure does not conform to the system collection '{Name}' schema. Expected keys: [{expKeysStr}], got: [{docKeysStr}]. Count expected: {expectedKeys.Count}, got: {document.Count}");
+                }
+
+                // Check type compatibility
+                if (expectedTypes != null)
+                {
+                    foreach (var kvp in expectedTypes)
+                    {
+                        var key = kvp.Key;
+                        var expectedType = kvp.Value;
+
+                        if (expectedType != typeof(object) && !FlexibleFields.Contains(key))
+                        {
+                            if (document.TryGetValue(key, out var docVal) && docVal != null)
+                            {
+                                var docType = docVal.GetType();
+                                if (!AreTypesCompatible(expectedType, docType))
+                                {
+                                    throw new InvalidOperationException($"Type mismatch for field '{key}' in system collection '{Name}'. Expected compatible with {expectedType.Name}, got {docType.Name}.");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private static bool AreTypesCompatible(Type expectedType, Type actualType)
+        {
+            if (expectedType == actualType) return true;
+
+            // Allow string and DateTime compatibility (dates can be stored/passed as strings)
+            if ((expectedType == typeof(DateTime) && actualType == typeof(string)) ||
+                (expectedType == typeof(string) && actualType == typeof(DateTime)))
+            {
+                return true;
+            }
+
+            // Check if both are numeric
+            if (IsNumericType(expectedType) && IsNumericType(actualType)) return true;
+
+            // Check if both are dictionary/object types
+            if (typeof(System.Collections.IDictionary).IsAssignableFrom(expectedType) && 
+                typeof(System.Collections.IDictionary).IsAssignableFrom(actualType))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsNumericType(Type type)
+        {
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.Byte:
+                case TypeCode.SByte:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                case TypeCode.UInt64:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                case TypeCode.Decimal:
+                case TypeCode.Double:
+                case TypeCode.Single:
+                    return true;
+                default:
+                    return false;
             }
         }
     }
