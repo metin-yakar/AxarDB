@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using MySqlConnector;
 using Npgsql;
 
-namespace AxarDB
+namespace AxarDB.Core
 {
     public class DatabaseEngine
     {
