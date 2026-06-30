@@ -1,7 +1,7 @@
 using AxarDB.Wrappers;
 using System.Collections;
 
-namespace AxarDB
+namespace AxarDB.Core
 {
     public class ResultSet : IEnumerable<DocumentWrapper>
     {

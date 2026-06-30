@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 using AxarDB;
+using AxarDB.Core;
 using AxarDB.Definitions;
 
 namespace AxarDB.BackgroundServices

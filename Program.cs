@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Diagnostics;
 using AxarDB;
+using AxarDB.Core;
+using AxarDB.Diagnostics;
 using AxarDB.Logging;
 
 // Ensure Console Output is UTF8
@@ -288,7 +290,7 @@ app.MapPost("/query", async (HttpContext context) =>
              } catch {}
         }
     
-        var scriptContext = new AxarDB.ScriptContext 
+        var scriptContext = new ScriptContext 
         { 
             IpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             User = user,

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AxarDB.Wrappers;
+using AxarDB.Core;
 
 namespace AxarDB.Bridges
 {

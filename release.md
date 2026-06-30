@@ -25,10 +25,3 @@ This release introduces grouping of system collections in the management console
 - Direct deletion of system collections via the backend is blocked.
 - Any calls to delete a collection starting with `sys` will throw an error, preventing the loss of vital system structure and data.
 
----
-
-## 🛠️ Components Impacted
-
-- **[Collection.cs](file:///c:/Users/meto2/Documents/Github/AxarDB/Definitions/Collection.cs)**: Added `ValidateSystemCollectionStructure` method and integrated it into the `Insert` flow.
-- **[DatabaseEngine.cs](file:///c:/Users/meto2/Documents/Github/AxarDB/DatabaseEngine.cs)**: Updated `DeleteCollection` to throw an error for system collections.
-- **[app.js](file:///c:/Users/meto2/Documents/Github/AxarDB/wwwroot/js/app.js)**: Grouped collections starting with `sys` in a new section in the sidebar.
