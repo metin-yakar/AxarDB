@@ -7,8 +7,11 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using System.IO;
+using AxarDB.Core;
 
-public static class MemoryTest
+namespace AxarDB.Diagnostics
+{
+    public static class MemoryTest
 {
     public static void Run()
     {
@@ -37,6 +40,7 @@ public static class MemoryTest
                 };
             }
             
+            storage.EnsureCollection("CSharpMemTest");
             // Fast insert avoiding cache hits to disk
             foreach(var d in dicts) {
                  storage.SaveDocument("CSharpMemTest", d);
@@ -80,4 +84,5 @@ public static class MemoryTest
         
         Console.WriteLine("Test Finished.");
     }
+}
 }

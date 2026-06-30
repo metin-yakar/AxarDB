@@ -1,4 +1,4 @@
-namespace AxarDB
+namespace AxarDB.Core
 {
     public struct ScriptContext
     {
