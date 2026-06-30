@@ -37,6 +37,7 @@ public static class MemoryTest
                 };
             }
             
+            storage.EnsureCollection("CSharpMemTest");
             // Fast insert avoiding cache hits to disk
             foreach(var d in dicts) {
                  storage.SaveDocument("CSharpMemTest", d);

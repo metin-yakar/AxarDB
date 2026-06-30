@@ -401,17 +401,63 @@ async function loadCollections() {
         dataHeader.innerHTML = '<span style="font-weight:bold; color:var(--text-secondary); font-size:0.8rem; margin: 10px 0 5px 5px; display:block">DATABASE COLLECTIONS</span>';
         tree.appendChild(dataHeader);
 
+        const dbCollections = collections.filter(name => !name.startsWith('sys'));
+        const sysCollections = collections.filter(name => name.startsWith('sys'));
+
+        if (dbCollections.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'tree-item';
+            emptyItem.style.opacity = '0.5';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.innerHTML = '<i data-lucide="info"></i> <span>No database collections</span>';
+            tree.appendChild(emptyItem);
+        }
+
         // 2. COLLECTIONS
-        collections.forEach(name => {
+        dbCollections.forEach(name => {
             const item = document.createElement('div');
             item.className = 'tree-item';
+            item.innerHTML = `<i data-lucide="database"></i> <span>${name}</span>`;
 
-            if (name.startsWith('sys')) {
-                item.style.color = 'var(--accent)';
-                item.innerHTML = `<i data-lucide="shield"></i> <span>${name}</span>`;
-            } else {
-                item.innerHTML = `<i data-lucide="database"></i> <span>${name}</span>`;
-            }
+            item.onclick = () => {
+                lastCollectionName = name;
+                setEditorValue(`// Find, Filter, Limit and List for '${name}'
+// Returns top 10 documents
+db.${name}
+  .findall() // No filter
+  .take(10)`);
+                executeSelectedQuery();
+            };
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                showContextMenu(e, [
+                    { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall().take(5)`); executeSelectedQuery(); } },
+                    { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } },
+                    { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
+                ]);
+            };
+            tree.appendChild(item);
+        });
+
+        // 2.0. SYSTEM COLLECTIONS
+        const sysHeader = document.createElement('div');
+        sysHeader.innerHTML = '<span style="font-weight:bold; color:var(--accent); font-size:0.8rem; margin: 15px 0 5px 5px; display:block">SYSTEM COLLECTIONS</span>';
+        tree.appendChild(sysHeader);
+
+        if (sysCollections.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'tree-item';
+            emptyItem.style.opacity = '0.5';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.innerHTML = '<i data-lucide="info"></i> <span>No system collections</span>';
+            tree.appendChild(emptyItem);
+        }
+
+        sysCollections.forEach(name => {
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            item.style.color = 'var(--accent)';
+            item.innerHTML = `<i data-lucide="shield"></i> <span>${name}</span>`;
 
             item.onclick = () => {
                 lastCollectionName = name;
