@@ -148,3 +148,4 @@ test*
 **/SDKs/**/.vs/
 **/SDKs/**/.vscode/
 .playwright-mcp/
+/Properties/PublishProfiles/FolderProfile.pubxml
