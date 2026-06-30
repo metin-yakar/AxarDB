@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using AxarDB;
+using AxarDB.Core;
 
-public static class Benchmark
+namespace AxarDB.Diagnostics
+{
+    public static class Benchmark
 {
     public static void Run()
     {
@@ -59,4 +62,5 @@ public static class Benchmark
             Environment.Exit(0);
         }
     }
+}
 }

@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using MySqlConnector;
 using Npgsql;
 
-namespace AxarDB
+namespace AxarDB.Core
 {
     public class DatabaseEngine
     {
@@ -345,6 +345,11 @@ namespace AxarDB
 
         public void DeleteCollection(string name)
         {
+            if (name.StartsWith("sys"))
+            {
+                throw new InvalidOperationException($"System collection '{name}' cannot be deleted.");
+            }
+
             if (_collections.TryRemove(name, out _))
             {
                 // Already removed from in-memory dictionary

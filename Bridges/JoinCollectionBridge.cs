@@ -2,6 +2,7 @@ using AxarDB.Definitions;
 using Jint;
 using Jint.Native;
 using AxarDB.Wrappers;
+using AxarDB.Core;
 
 namespace AxarDB.Bridges
 {
