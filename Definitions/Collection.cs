@@ -264,7 +264,7 @@ namespace AxarDB.Definitions
         {
             { "sysusers", new HashSet<string> { "_id", "username", "password" } },
             { "sysvaults", new HashSet<string> { "_id", "key", "value", "created" } },
-            { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage" } }
+            { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage", "completedAt" } }
         };
 
         private static readonly Dictionary<string, Dictionary<string, Type>> SystemCollectionTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -292,7 +292,8 @@ namespace AxarDB.Definitions
                     { "queryTemplate", typeof(string) },
                     { "createdAt", typeof(DateTime) },
                     { "priority", typeof(int) },
-                    { "duration", typeof(long) }
+                    { "duration", typeof(long) },
+                    { "completedAt", typeof(DateTime) }
                 }
             }
         };
@@ -313,6 +314,15 @@ namespace AxarDB.Definitions
             {
                 expectedKeys = predefinedKeys;
                 SystemCollectionTypes.TryGetValue(Name, out expectedTypes);
+
+                // Add any missing expected keys to ensure backward compatibility and successful validation
+                foreach (var expectedKey in expectedKeys)
+                {
+                    if (!document.ContainsKey(expectedKey))
+                    {
+                        document[expectedKey] = null!;
+                    }
+                }
             }
             else
             {
