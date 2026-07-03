@@ -623,7 +623,8 @@ namespace AxarDB.Core
                 { "priority", 0 }, // Default priority
                 { "duration", 0 },
                 { "successResult", null! },
-                { "errorMessage", null! }
+                { "errorMessage", null! },
+                { "completedAt", null! }
             };
 
             // Handle options if provided

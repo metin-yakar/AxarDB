@@ -158,6 +158,7 @@ namespace AxarDB.BackgroundServices
 
             // Update Job Record
             job["duration"] = durationMs;
+            job["completedAt"] = endTime;
             if (success)
             {
                 job["successResult"] = result!;
