@@ -26,7 +26,7 @@ namespace AxarDB.Bootstrap
             Console.OutputEncoding = Encoding.UTF8;
 
             var startupOptions = StartupOptions.Parse(args);
-            var settings = ConfigHelper.LoadSettings(args);
+            var settings = ConfigHelper.LoadSettings(startupOptions.TargetPath);
 
             if (startupOptions.IsScript)
             {

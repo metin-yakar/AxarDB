@@ -19,6 +19,16 @@ namespace AxarDB.Bridges
 
         public override bool TryGetMember(GetMemberBinder binder, out object? result)
         {
+            // Block access to custom sys-prefixed collections
+            if (binder.Name.StartsWith("sys", StringComparison.OrdinalIgnoreCase) &&
+                !binder.Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
+                !binder.Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
+                !binder.Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
+                !binder.Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"System collection name '{binder.Name}' is reserved.");
+            }
+
             // db.users -> returns CollectionBridge for "users"
             var collection = _dbEngine.GetCollection(binder.Name);
             result = new CollectionBridge(_dbEngine, collection, _jintEngine, _cancellationToken);

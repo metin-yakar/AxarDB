@@ -96,8 +96,24 @@ namespace AxarDB.Definitions
             return null;
         }
 
-        public void Insert(Dictionary<string, object> document, CancellationToken cancellationToken = default)
+        public void Insert(Dictionary<string, object> document, CancellationToken cancellationToken = default, bool bypassSystemRules = false)
         {
+            if (Name.StartsWith("sys", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Users cannot create custom system collections starting with 'sys'.");
+                }
+
+                if (Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) && !bypassSystemRules)
+                {
+                    throw new InvalidOperationException("Insert operation is not allowed on sysconfig collection.");
+                }
+            }
+
             if (!document.ContainsKey("_id"))
             {
                 document["_id"] = Guid.NewGuid().ToString();
@@ -208,7 +224,7 @@ namespace AxarDB.Definitions
                      doc[kvp.Key] = kvp.Value;
                  }
                  // Save
-                 Insert(doc, cancellationToken); // Re-inserts/Updates cache & disk
+                 Insert(doc, cancellationToken, bypassSystemRules: true); // Re-inserts/Updates cache & disk
             }
         }
 
@@ -272,6 +288,7 @@ namespace AxarDB.Definitions
         {
             { "sysusers", new HashSet<string> { "_id", "username", "password" } },
             { "sysvaults", new HashSet<string> { "_id", "key", "value", "created" } },
+            { "sysconfig", new HashSet<string> { "_id", "memoryLimitPercentage", "bulkStoreMaxCacheBytes", "maxRecursionDepth", "queryTimeoutMinutes", "queuePollIntervalSeconds" } },
             { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage", "completedAt" } }
         };
 
@@ -291,6 +308,17 @@ namespace AxarDB.Definitions
                     { "_id", typeof(string) },
                     { "key", typeof(string) },
                     { "created", typeof(DateTime) }
+                }
+            },
+            {
+                "sysconfig", new Dictionary<string, Type>
+                {
+                    { "_id", typeof(string) },
+                    { "memoryLimitPercentage", typeof(double) },
+                    { "bulkStoreMaxCacheBytes", typeof(long) },
+                    { "maxRecursionDepth", typeof(int) },
+                    { "queryTimeoutMinutes", typeof(int) },
+                    { "queuePollIntervalSeconds", typeof(double) }
                 }
             },
             {
