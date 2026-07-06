@@ -27,12 +27,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="wwwroot\unlockerdbLogo.png">
+    <Content Update="wwwroot\unlockerdbLogo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="appsettings.json">
+    </Content>
+    <Content Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
