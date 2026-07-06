@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text;
 
 namespace AxarDB.Bridges
 {
@@ -113,7 +114,7 @@ namespace AxarDB.Bridges
             }
 
             // Append to file
-            File.AppendAllLines(path, lines);
+            File.AppendAllLines(path, lines, Encoding.UTF8);
 
             // Invalidate cache so it reloads fresh
             InvalidateCache(name);
@@ -139,7 +140,7 @@ namespace AxarDB.Bridges
             var docs = GetDocuments(name).ToList();
             var remaining = docs.Where(d => !predicate(d)).ToList();
             var path = GetFilePath(name);
-            File.WriteAllLines(path, remaining.Select(d => JsonSerializer.Serialize(d)));
+            File.WriteAllLines(path, remaining.Select(d => JsonSerializer.Serialize(d)), Encoding.UTF8);
             InvalidateCache(name);
         }
 
@@ -155,7 +156,7 @@ namespace AxarDB.Bridges
 
             try
             {
-                foreach (var line in File.ReadLines(path))
+                foreach (var line in File.ReadLines(path, Encoding.UTF8))
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     try

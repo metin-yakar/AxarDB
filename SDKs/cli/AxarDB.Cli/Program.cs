@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Globalization;
+using System.Text;
 using AxarDB.Sdk;
 
 namespace AxarDB.Cli
@@ -10,6 +12,11 @@ namespace AxarDB.Cli
     {
         static async Task Main(string[] args)
         {
+            // Set global culture and encoding
+            CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("tr-TR");
+            CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("tr-TR");
+            Console.OutputEncoding = Encoding.UTF8;
+
             try
             {
                 var options = ParseArguments(args);
@@ -68,7 +75,7 @@ namespace AxarDB.Cli
                         Console.WriteLine($"Error: Script file not found: {options.ScriptFile}");
                         return;
                     }
-                    script = File.ReadAllText(options.ScriptFile);
+                    script = File.ReadAllText(options.ScriptFile, Encoding.UTF8);
                 }
                 else if (!string.IsNullOrEmpty(options.InlineScript))
                 {
@@ -92,7 +99,7 @@ namespace AxarDB.Cli
 
                 if (!string.IsNullOrEmpty(options.OutputFile))
                 {
-                    File.WriteAllText(options.OutputFile, jsonOutput);
+                    File.WriteAllText(options.OutputFile, jsonOutput, Encoding.UTF8);
                     Console.WriteLine($"Result written to {options.OutputFile}");
                 }
                 else
