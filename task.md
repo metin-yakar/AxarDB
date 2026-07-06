@@ -1,4 +1,4 @@
-# AxarDB — Yeni Özellikler Görev Durumları
+﻿﻿# AxarDB — Yeni Özellikler Görev Durumları
 
 - [x] 1.1 BulkStore.cs — JSONL okuma, önbellek, FileSystemWatcher
 - [x] 1.2 BulkResultSet.cs — findall/skip/take/select/count/delete

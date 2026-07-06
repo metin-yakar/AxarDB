@@ -336,10 +336,45 @@ namespace AxarDB.Core
                     return unique;
                 };
 
-                // Alias contains to includes for String
-                if (!String.prototype.contains) {
-                    String.prototype.contains = String.prototype.includes;
-                }
+                // Override String.prototype.toLowerCase to handle Turkish characters case-insensitively
+                const originalToLowerCase = String.prototype.toLowerCase;
+                String.prototype.toLowerCase = function() {
+                    let str = originalToLowerCase.call(this);
+                    let result = '';
+                    for (let i = 0; i < str.length; i++) {
+                        let c = str[i];
+                        if (c === 'I' || c === 'İ' || c === 'ı' || c === 'i') {
+                            result += 'i';
+                        } else if (c === 'Ö' || c === 'ö') {
+                            result += 'ö';
+                        } else if (c === 'Ü' || c === 'ü') {
+                            result += 'ü';
+                        } else if (c === 'Ç' || c === 'ç') {
+                            result += 'ç';
+                        } else if (c === 'Ş' || c === 'ş') {
+                            result += 'ş';
+                        } else if (c === 'Ğ' || c === 'ğ') {
+                            result += 'ğ';
+                        } else {
+                            result += c;
+                        }
+                    }
+                    return result.replace(/\u0307/g, '');
+                };
+
+                // Case-insensitive contains (alias to includes with case-insensitivity)
+                String.prototype.contains = function(str) {
+                    if (str === null || str === undefined) return false;
+                    if (typeof str !== 'string') str = String(str);
+                    return this.toLowerCase().includes(str.toLowerCase());
+                };
+
+                // Case-insensitive startsWith
+                String.prototype.startsWith = function(str) {
+                    if (str === null || str === undefined) return false;
+                    if (typeof str !== 'string') str = String(str);
+                    return this.toLowerCase().indexOf(str.toLowerCase()) === 0;
+                };
             ");
         }
 
@@ -623,7 +658,8 @@ namespace AxarDB.Core
                 { "priority", 0 }, // Default priority
                 { "duration", 0 },
                 { "successResult", null! },
-                { "errorMessage", null! }
+                { "errorMessage", null! },
+                { "completedAt", null! }
             };
 
             // Handle options if provided

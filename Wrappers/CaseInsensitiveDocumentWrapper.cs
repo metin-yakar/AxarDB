@@ -1,30 +1,68 @@
 using System.Dynamic;
+using System.Linq;
 
 namespace AxarDB.Wrappers
 {
-    public class CaseInsensitiveDocumentWrapper : DynamicObject
+    public class CaseInsensitiveDocumentWrapper : DocumentWrapper
     {
-        private readonly Dictionary<string, object> _document;
-
-        public CaseInsensitiveDocumentWrapper(Dictionary<string, object> document)
+        public CaseInsensitiveDocumentWrapper(Dictionary<string, object> document) : base(document)
         {
-            _document = document;
         }
 
         public override bool TryGetMember(GetMemberBinder binder, out object? result)
         {
-            if (_document.TryGetValue(binder.Name, out var val))
+            var key = Data.Keys.FirstOrDefault(k => string.Equals(k, binder.Name, System.StringComparison.OrdinalIgnoreCase));
+            if (key != null && Data.TryGetValue(key, out var val))
             {
-                if (val is string strVal)
+                var unwrapped = Unwrap(val);
+                if (unwrapped is string strVal)
                 {
-                    result = strVal.ToLowerInvariant();
+                    result = TurkishNormalize(strVal);
                     return true;
                 }
-                result = val;
+                result = unwrapped;
                 return true;
             }
-            result = null; // or basic null
+            result = null;
             return true;
+        }
+
+        public static string TurkishNormalize(string str)
+        {
+            if (string.IsNullOrEmpty(str)) return string.Empty;
+            var sb = new System.Text.StringBuilder(str.Length);
+            foreach (var c in str)
+            {
+                if (c == 'I' || c == 'İ' || c == 'ı' || c == 'i')
+                {
+                    sb.Append('i');
+                }
+                else if (c == 'Ö' || c == 'ö')
+                {
+                    sb.Append('ö');
+                }
+                else if (c == 'Ü' || c == 'ü')
+                {
+                    sb.Append('ü');
+                }
+                else if (c == 'Ç' || c == 'ç')
+                {
+                    sb.Append('ç');
+                }
+                else if (c == 'Ş' || c == 'ş')
+                {
+                    sb.Append('ş');
+                }
+                else if (c == 'Ğ' || c == 'ğ')
+                {
+                    sb.Append('ğ');
+                }
+                else
+                {
+                    sb.Append(char.ToLowerInvariant(c));
+                }
+            }
+            return sb.ToString();
         }
     }
 }

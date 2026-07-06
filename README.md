@@ -1,4 +1,4 @@
-![AxarDB Logo](./AxarDBLogo.png)
+﻿﻿![AxarDB Logo](./AxarDBLogo.png)
 
 [![License: Custom](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
@@ -29,10 +29,10 @@
 | **🔗 Joins** | Perform complex joins with easy aliases: `db.join(alias(u, "user"), alias(o, "order"))`. |
 | **🛢️ MySQL/MariaDB** | Native support for external SQL queries: `mysqlRead(conn, query)` and `mysqlExec(conn, query)`. |
 | **🐘 PostgreSQL** | Native support for PostgreSQL queries: `pgsqlRead(conn, query)` and `pgsqlExec(conn, query)`. |
-| **⏳ Task Queue** | Background job processing with `queue("script", params, { priority: 1 })`. |
+| **⏳ Task Queue** | Background job processing with `queue("script", params, { priority: 1 })`. Tracks completion with a `completedAt` timestamp. Direct insertion to `db.sysqueue` is restricted. |
 | **👁️ Views** | Stored server-side queries with `@access public/private` metadata and `@param` parameter injection. |
 | **⚡ Triggers** | Automatic event handlers on data changes with `@target` filtering. |
-| **🔐 Vaults** | Secure key-value storage for API keys using `$KEY` syntax. |
+| **🔐 Vaults** | Secure key-value storage for API keys using `$KEY` syntax. Direct insertion to `db.sysvaults` is restricted; use `addVault()`. |
 | **🌐 Webhooks & HTTP** | HTTP POST with `webhook()` and HTTP GET with `httpGet()`, both with custom headers. |
 | **🛡️ Secure** | Basic Authentication (supports SHA256 hashing) & **Injection Prevention** via `@placeholder` replacement. |
 | **🐳 Docker Ready** | Runs anywhere with a single `docker run` command. |
@@ -199,11 +199,6 @@ If you love this project, consider supporting its development!
 | **Buy Me a Coffee** | **Ethereum** |
 |:---:|:---:|
 | <a href="https://buymeacoffee.com/metinyakar"><img src="./buymecoffie.png" style="width:100px;height:100px;"/></a> | ![QR](https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=0x1245CEB6c9A5485286975eEC1B2F9D496016761C) |
-
-### 📅 Consulting & Training
-
-Need help integrating AxarDB or want advice on AI-driven development and Code Automation?
-**[Book a session on Cal.com](https://cal.com/metin-yakar-dfij9e)**
 
 ---
 

@@ -70,6 +70,34 @@ namespace AxarDB.Bridges
             return doc != null ? new DocumentWrapper(doc) : null;
         }
 
+        public BulkResultSet contains(Func<object, bool> predicate)
+        {
+            Func<Dictionary<string, object>, bool> safePredicate = (d) =>
+            {
+                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                lock (_engine)
+                {
+                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            var all = _store.GetDocuments(_collectionName);
+            return new BulkResultSet(all.Where(safePredicate), _store, _collectionName);
+        }
+
+        public BulkResultSet startsWith(Func<object, bool> predicate)
+        {
+            Func<Dictionary<string, object>, bool> safePredicate = (d) =>
+            {
+                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                lock (_engine)
+                {
+                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            var all = _store.GetDocuments(_collectionName);
+            return new BulkResultSet(all.Where(safePredicate), _store, _collectionName);
+        }
+
         /// <summary>Manually reload this collection from disk.</summary>
         public void reload() => _store.Reload(_collectionName);
 

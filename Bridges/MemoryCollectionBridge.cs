@@ -83,6 +83,34 @@ namespace AxarDB.Bridges
             return doc != null ? new DocumentWrapper(doc) : null;
         }
 
+        public MemoryResultSet contains(Func<object, bool> predicate)
+        {
+            Func<Dictionary<string, object>, bool> safePredicate = (d) =>
+            {
+                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                lock (_engine)
+                {
+                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            var all = _store.FindAll(_collectionName);
+            return new MemoryResultSet(all.Where(safePredicate), _store, _collectionName);
+        }
+
+        public MemoryResultSet startsWith(Func<object, bool> predicate)
+        {
+            Func<Dictionary<string, object>, bool> safePredicate = (d) =>
+            {
+                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                lock (_engine)
+                {
+                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            var all = _store.FindAll(_collectionName);
+            return new MemoryResultSet(all.Where(safePredicate), _store, _collectionName);
+        }
+
         /// <summary>
         /// Deletes documents matching the predicate from the in-memory collection.
         /// </summary>

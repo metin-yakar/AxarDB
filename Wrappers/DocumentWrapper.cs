@@ -45,7 +45,7 @@ namespace AxarDB.Wrappers
             return _document.ContainsKey(name) ? Unwrap(_document[name]) : null;
         }
 
-        private object? Unwrap(object? value)
+        protected object? Unwrap(object? value)
         {
             if (value is System.Text.Json.JsonElement element)
             {
