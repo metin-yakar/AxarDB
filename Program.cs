@@ -257,7 +257,7 @@ app.MapGet("/docs", () => Results.Redirect("/docs.html"));
 
 app.MapPost("/query", async (HttpContext context) =>
 {
-    using var reader = new StreamReader(context.Request.Body);
+    using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
     var script = await reader.ReadToEndAsync();
     
     // Extract query parameters for injection safety

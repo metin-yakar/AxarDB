@@ -65,7 +65,11 @@ namespace AxarDB.Bridges
                         var result = _engine.Invoke(predicate, new object[] { new DocumentWrapper(d) });
                         return result.AsBoolean();
                      }
-                     catch { return false; }
+                     catch (Exception ex)
+                     {
+                        Console.WriteLine($"[DB Predicate Error] {ex.Message} | Stack: {ex.StackTrace}");
+                        return false;
+                     }
                  }
             };
 
@@ -145,6 +149,20 @@ namespace AxarDB.Bridges
         }
 
         public ResultSet contains(Func<object, bool> predicate)
+        {
+            Func<Dictionary<string, object>, bool> safePredicate = (d) => 
+            {
+                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                lock (_engine) 
+                {
+                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                }
+            };
+            var results = _collection.FindAll(safePredicate, null, _cancellationToken);
+            return new ResultSet(results, _collection);
+        }
+
+        public ResultSet startsWith(Func<object, bool> predicate)
         {
             Func<Dictionary<string, object>, bool> safePredicate = (d) => 
             {

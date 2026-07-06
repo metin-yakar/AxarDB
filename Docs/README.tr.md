@@ -1,4 +1,4 @@
-# 🔓 AxarDB - JavaScript Tabanlı NoSQL Veritabanı
+﻿# 🔓 AxarDB - JavaScript Tabanlı NoSQL Veritabanı
 
 ![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
@@ -92,7 +92,7 @@ dotnet run --project SDKs/cli/AxarDB.Cli -- --host http://localhost:5000 --user 
 
 ---
 
-## � Dahili Fonksiyonlar
+## ⚙️ Dahili Fonksiyonlar
 
 AxarDB, script ve view içerisinde kullanabileceğiniz güçlü yardımcı fonksiyonlar sunar.
 
@@ -223,7 +223,7 @@ AxarDB, veritabanının anlık durumunu izleyebilmeniz için dahili bir izleme p
 
 
 
-## �📦 İstemci SDK'ları
+## 📦 İstemci SDK'ları
 
 C# ve Python için tam tip destekli (strongly typed) ve asenkron (async) çalışan resmi SDK'lar mevcuttur.
 

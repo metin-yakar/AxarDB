@@ -157,9 +157,12 @@ namespace AxarDB.Definitions
                  {
                      var ids = idx.Search(analysis.Value.Val!, analysis.Value.Op);
                      
-                     return ids.AsParallel().WithCancellation(cancellationToken)
+                     var docs = ids.AsParallel().WithCancellation(cancellationToken)
                                .Select(id => GetDocument(id))
-                               .Where(doc => doc != null && predicate(doc))!;
+                               .Where(doc => doc != null)
+                               .Select(doc => doc!)
+                               .ToList();
+                     return docs.Where(predicate);
                  }
              }
 
@@ -167,9 +170,12 @@ namespace AxarDB.Definitions
              string[] allIds;
              lock (_indexLock) { allIds = _primaryIndex.ToArray(); }
 
-             return allIds.AsParallel().WithCancellation(cancellationToken)
+             var allDocs = allIds.AsParallel().WithCancellation(cancellationToken)
                           .Select(id => GetDocument(id))
-                          .Where(doc => doc != null && predicate(doc))!;
+                          .Where(doc => doc != null)
+                          .Select(doc => doc!)
+                          .ToList();
+             return allDocs.Where(predicate);
         }
 
         public void CreateIndex(string propertyName, string type)
