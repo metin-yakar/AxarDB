@@ -455,6 +455,9 @@
                 <a class="nav-link" data-target="queue">
                     <i data-lucide="clock"></i> Queue Operations
                 </a>
+                <a class="nav-link" data-target="system-config">
+                    <i data-lucide="settings"></i> System Configuration
+                </a>
                 <a class="nav-link" data-target="monitoring">
                     <i data-lucide="activity"></i> Monitoring
                 </a>
@@ -500,6 +503,9 @@
                 <div class="info-box" style="border-left-color: var(--accent); background: rgba(99, 102, 241, 0.05);">
                     <strong>🚀 Latest Updates:</strong>
                     <ul>
+                        <li><strong>System Configuration (sysconfig):</strong> Server-wide settings (<code>memoryLimitPercentage</code>, <code>bulkStoreMaxCacheBytes</code>, <code>maxRecursionDepth</code>, <code>queryTimeoutMinutes</code>, <code>queuePollIntervalSeconds</code>) can now be managed via the <code>sysconfig</code> collection.</li>
+                        <li><strong>Sys-prefix Protection:</strong> Custom collections with names starting with <code>sys</code> are now blocked to prevent conflicts with internal system infrastructure.</li>
+                        <li><strong>Bulk Query Memory Optimization:</strong> Bulk (JSONL) queries now use chunked processing with temporary lightweight indexes, keeping memory bounded by <code>bulkStoreMaxCacheBytes</code> even for very large files.</li>
                         <li><strong>Multi-Language UTF-8 HTTP Encoding:</strong> Full UTF-8 support for query string parameters, resolving encoding issues for non-Latin alphabets (Turkish, Arabic, Russian, Chinese, Japanese, etc.).</li>
                         <li><strong>Lazy Collection Directory Creation:</strong> Collection folders are generated only when the first write operation (<code>insert</code>) occurs, preventing clutter from read-only checks on non-existent collections.</li>
                     </ul>
@@ -656,7 +662,8 @@ memory.sessions.<span class="function">findall</span>(s => s.userId == <span cla
                 <h3>Key Features</h3>
                 <ul>
                     <li><strong>High-Performance JSONL:</strong> Optimized for bulk loading and static lookups without server-level locks.</li>
-                    <li><strong>LRU Memory Cache:</strong> Automatically caches records in memory up to a 50 MB budget, evicting the least recently used collections.</li>
+                    <li><strong>LRU Memory Cache:</strong> Automatically caches records in memory up to a configurable byte budget (default: 50 MB), evicting the least recently used collections.</li>
+                    <li><strong>Memory-Bounded Chunked Queries:</strong> Filtered queries on large Bulk collections use chunked processing with temporary lightweight indexes. Data is read line-by-line, keeping memory usage bounded by <code>bulkStoreMaxCacheBytes</code>.</li>
                     <li><strong>Auto-Reload & Watcher:</strong> Monitor changes to files on disk via a FileSystemWatcher to automatically refresh memory cache. Can also be reloaded manually.</li>
                 </ul>
 
@@ -891,6 +898,117 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
                     <li><code>successResult</code>: Execution result on success (object, <code>null</code> on failure)</li>
                     <li><code>errorMessage</code>: Error message on failure (string, <code>null</code> on success)</li>
                 </ul>
+            </section>
+
+            <!-- System Configuration -->
+            <section class="section" id="system-config">
+                <h2>System Configuration (sysconfig)</h2>
+                <p>AxarDB uses the <code>sysconfig</code> system collection to manage server-wide configuration settings. Changes to this collection are stored on disk and applied the next time the server restarts.</p>
+
+                <h3>Available Configuration Fields</h3>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>memoryLimitPercentage</code></td>
+                            <td>double</td>
+                            <td>40</td>
+                            <td>Maximum percentage of total system RAM used for document caching (0-100)</td>
+                        </tr>
+                        <tr>
+                            <td><code>bulkStoreMaxCacheBytes</code></td>
+                            <td>long</td>
+                            <td>52428800</td>
+                            <td>Maximum bytes for Bulk Store LRU memory cache (default: 50 MB)</td>
+                        </tr>
+                        <tr>
+                            <td><code>maxRecursionDepth</code></td>
+                            <td>int</td>
+                            <td>10</td>
+                            <td>Maximum recursion depth for query operations to prevent infinite loops</td>
+                        </tr>
+                        <tr>
+                            <td><code>queryTimeoutMinutes</code></td>
+                            <td>int</td>
+                            <td>5</td>
+                            <td>Maximum execution time (in minutes) before a query is automatically cancelled</td>
+                        </tr>
+                        <tr>
+                            <td><code>queuePollIntervalSeconds</code></td>
+                            <td>double</td>
+                            <td>30</td>
+                            <td>Interval (in seconds) for the background queue processor polling cycle</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Updating Configuration</h3>
+                <pre><code><span class="comment">// Reading current config</span>
+<span class="keyword">var</span> config = db.sysconfig.<span class="function">findall</span>().<span class="function">first</span>();
+console.<span class="function">log</span>(<span class="string">"Memory limit: "</span> + config.memoryLimitPercentage + <span class="string">"%"</span>);
+
+<span class="comment">// Updating settings (requires server restart to take effect)</span>
+db.sysconfig.<span class="function">findall</span>().<span class="function">update</span>({
+    memoryLimitPercentage: <span class="number">60</span>,
+    queryTimeoutMinutes: <span class="number">10</span>,
+    queuePollIntervalSeconds: <span class="number">15</span>
+});</code></pre>
+
+                <div class="warning-box">
+                    <strong>⚠️ Restart Required:</strong> <code>sysconfig</code> koleksiyonundaki sistem ayarları değişiklikleri, sunucu yeniden başlatıldığında aktif olacaktır. The management console displays a contextual banner only when you are actively working on the <code>sysconfig</code> collection.
+                </div>
+
+                <h3>System Collections Overview</h3>
+                <p>AxarDB includes four system collections, each serving a critical infrastructure role:</p>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Collection</th>
+                            <th>Purpose</th>
+                            <th>Insert Restriction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>sysusers</code></td>
+                            <td>User accounts and credentials for Basic Authentication</td>
+                            <td>Direct insert restricted</td>
+                        </tr>
+                        <tr>
+                            <td><code>sysvaults</code></td>
+                            <td>Secure key-value store for API keys and secrets</td>
+                            <td>Must use <code>addVault()</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>sysconfig</code></td>
+                            <td>Server-wide configuration parameters</td>
+                            <td>Direct insert blocked</td>
+                        </tr>
+                        <tr>
+                            <td><code>sysqueue</code></td>
+                            <td>Background task queue for deferred execution</td>
+                            <td>Must use <code>queue()</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Reserved <code>sys</code> Prefix</h3>
+                <p>Any collection name starting with <code>sys</code> is reserved for internal system use. Attempting to create, access, or insert into a custom collection with a <code>sys</code> prefix (e.g., <code>db.sysnew</code>) will throw an <code>InvalidOperationException</code>. This protection is enforced at multiple layers:</p>
+                <ul>
+                    <li><strong>Bridge Layer:</strong> <code>db.sysnew</code> → blocked by <code>AxarDBBridge.TryGetMember</code></li>
+                    <li><strong>Engine Layer:</strong> <code>AxarDB("sysnew")</code> → blocked by <code>DatabaseEngine</code> constructor binding</li>
+                    <li><strong>Collection Layer:</strong> <code>db.sysnew.insert(...)</code> → blocked by <code>Collection.Insert</code></li>
+                </ul>
+                <div class="info-box">
+                    <strong>💡 Only Pre-defined System Collections:</strong> <code>sysusers</code>, <code>sysqueue</code>, <code>sysvaults</code>, and <code>sysconfig</code> are the only allowed <code>sys</code>-prefixed collection names.
+                </div>
             </section>
 
             <!-- Monitoring Dashboard -->

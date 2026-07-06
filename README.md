@@ -24,6 +24,8 @@
 |:---|:---|
 | **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active).toList()`. Supports new extensions like `count()` and `distinct()` on both ResultSets and Native Arrays. |
 | **⚡ High Performance** | In-memory storage with `ConcurrentDictionary`, lazy evaluation using PLINQ, and strictly-capped dynamic 40% Memory Cache expiration. |
+| **🧠 Memory Store** | `memory.sessions.insert({...})` with TTL support for sessions, caches, and short-lived data. |
+| **💾 Bulk Store** | High-performance JSONL static storage with LRU caching and memory-bounded chunked queries for large files. |
 | **📄 CSV Engine** | Bidirectional robust CSV support. Convert text to Collections or Collections to CSV via `csv(input)`. |
 | **🔍 Smart Indexing** | Create ASC/DESC indexes on any field. Supports optimized range queries. |
 | **🔗 Joins** | Perform complex joins with easy aliases: `db.join(alias(u, "user"), alias(o, "order"))`. |
@@ -34,7 +36,7 @@
 | **⚡ Triggers** | Automatic event handlers on data changes with `@target` filtering. |
 | **🔐 Vaults** | Secure key-value storage for API keys using `$KEY` syntax. Direct insertion to `db.sysvaults` is restricted; use `addVault()`. |
 | **🌐 Webhooks & HTTP** | HTTP POST with `webhook()` and HTTP GET with `httpGet()`, both with custom headers. |
-| **🛡️ Secure** | Basic Authentication (supports SHA256 hashing) & **Injection Prevention** via `@placeholder` replacement. |
+| **🛡️ Secure** | Basic Authentication (supports SHA256 hashing), **Injection Prevention** via `@placeholder` replacement, and **Sys-prefix Protection** blocking custom `sys*` collection names. |
 | **🐳 Docker Ready** | Runs anywhere with a single `docker run` command. |
 | **🖥️ Management Console** | Web UI with Monaco Editor, **Tab System**, **Query History**, **Smart View Click** with `@param` detection, Resizable Grid, and Dark Mode. |
 | **📚 Documentation** | Built-in docs page (`/docs`) with sidebar navigation and search. |
@@ -89,6 +91,10 @@ AxarDB configuration settings are stored inside the database in a dedicated syst
 
 To modify settings, authorized users can update the document in the `sysconfig` collection. The new settings will take effect after restarting the database application. Direct insert operations on the `sysconfig` collection are not allowed.
 
+### System Collection Protection
+
+All collection names starting with `sys` are **reserved** for internal infrastructure. Only four pre-defined system collections are allowed: `sysusers`, `sysqueue`, `sysvaults`, and `sysconfig`. Attempting to create or access any other `sys`-prefixed collection (e.g., `db.sysnew`) will throw an `InvalidOperationException`. This protection is enforced at multiple layers (Bridge, Engine, and Collection).
+
 ### Available Settings
 
 | Property | Type | Default Value | Description |
@@ -103,6 +109,34 @@ To modify settings, authorized users can update the document in the `sysconfig` 
 To change settings via query console (requires server restart to apply):
 ```javascript
 db.sysconfig.update(x => true, { queryTimeoutMinutes: 15 });
+```
+
+---
+
+## 💾 Bulk Store (JSONL for Large Static Datasets)
+
+The `bulk` object manages high-speed read/write on static datasets stored as JSON Lines (JSONL) files in the `Bulk/` folder. Designed for zip codes, countries, log exports, and other large but stable data.
+
+**Key Features:**
+- **LRU Memory Cache:** Caches records up to the configurable `bulkStoreMaxCacheBytes` limit (default: 50 MB), evicting least recently used collections.
+- **Memory-Bounded Chunked Queries:** Filtered queries process large JSONL files line-by-line in chunks. A temporary lightweight index is built per chunk using only the predicate-referenced fields, keeping memory safely bounded.
+- **Auto-Reload:** FileSystemWatcher detects disk changes and refreshes the cache automatically.
+
+```javascript
+// Bulk insert an array of objects
+bulk.countries.insert([
+  { name: "Turkey", code: "TR", population: 85000000 },
+  { name: "Germany", code: "DE", population: 83000000 }
+]);
+
+// Find a record (uses LRU Cache)
+var tr = bulk.countries.find(c => c.code == "TR");
+
+// Query with filtering
+var large = bulk.countries.findall(c => c.population > 1000000).toList();
+
+// Manually reload cache
+bulk.reload("countries");
 ```
 
 ---

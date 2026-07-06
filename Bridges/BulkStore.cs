@@ -249,29 +249,21 @@ namespace AxarDB.Bridges
         {
             var matchedDocs = new List<Dictionary<string, object>>();
 
-            // 1. Build temporary lightweight index in memory
-            var tempIndex = new List<(int index, Dictionary<string, object> fields)>();
             for (int i = 0; i < lines.Count; i++)
             {
-                var lightDoc = ParseSelectedProperties(lines[i], filterFields);
-                tempIndex.Add((i, lightDoc));
-            }
-
-            // 2. Perform prediction (filtering) on the temporary index
-            foreach (var entry in tempIndex)
-            {
-                if (predicate(entry.fields))
+                Dictionary<string, object>? fullDoc;
+                try
                 {
-                    // 3. Match found: parse full document
-                    try
-                    {
-                        var fullDoc = JsonSerializer.Deserialize<Dictionary<string, object>>(lines[entry.index], _jsonOptions);
-                        if (fullDoc != null)
-                        {
-                            matchedDocs.Add(fullDoc);
-                        }
-                    }
-                    catch {}
+                    fullDoc = JsonSerializer.Deserialize<Dictionary<string, object>>(lines[i], _jsonOptions);
+                }
+                catch { continue; }
+
+                if (fullDoc == null) continue;
+
+                // Run the predicate against the full document
+                if (predicate(fullDoc))
+                {
+                    matchedDocs.Add(fullDoc);
                 }
             }
 
