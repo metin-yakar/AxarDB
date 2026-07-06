@@ -27,6 +27,7 @@ namespace AxarDB.Bridges
                 Directory.CreateDirectory(_bulkPath);
 
             _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            _jsonOptions.Converters.Add(new AxarDB.Storage.CustomObjectConverter());
             _maxCacheBytes = maxCacheBytes;
 
             // FileSystemWatcher for auto-reload
