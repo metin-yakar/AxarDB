@@ -231,6 +231,12 @@ var list = bulk.countries.findall().toList();
 // Belirli bir kaydı bul
 var tr = bulk.countries.find(c => c.code == "TR");
 
+// Büyük/küçük harf duyarsız alt string araması (AxarDB özel String.prototype.contains)
+var esenYerler = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
+
+// Büyük/küçük harf duyarsız ön ek kontrolü (AxarDB özel String.prototype.startsWith)
+var istanbulKodlari = bulk.postalcodes.findall(x => x.placeName.startsWith("istan")).toList();
+
 // Önbelleği manuel yenile
 bulk.reload("countries");
 ```
