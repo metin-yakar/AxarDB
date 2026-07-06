@@ -796,6 +796,9 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
 
 <span class="comment">// Use as $Key in queries</span>
 <span class="function">webhook</span>($SLACK_WEBHOOK, { text: <span class="string">"Notification!"</span> }, {});</code></pre>
+                <div class="warning-box">
+                    <strong>🔒 Security Restriction:</strong> Direct insertion into the <code>sysvaults</code> collection via <code>db.sysvaults.insert()</code> is disabled to prevent unauthorized configuration changes. You must use the <code>addVault(key, value)</code> function.
+                </div>
             </section>
 
             <!-- Webhooks -->
@@ -870,6 +873,24 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
                 <div class="info-box">
                     <strong>💡 Priority:</strong> Higher priority jobs run first. Default is 0.
                 </div>
+                <div class="warning-box">
+                    <strong>🔒 Security Restriction:</strong> Direct insertion into the <code>sysqueue</code> collection via <code>db.sysqueue.insert()</code> is disabled. You must use the <code>queue()</code> function to schedule background tasks.
+                </div>
+                <h3>Queue Schema (<code>db.sysqueue</code>)</h3>
+                <p>All background tasks are recorded in the <code>sysqueue</code> collection with the following structure:</p>
+                <ul>
+                    <li><code>_id</code>: Unique task ID (string)</li>
+                    <li><code>queryTemplate</code>: Query script template to execute (string)</li>
+                    <li><code>parameters</code>: Object containing values for template parameters (object)</li>
+                    <li><code>options</code>: Execution settings (object)</li>
+                    <li><code>createdAt</code>: Timestamp when the task was queued (datetime)</li>
+                    <li><code>executionTime</code>: Timestamp when task execution started (datetime, <code>null</code> if pending)</li>
+                    <li><code>completedAt</code>: Timestamp when task execution fully finished (datetime, <code>null</code> if pending/running)</li>
+                    <li><code>priority</code>: Task priority level (integer)</li>
+                    <li><code>duration</code>: Task execution time in milliseconds (long)</li>
+                    <li><code>successResult</code>: Execution result on success (object, <code>null</code> on failure)</li>
+                    <li><code>errorMessage</code>: Error message on failure (string, <code>null</code> on success)</li>
+                </ul>
             </section>
 
             <!-- Monitoring Dashboard -->
