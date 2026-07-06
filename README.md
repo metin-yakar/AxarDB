@@ -1,4 +1,4 @@
-﻿﻿![AxarDB Logo](./AxarDBLogo.png)
+﻿![AxarDB Logo](./AxarDBLogo.png)
 
 [![License: Custom](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
@@ -79,6 +79,28 @@ services:
     build: .
     ports: ["5000:5000"]
     volumes: ["./data:/app/data"]
+```
+
+---
+
+## ⚙️ Configuration
+
+AxarDB supports rich database configuration settings that can be customized via `appsettings.json` or overridden directly at startup via command-line arguments.
+
+### Available Settings
+
+| Parameter | Configuration Key | Default Value | Description |
+| :--- | :--- | :--- | :--- |
+| `--memory-limit` | `DatabaseSettings:MemoryLimitPercentage` | `0.4` | Caps database memory usage (e.g. `0.3` for 30%). |
+| `--bulk-cache-limit` | `DatabaseSettings:BulkStoreMaxCacheBytes` | `52428800` (50MB) | Maximum size of bulk cache in bytes. |
+| `--max-recursion` | `DatabaseSettings:MaxRecursionDepth` | `100` | Limits recursion depth of script executions. |
+| `--query-timeout` | `DatabaseSettings:QueryTimeoutMinutes` | `10` | Caps runtime query execution time in minutes. |
+| `--queue-poll-seconds` | `DatabaseSettings:QueuePollIntervalSeconds` | `1.0` | Controls polling frequency of the background queue. |
+
+### Configuration Example
+To start the database server with a 30% memory cap and a 5-minute query timeout:
+```bash
+dotnet run -- --memory-limit 0.3 --query-timeout 5
 ```
 
 ---
@@ -186,7 +208,6 @@ Experience **since 2011** in C# and software architecture. Metin specializes in 
 
 We are looking for contributors to help build the future of AxarDB!
 **Areas we need help with:**
-- [ ] Advanced Configuration System
 - [ ] Real-time Synchronization
 - [ ] Cluster Monitoring Dashboard
 - [ ] Client SDKs (Node.js, Python, Go)
