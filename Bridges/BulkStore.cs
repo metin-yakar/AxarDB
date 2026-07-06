@@ -204,6 +204,119 @@ namespace AxarDB.Bridges
             }
         }
 
+        public IEnumerable<Dictionary<string, object>> QueryChunks(string name, HashSet<string> filterFields, Func<Dictionary<string, object>, bool> predicate)
+        {
+            var path = GetFilePath(name);
+            if (!File.Exists(path)) yield break;
+
+            var chunkLines = new List<string>();
+            long currentChunkBytes = 0;
+
+            // Read the file line-by-line
+            foreach (var line in File.ReadLines(path, Encoding.UTF8))
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                chunkLines.Add(line);
+                currentChunkBytes += line.Length * 2;
+
+                // When chunk reaches the cache limit, we process it
+                if (currentChunkBytes >= _maxCacheBytes)
+                {
+                    foreach (var doc in ProcessChunk(chunkLines, filterFields, predicate))
+                    {
+                        yield return doc;
+                    }
+                    chunkLines.Clear();
+                    currentChunkBytes = 0;
+                    
+                    // Force garbage collection of the chunk
+                    GC.Collect(0, GCCollectionMode.Optimized);
+                }
+            }
+
+            // Process the remaining lines in the last chunk
+            if (chunkLines.Count > 0)
+            {
+                foreach (var doc in ProcessChunk(chunkLines, filterFields, predicate))
+                {
+                    yield return doc;
+                }
+                chunkLines.Clear();
+            }
+        }
+
+        private IEnumerable<Dictionary<string, object>> ProcessChunk(List<string> lines, HashSet<string> filterFields, Func<Dictionary<string, object>, bool> predicate)
+        {
+            var matchedDocs = new List<Dictionary<string, object>>();
+
+            // 1. Build temporary lightweight index in memory
+            var tempIndex = new List<(int index, Dictionary<string, object> fields)>();
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var lightDoc = ParseSelectedProperties(lines[i], filterFields);
+                tempIndex.Add((i, lightDoc));
+            }
+
+            // 2. Perform prediction (filtering) on the temporary index
+            foreach (var entry in tempIndex)
+            {
+                if (predicate(entry.fields))
+                {
+                    // 3. Match found: parse full document
+                    try
+                    {
+                        var fullDoc = JsonSerializer.Deserialize<Dictionary<string, object>>(lines[entry.index], _jsonOptions);
+                        if (fullDoc != null)
+                        {
+                            matchedDocs.Add(fullDoc);
+                        }
+                    }
+                    catch {}
+                }
+            }
+
+            return matchedDocs;
+        }
+
+        private static Dictionary<string, object> ParseSelectedProperties(string json, IEnumerable<string> properties)
+        {
+            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                foreach (var prop in properties)
+                {
+                    if (root.TryGetProperty(prop, out var val))
+                    {
+                        dict[prop] = GetJsonValue(val);
+                    }
+                }
+            }
+            catch {}
+            return dict;
+        }
+
+        private static object GetJsonValue(JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.String:
+                    return element.GetString() ?? "";
+                case JsonValueKind.Number:
+                    if (element.TryGetInt64(out long l)) return l;
+                    return element.GetDouble();
+                case JsonValueKind.True:
+                    return true;
+                case JsonValueKind.False:
+                    return false;
+                case JsonValueKind.Null:
+                    return null!;
+                default:
+                    return element.GetRawText(); // fallback for objects/arrays
+            }
+        }
+
         private string GetFilePath(string name)
             => Path.Combine(_bulkPath, $"{name}.jsonl");
 
