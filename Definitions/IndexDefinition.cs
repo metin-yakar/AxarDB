@@ -102,7 +102,7 @@ namespace AxarDB.Definitions
              // Serialize: Num index keys must be strings for JSON
              var numDict = NumericIndex.ToDictionary(k => k.Key.ToString(System.Globalization.CultureInfo.InvariantCulture), v => v.Value);
              var data = new { Prop = PropertyName, Type = Type, Txt = TextIndex, Num = numDict };
-             File.WriteAllText(path, JsonSerializer.Serialize(data));
+             File.WriteAllText(path, JsonSerializer.Serialize(data), System.Text.Encoding.UTF8);
         }
 
         public static IndexDefinition? Load(string path)
@@ -110,7 +110,7 @@ namespace AxarDB.Definitions
              if(!File.Exists(path)) return null;
              try 
              {
-                 var json = File.ReadAllText(path);
+                 var json = File.ReadAllText(path, System.Text.Encoding.UTF8);
                  // Deserialize to dynamic or element to handle manual parsing
                  using var doc = JsonDocument.Parse(json);
                  var root = doc.RootElement;

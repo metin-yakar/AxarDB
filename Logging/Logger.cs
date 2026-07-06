@@ -32,7 +32,7 @@ namespace AxarDB.Logging
                 
                 lock (_lock)
                 {
-                    File.AppendAllLines(filePath, new[] { logLine });
+                    File.AppendAllLines(filePath, new[] { logLine }, System.Text.Encoding.UTF8);
                 }
             }
             catch
@@ -54,7 +54,7 @@ namespace AxarDB.Logging
                 
                 lock (_lock)
                 {
-                    File.AppendAllLines(filePath, new[] { logLine });
+                    File.AppendAllLines(filePath, new[] { logLine }, System.Text.Encoding.UTF8);
                 }
             }
             catch
@@ -76,7 +76,7 @@ namespace AxarDB.Logging
                 
                 lock (_lock)
                 {
-                    File.AppendAllLines(filePath, new[] { logLine });
+                    File.AppendAllLines(filePath, new[] { logLine }, System.Text.Encoding.UTF8);
                 }
 
                 // Still write to console if in Debug build or environment, 

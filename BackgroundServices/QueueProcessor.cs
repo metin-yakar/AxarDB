@@ -8,6 +8,7 @@ using System.IO;
 using AxarDB;
 using AxarDB.Core;
 using AxarDB.Definitions;
+using System.Text;
 
 namespace AxarDB.BackgroundServices
 {
@@ -199,7 +200,7 @@ namespace AxarDB.BackgroundServices
                  string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "queue_logs");
                  if (!Directory.Exists(path)) Directory.CreateDirectory(path);
                  
-                 File.WriteAllText(Path.Combine(path, $"{jobId}_{DateTime.UtcNow.Ticks}.json"), json);
+                 File.WriteAllText(Path.Combine(path, $"{jobId}_{DateTime.UtcNow.Ticks}.json"), json, Encoding.UTF8);
              }
              catch (Exception ex)
              {
