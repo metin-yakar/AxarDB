@@ -51,16 +51,25 @@ namespace AxarDB.Query
                 return props;
 
             string code = predicate.ToString();
-            
-            // Match dot notation: x.prop, item.prop, doc.prop
-            var matches = Regex.Matches(code, @"\b(?:x|item|doc)\.(\w+)\b");
+
+            // Extract the actual arrow function parameter name: "x => ...", "(x) => ...", "(u, i) => ..."
+            // We only care about the first (document) parameter.
+            var paramMatch = Regex.Match(code, @"^\s*\(?(\w+)");
+            string paramName = (paramMatch.Success && paramMatch.Groups[1].Value != "function")
+                ? Regex.Escape(paramMatch.Groups[1].Value)
+                : @"(?:x|item|doc|u|s|p|o|d|e|v|n|r|t)"; // fallback to common names
+
+            // Match dot notation: param.prop
+            var dotPattern = $@"\b{paramName}\.(\w+)\b";
+            var matches = Regex.Matches(code, dotPattern);
             foreach (Match match in matches)
             {
                 props.Add(match.Groups[1].Value);
             }
 
-            // Match bracket notation: x['prop'], x["prop"]
-            var bracketMatches = Regex.Matches(code, @"\b(?:x|item|doc)\[[""'](\w+)[""']\]");
+            // Match bracket notation: param['prop'], param["prop"]
+            var bracketPattern = $@"\b{paramName}\[[""'](\w+)[""']\]";
+            var bracketMatches = Regex.Matches(code, bracketPattern);
             foreach (Match match in bracketMatches)
             {
                 props.Add(match.Groups[1].Value);

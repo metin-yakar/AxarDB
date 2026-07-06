@@ -92,7 +92,7 @@ namespace AxarDB.Bridges
                 {
                     try
                     {
-                        var result = _engine.Invoke(predicate, new object[] { new CaseInsensitiveDocumentWrapper(d) });
+                        var result = _engine.Invoke(predicate, new object[] { new DocumentWrapper(d) });
                         return result.AsBoolean();
                     }
                     catch { return false; }
@@ -113,7 +113,7 @@ namespace AxarDB.Bridges
                 {
                     try
                     {
-                        var result = _engine.Invoke(predicate, new object[] { new CaseInsensitiveDocumentWrapper(d) });
+                        var result = _engine.Invoke(predicate, new object[] { new DocumentWrapper(d) });
                         return result.AsBoolean();
                     }
                     catch { return false; }

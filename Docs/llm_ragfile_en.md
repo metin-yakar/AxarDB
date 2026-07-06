@@ -725,6 +725,12 @@ dotnet run -- --cors "http://localhost:3000,http://example.com"
 # - maxRecursionDepth        : Max script recursion depth (default: 100)
 # - queryTimeoutMinutes      : Max query timeout in minutes (default: 10)
 # - queuePollIntervalSeconds : Background queue poll interval in seconds (default: 1.0)
+#
+# Sys-Prefix Protection:
+# Collection names starting with "sys" are reserved for system use.
+# Only sysusers, sysqueue, sysvaults, and sysconfig are allowed.
+# Creating db.sysnew or similar will throw InvalidOperationException.
+# This protection is enforced at Bridge, Engine, and Collection layers.
 
 # Bootstrap Refactoring (Clean Code)
 # Program.cs is kept extremely simple. The entire application setup and configuration

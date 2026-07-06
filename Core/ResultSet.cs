@@ -67,7 +67,9 @@ namespace AxarDB.Core
                 {
                     doc[kv.Key] = kv.Value;
                 }
-                _collection.Insert(doc);
+                // bypassSystemRules=true: update reuses Insert as an upsert internally;
+                // it must bypass insert restrictions on system collections (e.g. sysconfig).
+                _collection.Insert(doc, bypassSystemRules: true);
             }
         }
 

@@ -30,12 +30,10 @@
 | **🔍 Akıllı İndeksleme** | Herhangi bir alanda ASC/DESC indeks oluşturun. |
 | **🔗 Join Desteği** | Koleksiyonlar arası güçlü join ve alias (takma ad) desteği. |
 | **📄 Sayfalama (Pagination)** | `skip(n).take(n)` zinciriyle kolayca sayfalama yapın. |
-| **🛡️ Güvenli** | Basic Auth (SHA256 hash desteği ile) ve **Injection Koruması**. |
-| **⏳ Görev Kuyruğu** | `queue("script", params, { priority: 1 })` ile arka plan görevi çalıştırma. `completedAt` zaman damgasıyla tamamlanma takibi sağlar. `db.sysqueue` koleksiyonuna doğrudan ekleme kısıtlanmıştır. |
+| **🛡️ Güvenli** | Basic Auth (SHA256 hash desteği ile), **Injection Koruması** ve `sys` ön ekli özel koleksiyon adlarını engelleyen **Sistem Koleksiyon Koruması**. |
 | **🔐 Kasa (Vaults)** | `$KEY` sözdizimi ile API anahtarları için güvenli anahtar-değer depolama. `db.sysvaults` koleksiyonuna doğrudan ekleme kısıtlanmıştır; `addVault()` kullanılmalıdır. |
-| **🐋 Docker Uyumlu** | Tek komutla çalıştırın: `docker run`. |
-| **🛠️ Araçlar** | Dahili yardımcı fonksiyonlar: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
-| **🖥️ Yönetim Paneli** | Monaco Editör, Boyutlandırılabilir Grid ve Koyu Mod içeren Web Arayüzü. |
+| **⏳ Görev Kuyruğu** | `queue("script", params, { priority: 1 })` ile arka plan görevi çalıştırma. `completedAt` zaman damgasıyla tamamlanma takibi sağlar. `db.sysqueue` koleksiyonuna doğrudan ekleme kısıtlanmıştır. |
+| **🖥️ Yönetim Paneli** | Monaco Editör, Sekme Sistemi (Tab), Sorgu Geçmişi, `@param` algılamalı Akıllı View Tıklama, Boyutlandırılabilir Grid ve Koyu Mod içeren Web Arayüzü. |
 
 ---
 
@@ -73,6 +71,10 @@ dotnet run -- -p 5001 --cors "http://localhost:3000"
 AxarDB yapılandırma ayarları, veritabanı içindeki `sysconfig` isimli özel bir sistem koleksiyonunda saklanır. İlk kurulum esnasında bu koleksiyon otomatik olarak varsayılan ayarlar ile doldurulur.
 
 Ayarları değiştirmek için yetkili bir kullanıcı `sysconfig` koleksiyonundaki belgeyi güncelleyebilir. Yeni ayarlar veritabanı sunucusu yeniden başlatıldığında aktif olacaktır. `sysconfig` koleksiyonuna doğrudan ekleme (insert) işlemi yapılmasına izin verilmez.
+
+### Sistem Koleksiyon Koruması
+
+`sys` ile başlayan tüm koleksiyon adları **rezerve edilmiştir** ve iç altyapı için kullanılır. Yalnızca dört ön tanımlı sistem koleksiyonuna izin verilir: `sysusers`, `sysqueue`, `sysvaults` ve `sysconfig`. Herhangi bir özel `sys` ön ekli koleksiyon oluşturma veya erişme girişimi (örn. `db.sysnew`) `InvalidOperationException` hatası fırlatır. Bu koruma Bridge, Engine ve Collection katmanlarında uygulanır.
 
 ### Kullanılabilir Parametreler
 
@@ -208,6 +210,11 @@ var page3 = db.users.findall().skip(20).take(10).toList();
 ## 📦 Bulk Store (JSONL Toplu Veri Deposu)
 
 `bulk` nesnesi, `Bulk/` klasörü içinde JSONL (JSON Lines) formatında tutulan verileri yönetir. Ülke listeleri, posta kodları gibi büyük ama sabit veri setlerinde diski yormadan yüksek hızlı sorgulama yapılması için tasarlanmıştır.
+
+**Temel Özellikler:**
+- **LRU Bellek Önbelleği:** Kayıtları `bulkStoreMaxCacheBytes` limitine kadar önbellekte tutar (varsayılan: 50 MB), en az kullanılan koleksiyonları otomatik temizler.
+- **Bellek Sınırlı Parçalı Sorgulama:** Büyük dosyalarda filtreleme sorguları satır satır işlenir. Her parça için yalnızca predicate'te referans verilen alanlardan geçici hafif indeks oluşturulur, bellek kullanımı `bulkStoreMaxCacheBytes` ile sınırlı tutulur.
+- **Otomatik Yenileme:** FileSystemWatcher disk değişikliklerini algılar ve önbelleği otomatik yeniler.
 
 > `bulk` nesnesi `db` ve `memory` gibi doğrudan (top-level) kullanılır.
 
