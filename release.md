@@ -1,27 +1,25 @@
-# AxarDB Release Notes — System Collection Security & Grouping
+# AxarDB Release Notes — Case-Insensitivity, StartsWith & Turkish Character Normalization
 
-This release introduces grouping of system collections in the management console UI and enforces strict schema structure and type validation on the backend to prevent unauthorized or accidental modifications to system collections.
+This release resolves character encoding and casing issues with Turkish characters in query execution and parameters, and introduces case-insensitive `contains` and `startsWith` methods at both string and collection levels across all storage backends (`db`, `memory`, and `bulk`).
 
 ---
 
 ## 🌟 New Features & Improvements
 
-### 1. Dedicated System Collections Group in Management Console
-- System collections (collections starting with `sys`, e.g., `sysusers`, `sysvaults`, `sysqueue`) are now displayed under a dedicated **SYSTEM COLLECTIONS** header in the sidebar.
-- Regular database collections remain under the **DATABASE COLLECTIONS** header, separating core application tables from system configuration tables.
-- System collections retain their styling with the accent color and shield icons.
+### 1. Turkish Character Normalization & Casing Support
+- **Jint JavaScript Engine Fix**: Overrode `String.prototype.toLowerCase` globally within Jint to correctly normalize Turkish characters (such as mapping `İ` -> `i`, `I` -> `i`, `ı` -> `i`, etc.) and eliminated Jint casing discrepancies caused by combining diacritical marks (`\u0307`).
+- **C# Wrapper Casing Alignment**: Updated `CaseInsensitiveDocumentWrapper` to use a Turkish-normalized casing mapping and made property member access case-insensitive.
 
-### 2. Strict Schema Structure Validation for System Collections
-- Schema validation has been implemented on all inserts and updates to system collections.
-- The system checks that the document keys match the expected keys of the predefined schema (or the first document's schema for dynamically created system collections).
-- Any attempt to add new fields or remove existing ones will be blocked with an `InvalidOperationException`.
+### 2. Case-Insensitive `contains` and `startsWith` APIs
+- **String Prototype Methods**: Extended `String.prototype` inside the Jint environment with case-insensitive and Turkish-normalized versions of `contains` (aliased to includes) and `startsWith` for queries.
+- **Collection-Level APIs**: Added case-insensitive `contains` and `startsWith` methods to `db.collection`, `memory.collection`, and `bulk.collection` to allow direct case-insensitive predicate filtering.
 
-### 3. Strict Type Compatibility Check
-- Standard system collections now enforce type checking on their fixed fields (e.g. `username`, `password`, `key`, `priority`, etc.).
-- Dates (both C# `DateTime` and JSON strings) and numeric types (e.g. `double`, `int`, `long`) are verified for compatibility.
-- Flexible fields (e.g. `value` in `sysvaults`, `parameters`, `options`, `successResult` in `sysqueue`) remain fully flexible to store dynamic payloads.
+### 3. Jint Thread Safety & Query Optimization
+- Addressed Jint engine corruption exceptions (such as `ReferenceError: x is not defined`) during parallel execution on the database level.
+- Streamlined `Collection.FindAll` to load and deserialize documents in parallel while executing the Jint predicate evaluator sequentially on the main query thread.
 
-### 4. Deletion Protection
-- Direct deletion of system collections via the backend is blocked.
-- Any calls to delete a collection starting with `sys` will throw an error, preventing the loss of vital system structure and data.
+### 4. JSONL/Bulk Integration & JsonElement Support
+- Enabled `CaseInsensitiveDocumentWrapper` to inherit from `DocumentWrapper`, reusing the robust `Unwrap` logic to handle `JsonElement` values properly in JSONL-based Bulk collections.
 
+### 5. UTF-8 HTTP Request Body Reading
+- Configured the `/query` HTTP POST endpoint to read incoming HTTP request bodies explicitly using `Encoding.UTF8`, preventing encoding corruption from clients.
