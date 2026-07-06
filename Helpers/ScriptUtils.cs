@@ -91,7 +91,7 @@ namespace AxarDB.Helpers
                 var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
                 using var ms = new MemoryStream();
                 using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-                using (var sw = new StreamWriter(cs))
+                using (var sw = new StreamWriter(cs, Encoding.UTF8))
                 {
                     sw.Write(text);
                 }
@@ -117,7 +117,7 @@ namespace AxarDB.Helpers
                 var decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
                 using var ms = new MemoryStream(Convert.FromBase64String(encryptedBase64));
                 using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
-                using var sr = new StreamReader(cs);
+                using var sr = new StreamReader(cs, Encoding.UTF8);
                 return sr.ReadToEnd();
             } 
             catch { return ""; }

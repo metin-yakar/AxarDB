@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using AxarDB.Wrappers;
 using AxarDB.Core;
+using System.Text;
 
 namespace AxarDB.Bridges
 {
@@ -47,7 +48,7 @@ namespace AxarDB.Bridges
                 foreach (var file in files)
                 {
                     _cancellationToken.ThrowIfCancellationRequested();
-                    var lines = File.ReadAllLines(file);
+                    var lines = File.ReadAllLines(file, Encoding.UTF8);
                     foreach (var line in lines)
                     {
                         if (string.IsNullOrWhiteSpace(line)) continue;
