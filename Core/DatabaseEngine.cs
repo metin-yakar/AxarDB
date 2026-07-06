@@ -408,18 +408,21 @@ namespace AxarDB.Core
             // OR we accept that orphan cache entries might exist until they expire.
         }
 
-        public DatabaseEngine(string? basePath = null)
+        public DatabaseSettings Settings { get; }
+
+        public DatabaseEngine(string? basePath = null, DatabaseSettings? settings = null)
         {
+            Settings = settings ?? new DatabaseSettings();
             _basePath = basePath ?? AppDomain.CurrentDomain.BaseDirectory;
             if (!Directory.Exists(_basePath)) Directory.CreateDirectory(_basePath);
 
             _storage = new AxarDB.Storage.DiskStorage(Path.Combine(_basePath, "Data"));
-            _bulkStore = new AxarDB.Bridges.BulkStore(_basePath);
+            _bulkStore = new AxarDB.Bridges.BulkStore(_basePath, Settings.BulkStoreMaxCacheBytes);
             
-            // Dynamic Memory Limit: 40% of Total Available Memory for Cache
+            // Dynamic Memory Limit
             var gcInfo = GC.GetGCMemoryInfo();
             long totalBytes = gcInfo.TotalAvailableMemoryBytes;
-            long limit = (long)(totalBytes * 0.4);
+            long limit = (long)(totalBytes * Settings.MemoryLimitPercentage);
 
             var cacheOptions = new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions
             {
@@ -427,6 +430,15 @@ namespace AxarDB.Core
                 CompactionPercentage = 0.2
             };
             _sharedCache = new Microsoft.Extensions.Caching.Memory.MemoryCache(cacheOptions);
+
+            Console.WriteLine($"[AxarDB] Database settings loaded:");
+            Console.WriteLine($"  - Cache Memory Limit Percentage: {Settings.MemoryLimitPercentage * 100}% (Size limit: {limit / 1024 / 1024} MB)");
+            Console.WriteLine($"  - Bulk Store Max Cache Bytes: {Settings.BulkStoreMaxCacheBytes / 1024 / 1024} MB");
+            Console.WriteLine($"  - Max Recursion Depth: {Settings.MaxRecursionDepth}");
+            Console.WriteLine($"  - Query Timeout Minutes: {Settings.QueryTimeoutMinutes} min");
+            Console.WriteLine($"  - Queue Poll Interval: {Settings.QueuePollIntervalSeconds} sec");
+
+            AxarDB.Logging.Logger.LogDebug($"[AxarDB] Settings: MemoryLimitPercentage={Settings.MemoryLimitPercentage}, BulkStoreMaxCacheBytes={Settings.BulkStoreMaxCacheBytes}, MaxRecursionDepth={Settings.MaxRecursionDepth}, QueryTimeoutMinutes={Settings.QueryTimeoutMinutes}, QueuePollIntervalSeconds={Settings.QueuePollIntervalSeconds}");
 
             // Create default system collection
             GetCollection("sysusers");
@@ -534,8 +546,8 @@ namespace AxarDB.Core
             var engine = new Engine(options => {
                  options.AllowClr();
                  options.CancellationToken(cancellationToken);
-                 options.LimitRecursion(100);
-                 options.TimeoutInterval(TimeSpan.FromMinutes(10)); // Default timeout
+                 options.LimitRecursion(Settings.MaxRecursionDepth);
+                 options.TimeoutInterval(TimeSpan.FromMinutes(Settings.QueryTimeoutMinutes));
             });
 
             // Expose console.log for CLI scripts and debugging
@@ -772,8 +784,8 @@ namespace AxarDB.Core
                 var engine = new Engine(options => {
                      options.AllowClr();
                      options.CancellationToken(cancellationToken);
-                     options.LimitRecursion(100);
-                     options.TimeoutInterval(TimeSpan.FromMinutes(10));
+                     options.LimitRecursion(Settings.MaxRecursionDepth);
+                     options.TimeoutInterval(TimeSpan.FromMinutes(Settings.QueryTimeoutMinutes));
                 });
                 
                 // Bridges
