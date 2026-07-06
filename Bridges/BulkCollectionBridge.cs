@@ -36,10 +36,11 @@ namespace AxarDB.Bridges
         /// <summary>Returns a BulkResultSet of all documents, optionally filtered.</summary>
         public BulkResultSet findall(JsValue? predicate = null)
         {
-            var all = _store.GetDocuments(_collectionName);
-
             if (predicate == null || predicate.IsNull() || predicate.IsUndefined())
+            {
+                var all = _store.GetDocuments(_collectionName);
                 return new BulkResultSet(all, _store, _collectionName);
+            }
 
             Func<Dictionary<string, object>, bool> csPredicate = (d) =>
             {
@@ -55,47 +56,73 @@ namespace AxarDB.Bridges
                 }
             };
 
-            return new BulkResultSet(all.Where(csPredicate), _store, _collectionName);
+            var filterFields = AxarDB.Query.QueryOptimizer.ExtractAccessedProperties(predicate);
+            var results = _store.QueryChunks(_collectionName, filterFields, csPredicate);
+            return new BulkResultSet(results, _store, _collectionName);
         }
 
         /// <summary>Returns the first document matching the predicate, or null.</summary>
-        public DocumentWrapper? find(Func<object, bool> predicate)
+        public DocumentWrapper? find(JsValue predicate)
         {
-            var doc = _store.GetDocuments(_collectionName)
-                .FirstOrDefault(d =>
+            Func<Dictionary<string, object>, bool> csPredicate = (d) =>
+            {
+                if (_engine == null) return true;
+                lock (_engine)
                 {
-                    if (_engine != null) lock (_engine) { try { return predicate(new DocumentWrapper(d)); } catch { return false; } }
-                    return predicate(new DocumentWrapper(d));
-                });
+                    try
+                    {
+                        var result = _engine.Invoke(predicate, new object[] { new DocumentWrapper(d) });
+                        return result.AsBoolean();
+                    }
+                    catch { return false; }
+                }
+            };
+
+            var filterFields = AxarDB.Query.QueryOptimizer.ExtractAccessedProperties(predicate);
+            var doc = _store.QueryChunks(_collectionName, filterFields, csPredicate).FirstOrDefault();
             return doc != null ? new DocumentWrapper(doc) : null;
         }
 
-        public BulkResultSet contains(Func<object, bool> predicate)
+        public BulkResultSet contains(JsValue predicate)
         {
             Func<Dictionary<string, object>, bool> safePredicate = (d) =>
             {
-                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                if (_engine == null) return true;
                 lock (_engine)
                 {
-                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                    try
+                    {
+                        var result = _engine.Invoke(predicate, new object[] { new CaseInsensitiveDocumentWrapper(d) });
+                        return result.AsBoolean();
+                    }
+                    catch { return false; }
                 }
             };
-            var all = _store.GetDocuments(_collectionName);
-            return new BulkResultSet(all.Where(safePredicate), _store, _collectionName);
+
+            var filterFields = AxarDB.Query.QueryOptimizer.ExtractAccessedProperties(predicate);
+            var results = _store.QueryChunks(_collectionName, filterFields, safePredicate);
+            return new BulkResultSet(results, _store, _collectionName);
         }
 
-        public BulkResultSet startsWith(Func<object, bool> predicate)
+        public BulkResultSet startsWith(JsValue predicate)
         {
             Func<Dictionary<string, object>, bool> safePredicate = (d) =>
             {
-                if (_engine == null) return predicate(new CaseInsensitiveDocumentWrapper(d));
+                if (_engine == null) return true;
                 lock (_engine)
                 {
-                    try { return predicate(new CaseInsensitiveDocumentWrapper(d)); } catch { return false; }
+                    try
+                    {
+                        var result = _engine.Invoke(predicate, new object[] { new CaseInsensitiveDocumentWrapper(d) });
+                        return result.AsBoolean();
+                    }
+                    catch { return false; }
                 }
             };
-            var all = _store.GetDocuments(_collectionName);
-            return new BulkResultSet(all.Where(safePredicate), _store, _collectionName);
+
+            var filterFields = AxarDB.Query.QueryOptimizer.ExtractAccessedProperties(predicate);
+            var results = _store.QueryChunks(_collectionName, filterFields, safePredicate);
+            return new BulkResultSet(results, _store, _collectionName);
         }
 
         /// <summary>Manually reload this collection from disk.</summary>

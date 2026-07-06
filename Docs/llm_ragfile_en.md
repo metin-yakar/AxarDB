@@ -32,8 +32,8 @@ db.products.insert({ name: "Laptop", price: 999.99, inStock: true });
 
 ### B. Find Data (Reading)
 
-#### `findall()` — Returns a ResultSet (NOT an array)
-> **CRITICAL RULE**: `findall()` returns a `ResultSet`, **NOT** an array. You **MUST** call `.toList()` or `.ToList()` to convert it to an array. Both casing variants work.
+#### `findall()` — Returns a ResultSet (fully chainable and iterable)
+> **NOTE**: `findall()` returns a `ResultSet`, which represents the query result. While it is fully chainable and can be iterated directly in JS loops, you can call `.toList()` or `.ToList()` to convert it to a standard JavaScript array. Both casing variants work.
 
 ```javascript
 // ✅ CORRECT — Get all users as array
@@ -45,9 +45,10 @@ var adults = db.users.findall(u => u.age > 18).toList();
 // ✅ CORRECT — Case variants both work
 var items = db.orders.findall().ToList();
 
-// ❌ WRONG — Returns ResultSet, not array!
-var broken = db.users.findall();
-// broken is NOT iterable as an array
+// ✅ VALID — Returns ResultSet
+var resultSet = db.users.findall();
+// resultSet supports chaining (.take(5), .skip(5), .select(x => x.name), .delete(), .update())
+// and is fully iterable in JS (e.g. for (var x of resultSet))
 ```
 
 #### `find()` — Returns one item (no `.toList()` needed)
@@ -712,13 +713,18 @@ res = client.call_view("MyView", {"minAge": 18})
 dotnet run -- --cors "http://localhost:3000,http://example.com"
 
 # Configuration Parameters
-# You can customize limits and database behaviour via command-line switches or in appsettings.json.
-# --memory-limit        : Memory limit percentage (default: 0.4)
-# --bulk-cache-limit    : Bulk store max cache in bytes (default: 52428800)
-# --max-recursion       : Max script recursion depth (default: 100)
-# --query-timeout       : Max query timeout in minutes (default: 10)
-# --queue-poll-seconds  : Background queue poll interval in seconds (default: 1.0)
-dotnet run -- --memory-limit 0.3 --query-timeout 5
+# Database configuration settings are stored in the sysconfig system collection.
+# They are initialized with default values during database creation.
+# Authorized users can update the settings via: db.sysconfig.update(x => true, { queryTimeoutMinutes: 15 });
+# Settings require a server restart to take effect.
+# Direct inserts into sysconfig are blocked.
+#
+# Properties in sysconfig:
+# - memoryLimitPercentage    : Memory limit percentage (default: 0.4)
+# - bulkStoreMaxCacheBytes   : Bulk store max cache in bytes (default: 52428800)
+# - maxRecursionDepth        : Max script recursion depth (default: 100)
+# - queryTimeoutMinutes      : Max query timeout in minutes (default: 10)
+# - queuePollIntervalSeconds : Background queue poll interval in seconds (default: 1.0)
 
 # Bootstrap Refactoring (Clean Code)
 # Program.cs is kept extremely simple. The entire application setup and configuration

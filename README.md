@@ -1,4 +1,4 @@
-﻿![AxarDB Logo](./AxarDBLogo.png)
+![AxarDB Logo](./AxarDBLogo.png)
 
 [![License: Custom](https://img.shields.io/badge/License-Metin_YAKAR-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
@@ -85,22 +85,24 @@ services:
 
 ## ⚙️ Configuration
 
-AxarDB supports rich database configuration settings that can be customized via `appsettings.json` or overridden directly at startup via command-line arguments.
+AxarDB configuration settings are stored inside the database in a dedicated system collection named `sysconfig`. During the initial database setup, this collection is populated automatically with default configuration values. 
+
+To modify settings, authorized users can update the document in the `sysconfig` collection. The new settings will take effect after restarting the database application. Direct insert operations on the `sysconfig` collection are not allowed.
 
 ### Available Settings
 
-| Parameter | Configuration Key | Default Value | Description |
+| Property | Type | Default Value | Description |
 | :--- | :--- | :--- | :--- |
-| `--memory-limit` | `DatabaseSettings:MemoryLimitPercentage` | `0.4` | Caps database memory usage (e.g. `0.3` for 30%). |
-| `--bulk-cache-limit` | `DatabaseSettings:BulkStoreMaxCacheBytes` | `52428800` (50MB) | Maximum size of bulk cache in bytes. |
-| `--max-recursion` | `DatabaseSettings:MaxRecursionDepth` | `100` | Limits recursion depth of script executions. |
-| `--query-timeout` | `DatabaseSettings:QueryTimeoutMinutes` | `10` | Caps runtime query execution time in minutes. |
-| `--queue-poll-seconds` | `DatabaseSettings:QueuePollIntervalSeconds` | `1.0` | Controls polling frequency of the background queue. |
+| `memoryLimitPercentage` | `double` | `0.4` | Caps database memory usage (e.g., `0.3` for 30%). |
+| `bulkStoreMaxCacheBytes` | `long` | `52428800` (50MB) | Maximum size of bulk cache in bytes. |
+| `maxRecursionDepth` | `int` | `100` | Limits recursion depth of script executions. |
+| `queryTimeoutMinutes` | `int` | `10` | Caps runtime query execution time in minutes. |
+| `queuePollIntervalSeconds` | `double` | `1.0` | Controls polling frequency of the background queue. |
 
 ### Configuration Example
-To start the database server with a 30% memory cap and a 5-minute query timeout:
-```bash
-dotnet run -- --memory-limit 0.3 --query-timeout 5
+To change settings via query console (requires server restart to apply):
+```javascript
+db.sysconfig.update(x => true, { queryTimeoutMinutes: 15 });
 ```
 
 ---

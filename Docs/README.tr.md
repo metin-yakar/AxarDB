@@ -70,22 +70,24 @@ dotnet run -- -p 5001 --cors "http://localhost:3000"
 
 ## ⚙️ Yapılandırma (Configuration)
 
-AxarDB, `appsettings.json` dosyası üzerinden özelleştirilebilen veya doğrudan başlatma sırasında komut satırı argümanları ile ezilebilen esnek veritabanı ayarlarına sahiptir.
+AxarDB yapılandırma ayarları, veritabanı içindeki `sysconfig` isimli özel bir sistem koleksiyonunda saklanır. İlk kurulum esnasında bu koleksiyon otomatik olarak varsayılan ayarlar ile doldurulur.
+
+Ayarları değiştirmek için yetkili bir kullanıcı `sysconfig` koleksiyonundaki belgeyi güncelleyebilir. Yeni ayarlar veritabanı sunucusu yeniden başlatıldığında aktif olacaktır. `sysconfig` koleksiyonuna doğrudan ekleme (insert) işlemi yapılmasına izin verilmez.
 
 ### Kullanılabilir Parametreler
 
-| Parametre | Konfigürasyon Anahtarı | Varsayılan Değer | Açıklama |
+| Özellik | Tip | Varsayılan Değer | Açıklama |
 | :--- | :--- | :--- | :--- |
-| `--memory-limit` | `DatabaseSettings:MemoryLimitPercentage` | `0.4` | Veritabanının maksimum bellek kullanım oranını belirler (örn: %30 için `0.3`). |
-| `--bulk-cache-limit` | `DatabaseSettings:BulkStoreMaxCacheBytes` | `52428800` (50MB) | Toplu önbellek boyutu limitidir (byte). |
-| `--max-recursion` | `DatabaseSettings:MaxRecursionDepth` | `100` | Çalıştırılan script'lerin maksimum yineleme (recursion) derinliğini sınırlar. |
-| `--query-timeout` | `DatabaseSettings:QueryTimeoutMinutes` | `10` | Sorgu çalışma süresi sınırıdır (dakika). |
-| `--queue-poll-seconds` | `DatabaseSettings:QueuePollIntervalSeconds` | `1.0` | Arka plan kuyruğunun kontrol edilme sıklığıdır (saniye). |
+| `memoryLimitPercentage` | `double` | `0.4` | Veritabanının maksimum bellek kullanım oranını belirler (örn: %30 için `0.3`). |
+| `bulkStoreMaxCacheBytes` | `long` | `52428800` (50MB) | Toplu önbellek boyutu limitidir (byte). |
+| `maxRecursionDepth` | `int` | `100` | Çalıştırılan script'lerin maksimum yineleme (recursion) derinliğini sınırlar. |
+| `queryTimeoutMinutes` | `int` | `10` | Sorgu çalışma süresi sınırıdır (dakika). |
+| `queuePollIntervalSeconds` | `double` | `1.0` | Arka plan kuyruğunun kontrol edilme sıklığıdır (saniye). |
 
 ### Yapılandırma Örneği
-Veritabanı sunucusunu %30 bellek limiti ve 5 dakikalık sorgu zaman aşımı ile başlatmak için:
-```bash
-dotnet run -- --memory-limit 0.3 --query-timeout 5
+Sorgu konsolu üzerinden ayarları değiştirmek için (etkin olması için sunucu yeniden başlatılmalıdır):
+```javascript
+db.sysconfig.update(x => true, { queryTimeoutMinutes: 15 });
 ```
 
 ---
