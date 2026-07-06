@@ -6,8 +6,8 @@ namespace AxarDB.Bridges
 {
     /// <summary>
     /// Manages JSONL-based bulk collections stored in the "Bulk/" folder.
-    /// Supports lazy loading, in-memory caching, and auto-reload via FileSystemWatcher.
-    /// Max memory footprint is capped at ~50 MB across all cached collections.
+    /// Supports lazy loading, in-memory caching (LRU eviction), auto-reload via FileSystemWatcher,
+    /// and streaming chunked queries for files exceeding the cache budget.
     /// </summary>
     public class BulkStore : IDisposable
     {
@@ -167,7 +167,7 @@ namespace AxarDB.Bridges
                         if (doc != null)
                         {
                             docs.Add(doc);
-                            bytes += line.Length * 2; // approximate UTF-16 byte size
+                            bytes += line.Length * 2;
                         }
                     }
                     catch { /* Skip malformed lines */ }
@@ -175,18 +175,22 @@ namespace AxarDB.Bridges
             }
             catch (IOException) { return Enumerable.Empty<Dictionary<string, object>>(); }
 
-            // Enforce 50MB cap: evict oldest if over budget
-            EnforceMemoryCap(bytes);
-
-            var entry = new BulkCacheEntry
+            // Only cache if the file fits within the cache budget
+            if (bytes <= _maxCacheBytes)
             {
-                Documents = docs,
-                LoadedAt = DateTime.UtcNow,
-                ApproximateBytes = bytes
-            };
+                EnforceMemoryCap(bytes);
 
-            _cache[name] = entry;
-            Interlocked.Add(ref _totalCachedBytes, bytes);
+                var entry = new BulkCacheEntry
+                {
+                    Documents = docs,
+                    LoadedAt = DateTime.UtcNow,
+                    ApproximateBytes = bytes
+                };
+
+                _cache[name] = entry;
+                Interlocked.Add(ref _totalCachedBytes, bytes);
+            }
+
             return docs;
         }
 
@@ -206,115 +210,76 @@ namespace AxarDB.Bridges
 
         public IEnumerable<Dictionary<string, object>> QueryChunks(string name, HashSet<string> filterFields, Func<Dictionary<string, object>, bool> predicate)
         {
+            // Prefer in-memory cache if available – avoids re-reading from disk
+            if (_cache.TryGetValue(name, out var cached))
+            {
+                foreach (var doc in cached.Documents)
+                {
+                    if (predicate(doc))
+                        yield return doc;
+                }
+                yield break;
+            }
+
             var path = GetFilePath(name);
             if (!File.Exists(path)) yield break;
 
-            var chunkLines = new List<string>();
-            long currentChunkBytes = 0;
+            var fileInfo = new FileInfo(path);
+            long fileBytes = fileInfo.Length * 2; // UTF-16 approximation
 
-            // Read the file line-by-line
+            // If the file fits in the remaining cache budget, load it fully and filter from memory
+            if (fileBytes <= _maxCacheBytes - _totalCachedBytes)
+            {
+                LoadAndCache(name);
+                if (_cache.TryGetValue(name, out var fresh))
+                {
+                    foreach (var doc in fresh.Documents)
+                    {
+                        if (predicate(doc))
+                            yield return doc;
+                    }
+                }
+                yield break;
+            }
+
+            // File is too large for cache – streaming path: process line-by-line
+            var matchedBatch = new List<Dictionary<string, object>>();
+            long batchBytes = 0;
+
             foreach (var line in File.ReadLines(path, Encoding.UTF8))
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
-                chunkLines.Add(line);
-                currentChunkBytes += line.Length * 2;
 
-                // When chunk reaches the cache limit, we process it
-                if (currentChunkBytes >= _maxCacheBytes)
+                Dictionary<string, object>? fullDoc;
+                try
                 {
-                    foreach (var doc in ProcessChunk(chunkLines, filterFields, predicate))
-                    {
+                    fullDoc = JsonSerializer.Deserialize<Dictionary<string, object>>(line, _jsonOptions);
+                }
+                catch { continue; }
+
+                if (fullDoc == null) continue;
+
+                if (predicate(fullDoc))
+                {
+                    matchedBatch.Add(fullDoc);
+                    // Rough estimate: each Dictionary<string,object> entry ~= 1KB overhead + data
+                    batchBytes += 1024 + (line.Length * 2);
+                }
+
+                // Flush batch when approaching cache limit to prevent memory pressure
+                if (batchBytes >= _maxCacheBytes / 2)
+                {
+                    foreach (var doc in matchedBatch)
                         yield return doc;
-                    }
-                    chunkLines.Clear();
-                    currentChunkBytes = 0;
-                    
-                    // Force garbage collection of the chunk
+                    matchedBatch.Clear();
+                    batchBytes = 0;
                     GC.Collect(0, GCCollectionMode.Optimized);
                 }
             }
 
-            // Process the remaining lines in the last chunk
-            if (chunkLines.Count > 0)
-            {
-                foreach (var doc in ProcessChunk(chunkLines, filterFields, predicate))
-                {
-                    yield return doc;
-                }
-                chunkLines.Clear();
-            }
-        }
-
-        private IEnumerable<Dictionary<string, object>> ProcessChunk(List<string> lines, HashSet<string> filterFields, Func<Dictionary<string, object>, bool> predicate)
-        {
-            var matchedDocs = new List<Dictionary<string, object>>();
-
-            // 1. Build temporary lightweight index in memory
-            var tempIndex = new List<(int index, Dictionary<string, object> fields)>();
-            for (int i = 0; i < lines.Count; i++)
-            {
-                var lightDoc = ParseSelectedProperties(lines[i], filterFields);
-                tempIndex.Add((i, lightDoc));
-            }
-
-            // 2. Perform prediction (filtering) on the temporary index
-            foreach (var entry in tempIndex)
-            {
-                if (predicate(entry.fields))
-                {
-                    // 3. Match found: parse full document
-                    try
-                    {
-                        var fullDoc = JsonSerializer.Deserialize<Dictionary<string, object>>(lines[entry.index], _jsonOptions);
-                        if (fullDoc != null)
-                        {
-                            matchedDocs.Add(fullDoc);
-                        }
-                    }
-                    catch {}
-                }
-            }
-
-            return matchedDocs;
-        }
-
-        private static Dictionary<string, object> ParseSelectedProperties(string json, IEnumerable<string> properties)
-        {
-            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            try
-            {
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                foreach (var prop in properties)
-                {
-                    if (root.TryGetProperty(prop, out var val))
-                    {
-                        dict[prop] = GetJsonValue(val);
-                    }
-                }
-            }
-            catch {}
-            return dict;
-        }
-
-        private static object GetJsonValue(JsonElement element)
-        {
-            switch (element.ValueKind)
-            {
-                case JsonValueKind.String:
-                    return element.GetString() ?? "";
-                case JsonValueKind.Number:
-                    if (element.TryGetInt64(out long l)) return l;
-                    return element.GetDouble();
-                case JsonValueKind.True:
-                    return true;
-                case JsonValueKind.False:
-                    return false;
-                case JsonValueKind.Null:
-                    return null!;
-                default:
-                    return element.GetRawText(); // fallback for objects/arrays
-            }
+            // Flush remaining
+            foreach (var doc in matchedBatch)
+                yield return doc;
         }
 
         private string GetFilePath(string name)

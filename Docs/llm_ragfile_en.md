@@ -127,11 +127,74 @@ db.users.findall().foreach(u => {
 ```
 
 ### Case-Insensitive Search
-Use `contains()` for fuzzy matching:
+
+AxarDB provides **two distinct** mechanisms for case-insensitive operations. They serve different purposes and must not be confused:
+
+#### 1. Collection-Level `db.collection.contains(predicate)` — Exact Match
+Uses a `CaseInsensitiveDocumentWrapper` so that **property access** on documents is case-insensitive. Performs exact equality comparisons:
 ```javascript
-var devs = db.users.contains(x => x.title == "developer");
-// Matches "Developer", "DEVELOPER", "developer", etc.
+var devs = db.users.contains(x => x.title == "developer").toList();
+// Matches "Developer", "DEVELOPER", "developer" — exact equality, case-insensitive property access
 ```
+
+#### 2. String Prototype `.contains(str)` — Substring Search (Case-Insensitive)
+AxarDB injects a custom `String.prototype.contains()` method into every script execution. This performs **case-insensitive substring** matching on any string field:
+```javascript
+// Substring search inside a predicate
+var results = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
+// Matches "Esenler", "ESENYURT", "Büyükçekmece" — any placeName containing "esen" (case-insensitive)
+
+// Also works in any JavaScript string context
+var found = "İstanbul".contains("istan"); // true
+```
+
+> **CRITICAL**: Standard JavaScript does **not** have `String.prototype.contains()`. AxarDB injects this method for convenience. It wraps `String.prototype.includes()` with case-insensitive behavior and Turkish character normalization. For case-sensitive substring search, use the standard `.includes()` method.
+
+### Built-in JavaScript Prototype Extensions
+
+AxarDB injects several methods into JavaScript's built-in prototypes on **every script execution**. These are available in all predicates, views, triggers, and any JavaScript context within AxarDB. They are **not** standard JavaScript — they are AxarDB-specific additions.
+
+#### String Prototype Extensions
+
+| Method | Description | Example |
+|:---|:---|:---|
+| `.contains(str)` | **Case-insensitive** substring search. Handles Turkish characters correctly. Returns `boolean`. | `"İstanbul".contains("istan")` → `true` |
+| `.startsWith(str)` | **Case-insensitive** prefix check. Handles Turkish characters correctly. Returns `boolean`. | `"İstanbul".startsWith("ist")` → `true` |
+| `.toLowerCase()` | **Turkish-aware** lowercase. Normalizes `İ→i`, `I→i`, `Ö→ö`, `Ü→ü`, `Ç→ç`, `Ş→ş`, `Ğ→ğ`. Overrides the standard `.toLowerCase()`. | `"İZMİR".toLowerCase()` → `"izmir"` |
+
+> **IMPORTANT**: AxarDB's `.contains()` and `.startsWith()` override the standard JavaScript behavior. The standard `.includes()` is case-sensitive; AxarDB's `.contains()` is case-insensitive. The standard `.startsWith()` is case-sensitive; AxarDB's override is not. The standard `.toLowerCase()` does not handle Turkish characters correctly; AxarDB's override does.
+
+**Usage in predicates:**
+```javascript
+// Substring search inside a findall predicate
+var gmailUsers = db.users.findall(u => u.email.contains("gmail")).toList();
+
+// Bulk store substring search
+var matches = bulk.products.findall(p => p.name.contains("phone")).toList();
+
+// Prefix check (case-insensitive)
+var adminEmails = db.users.findall(u => u.email.startsWith("admin")).toList();
+
+// Turkish character handling
+var city = "İZMİR".toLowerCase(); // "izmir" (not "İzmİr" as standard JS would produce)
+var found = city.contains("iz");  // true
+```
+
+#### Array Prototype Extensions
+
+These methods are available on **any JavaScript array**, including arrays returned by `.toList()`:
+
+| Method | Description | Example |
+|:---|:---|:---|
+| `.count(predicate?)` | Count elements. Without argument returns `array.length`. With predicate, counts matching elements. | `arr.count(x => x.age > 18)` |
+| `.distinct(selector?)` | Return array of unique values. Optional selector transforms before deduplication. | `arr.distinct(x => x.role)` |
+| `.toList()` | Identity method, returns the array itself (for API consistency with ResultSet). | `[1,2].toList()` → `[1,2]` |
+
+#### Object Prototype Extension
+
+| Method | Description |
+|:---|:---|
+| `.toList()` | Converts iterable objects (ResultSets, .NET enumerables) to plain JavaScript arrays. |
 
 ## 4. Join Operations
 
@@ -463,6 +526,12 @@ bulk.countries.insert([
 
 // Querying bulk
 var european = bulk.countries.findall(c => c.population > 80000000).toList();
+
+// Substring search (case-insensitive via String.prototype.contains)
+var esenDistricts = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
+
+// Prefix check (case-insensitive via String.prototype.startsWith)
+var istanbulCodes = bulk.postalcodes.findall(x => x.placeName.startsWith("istan")).toList();
 ```
 
 ## 13. Queue Operations (Background Jobs)
@@ -725,6 +794,12 @@ dotnet run -- --cors "http://localhost:3000,http://example.com"
 # - maxRecursionDepth        : Max script recursion depth (default: 100)
 # - queryTimeoutMinutes      : Max query timeout in minutes (default: 10)
 # - queuePollIntervalSeconds : Background queue poll interval in seconds (default: 1.0)
+#
+# Sys-Prefix Protection:
+# Collection names starting with "sys" are reserved for system use.
+# Only sysusers, sysqueue, sysvaults, and sysconfig are allowed.
+# Creating db.sysnew or similar will throw InvalidOperationException.
+# This protection is enforced at Bridge, Engine, and Collection layers.
 
 # Bootstrap Refactoring (Clean Code)
 # Program.cs is kept extremely simple. The entire application setup and configuration
@@ -748,6 +823,8 @@ dotnet run -- --cors "http://localhost:3000,http://example.com"
 | `db.view("name", { param: "value" })` for parameterless view | Omit the second argument: `db.view("name")` |
 | Forgetting `// @access public` in view | Always add access comment as the first line |
 | Using single `=` instead of `==` in predicates | Use `==` for comparison: `u => u.age == 25` |
+| Assuming `.contains()` doesn't exist on strings | AxarDB injects `String.prototype.contains()` — it works for case-insensitive substring search |
+| Using `.contains()` for exact match | Use `==` for exact match; `.contains()` is for substring search |
 
 ### Common Query Patterns
 ```javascript
@@ -781,13 +858,22 @@ var token = encrypt(guid(), $MY_SALT);
 
 // Hash a password
 var hashed = sha256("plaintext_password");
+
+// Case-insensitive substring search (AxarDB String.prototype.contains)
+var devUsers = db.users.findall(u => u.email.contains("dev")).toList();
+
+// Case-insensitive prefix check (AxarDB String.prototype.startsWith)
+var adminMails = db.users.findall(u => u.email.startsWith("admin@")).toList();
+
+// Bulk substring search
+var esenPlaces = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
 ```
 
 ### Troubleshooting
 *   **401 Unauthorized**: Check credentials. Default is `unlocker:unlocker`.
 *   **Empty Result**: Did you forget `.toList()`? `findall()` returns ResultSet, not array.
 *   **Script Error**: Check JavaScript syntax. Use `console.log()` for debugging.
-*   **Case Sensitivity**: Use `contains()` for case-insensitive search instead of `findall`.
+*   **Case Sensitivity**: Use `.contains()` on string fields for case-insensitive substring search (AxarDB custom extension), or `db.collection.contains(predicate)` for case-insensitive exact match. Standard `.includes()` is case-sensitive.
 *   **View 404**: Verify view name exactly matches. Check spelling.
 *   **View returns error with parameters**: Ensure HTTP query string keys match `@param` names in the view script exactly.
 

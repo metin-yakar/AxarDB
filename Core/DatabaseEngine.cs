@@ -255,6 +255,31 @@ namespace AxarDB.Core
             engine.SetValue("guid", new Func<string>(() => Guid.NewGuid().ToString()));
             engine.SetValue("toJson", new Func<object, string>(o => System.Text.Json.JsonSerializer.Serialize(o, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })));
             engine.SetValue("csv", new Func<object, object>(AxarDB.Helpers.ScriptUtils.Csv));
+
+            // addSysUser(username, password) — safely add a user to sysusers
+            engine.SetValue("addSysUser", new Func<string, string, object>((username, password) =>
+            {
+                if (string.IsNullOrWhiteSpace(username)) throw new InvalidOperationException("username cannot be empty.");
+                if (string.IsNullOrWhiteSpace(password)) throw new InvalidOperationException("password cannot be empty.");
+                var col = GetCollection("sysusers");
+                // Check duplicate
+                if (col.FindAll(d => d.TryGetValue("username", out var u) && string.Equals(u?.ToString(), username, StringComparison.OrdinalIgnoreCase)).Any())
+                    throw new InvalidOperationException($"User '{username}' already exists.");
+                var hashed = AxarDB.Helpers.ScriptUtils.SHA256(password);
+                col.Insert(new Dictionary<string, object> { { "username", username }, { "password", hashed } }, bypassSystemRules: true);
+                return new { username, status = "created" };
+            }));
+
+            // deleteSysUser(username) — safely remove a user from sysusers
+            engine.SetValue("deleteSysUser", new Func<string, object>((username) =>
+            {
+                if (string.IsNullOrWhiteSpace(username)) throw new InvalidOperationException("username cannot be empty.");
+                if (username.Equals("unlocker", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("The default 'unlocker' user cannot be deleted.");
+                var col = GetCollection("sysusers");
+                col.Delete(d => d.TryGetValue("username", out var u) && string.Equals(u?.ToString(), username, StringComparison.OrdinalIgnoreCase));
+                return new { username, status = "deleted" };
+            }));
             
             // Join Alias Utility
             engine.SetValue("alias", new Func<object, string, AliasWrapper>((source, name) => new AliasWrapper(source, name)));

@@ -53,12 +53,34 @@ function saveCurrentTabState() {
     tab.lastCollectionName = lastCollectionName;
 }
 
+function updateSysconfigBanner(force) {
+    const banner = document.querySelector('.sysconfig-banner');
+    if (!banner) return;
+    if (localStorage.getItem('sysconfig_banner_dismissed')) {
+        banner.style.display = 'none';
+        return;
+    }
+    banner.style.display = (force || lastCollectionName === 'sysconfig') ? 'flex' : 'none';
+}
+
+function initSysconfigBanner() {
+    const banner = document.querySelector('.sysconfig-banner');
+    if (!banner) return;
+    banner.style.cursor = 'pointer';
+    banner.title = 'Click to dismiss permanently';
+    banner.addEventListener('click', () => {
+        banner.style.display = 'none';
+        localStorage.setItem('sysconfig_banner_dismissed', '1');
+    });
+}
+
 function restoreTabState(tab) {
     queryResults = tab.queryResults || [];
     filters = tab.filters || {};
     sortCol = tab.sortCol || null;
     sortDir = tab.sortDir || 1;
     lastCollectionName = tab.lastCollectionName || 'sysusers';
+    updateSysconfigBanner();
     if (editor) {
         _suppressHistorySync = true;
         editor.setValue(tab.script);
@@ -111,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initLogin();
     checkAuthAndLoad();
     initIcons();
+    initSysconfigBanner();
     createTab('Query 1');
 });
 
@@ -421,6 +444,7 @@ async function loadCollections() {
 
             item.onclick = () => {
                 lastCollectionName = name;
+                updateSysconfigBanner();
                 setEditorValue(`// Find, Filter, Limit and List for '${name}'
 // Returns top 10 documents
 db.${name}
@@ -461,6 +485,7 @@ db.${name}
 
             item.onclick = () => {
                 lastCollectionName = name;
+                updateSysconfigBanner();
                 setEditorValue(`// Find, Filter, Limit and List for '${name}'
 // Returns top 10 documents
 db.${name}
@@ -747,7 +772,7 @@ async function executeSelectedQuery() {
     const originalText = `<i data-lucide="play"></i> Execute (Ctrl+Enter)`;
 
     const match = script.match(/db\.([a-zA-Z0-9_]+)\./);
-    if (match) lastCollectionName = match[1];
+    if (match) { lastCollectionName = match[1]; updateSysconfigBanner(); }
 
     btn.innerHTML = '<i data-lucide="square" style="fill: currentColor; width: 14px; height: 14px;"></i> Cancel Executing';
     btn.style.backgroundColor = '#ef4444'; // Red background for cancel
@@ -776,6 +801,11 @@ async function executeSelectedQuery() {
             filters = {};
             renderGrid();
             loadCollections();
+
+            // Show sysconfig banner if an update was performed on sysconfig
+            if (/db\.sysconfig\b.*\.update\s*\(/.test(script)) {
+                updateSysconfigBanner(true);
+            }
 
             // Update active tab title
             if (activeTabId) {

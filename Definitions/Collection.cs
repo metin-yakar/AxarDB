@@ -14,6 +14,8 @@ namespace AxarDB.Definitions
         private readonly IMemoryCache _cache;
         private readonly HashSet<string> _primaryIndex = new();
         private readonly object _indexLock = new object();
+        private int _indexSaveCounter = 0;
+        private const int IndexSaveDebounceInterval = 100;
 
         public Collection(string name, DiskStorage storage, IMemoryCache sharedCache)
         {
@@ -148,8 +150,12 @@ namespace AxarDB.Definitions
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 index.IndexDocument(document);
-                // Save index periodically or on change (Debounce logic implied for production, direct here)
-                index.Save(Path.Combine("Data", Name)); 
+            }
+
+            // Debounced index persistence — save every N inserts
+            if (++_indexSaveCounter >= IndexSaveDebounceInterval)
+            {
+                SaveIndices();
             }
         }
 
@@ -177,7 +183,6 @@ namespace AxarDB.Definitions
                                .Select(id => GetDocument(id))
                                .Where(doc => doc != null)
                                .Select(doc => doc!)
-                               .Where(predicate)
                                .ToList();
                      return docs;
                  }
@@ -209,6 +214,16 @@ namespace AxarDB.Definitions
             index.Save(Path.Combine("Data", Name));
         }
 
+        public void SaveIndices()
+        {
+            _indexSaveCounter = 0;
+            var path = Path.Combine("Data", Name);
+            foreach (var index in Indices)
+            {
+                index.Save(path);
+            }
+        }
+
         public void Update(Func<Dictionary<string, object>, bool> predicate, Dictionary<string, object> updateFields, CancellationToken cancellationToken = default)
         {
             // 1. Identify matches (Parallel Scan) -- pass token!
@@ -218,14 +233,13 @@ namespace AxarDB.Definitions
             foreach (var doc in matches)
             {
                  cancellationToken.ThrowIfCancellationRequested();
-                 // Update fields
                  foreach (var kvp in updateFields)
                  {
                      doc[kvp.Key] = kvp.Value;
                  }
-                 // Save
-                 Insert(doc, cancellationToken, bypassSystemRules: true); // Re-inserts/Updates cache & disk
+                 Insert(doc, cancellationToken, bypassSystemRules: true);
             }
+            SaveIndices();
         }
 
         public void Delete(Func<Dictionary<string, object>, bool> predicate, CancellationToken cancellationToken = default)
@@ -240,12 +254,19 @@ namespace AxarDB.Definitions
                     string id = idObj.ToString()!;
                     // Update Disk
                     _storage.DeleteDocument(Name, id);
-                    // Update Index
+                    // Update Primary Index
                     lock (_indexLock) { _primaryIndex.Remove(id); }
+                    // Update Secondary Indices
+                    foreach (var index in Indices)
+                    {
+                        if (doc.TryGetValue(index.PropertyName, out var propVal))
+                            index.RemoveDocument(id, propVal);
+                    }
                     // Update Cache
                     _cache.Remove(GetCacheKey(id));
                 }
             }
+            SaveIndices();
         }
         public void OnExternalChange(string id, string evtType)
         {
@@ -256,30 +277,38 @@ namespace AxarDB.Definitions
             {
                 lock (_indexLock) { _primaryIndex.Remove(id); }
                 _cache.Remove(GetCacheKey(id));
-                // TODO: Remove from secondary indices if supported
+                // Try to load the document to clean up secondary indices
+                var deletedDoc = _storage.LoadDocument(Name, id);
+                if (deletedDoc != null)
+                {
+                    foreach (var index in Indices)
+                    {
+                        if (deletedDoc.TryGetValue(index.PropertyName, out var propVal))
+                            index.RemoveDocument(id, propVal);
+                    }
+                }
+                SaveIndices();
             }
             else if (evtType == "created")
             {
                 lock (_indexLock) { _primaryIndex.Add(id); }
-                // We don't populate cache here, let next read do it
-                // We should update secondary indices
                 var doc = _storage.LoadDocument(Name, id);
                 if (doc != null)
                 {
                     foreach (var index in Indices) index.IndexDocument(doc);
                 }
+                SaveIndices();
             }
             else if (evtType == "changed")
             {
-                // Invalidate cache
                 _cache.Remove(GetCacheKey(id));
                 
-                // Update secondary indices
                 var doc = _storage.LoadDocument(Name, id);
                 if (doc != null)
                 {
                     foreach (var index in Indices) index.IndexDocument(doc);
                 }
+                SaveIndices();
             }
         }
 
