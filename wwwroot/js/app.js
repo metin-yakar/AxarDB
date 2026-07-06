@@ -53,11 +53,25 @@ function saveCurrentTabState() {
     tab.lastCollectionName = lastCollectionName;
 }
 
-function updateSysconfigBanner() {
+function updateSysconfigBanner(force) {
     const banner = document.querySelector('.sysconfig-banner');
-    if (banner) {
-        banner.style.display = lastCollectionName === 'sysconfig' ? 'flex' : 'none';
+    if (!banner) return;
+    if (localStorage.getItem('sysconfig_banner_dismissed')) {
+        banner.style.display = 'none';
+        return;
     }
+    banner.style.display = (force || lastCollectionName === 'sysconfig') ? 'flex' : 'none';
+}
+
+function initSysconfigBanner() {
+    const banner = document.querySelector('.sysconfig-banner');
+    if (!banner) return;
+    banner.style.cursor = 'pointer';
+    banner.title = 'Click to dismiss permanently';
+    banner.addEventListener('click', () => {
+        banner.style.display = 'none';
+        localStorage.setItem('sysconfig_banner_dismissed', '1');
+    });
 }
 
 function restoreTabState(tab) {
@@ -119,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initLogin();
     checkAuthAndLoad();
     initIcons();
+    initSysconfigBanner();
     createTab('Query 1');
 });
 
@@ -786,6 +801,11 @@ async function executeSelectedQuery() {
             filters = {};
             renderGrid();
             loadCollections();
+
+            // Show sysconfig banner if an update was performed on sysconfig
+            if (/db\.sysconfig\b.*\.update\s*\(/.test(script)) {
+                updateSysconfigBanner(true);
+            }
 
             // Update active tab title
             if (activeTabId) {
