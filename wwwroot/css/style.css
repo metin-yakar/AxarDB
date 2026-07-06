@@ -933,3 +933,22 @@ input[type="checkbox"]:checked::after {
 .history-list .empty-state i {
     opacity: 0.3;
 }
+
+/* Sysconfig Warning Banner */
+.sysconfig-banner {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-left: 4px solid var(--accent);
+    padding: 0.5rem 1rem;
+    margin: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.sysconfig-banner strong {
+    color: var(--text-primary);
+}

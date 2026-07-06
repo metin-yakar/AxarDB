@@ -443,6 +443,7 @@ namespace AxarDB.Core
             // Create default system collection
             GetCollection("sysusers");
             GetCollection("sysqueue"); // Initialize queue collection
+            GetCollection("sysconfig"); // Initialize config collection
             // Add default user
             var sysusers = GetCollection("sysusers");
             // Check via storage if empty
@@ -453,6 +454,20 @@ namespace AxarDB.Core
                     { "username", "unlocker" },
                     { "password", "unlocker" }
                 });
+            }
+
+            // Seed default configuration settings if empty
+            var sysconfig = GetCollection("sysconfig");
+            if (!sysconfig.FindAll().Any())
+            {
+                sysconfig.Insert(new Dictionary<string, object>
+                {
+                    { "memoryLimitPercentage", Settings.MemoryLimitPercentage },
+                    { "bulkStoreMaxCacheBytes", Settings.BulkStoreMaxCacheBytes },
+                    { "maxRecursionDepth", Settings.MaxRecursionDepth },
+                    { "queryTimeoutMinutes", Settings.QueryTimeoutMinutes },
+                    { "queuePollIntervalSeconds", Settings.QueuePollIntervalSeconds }
+                }, bypassSystemRules: true);
             }
         }
 
@@ -571,6 +586,14 @@ namespace AxarDB.Core
 
             // Expose 'UnlockDB' constructor: new UnlockDB("name")
             engine.SetValue("AxarDB", new Func<string, CollectionBridge>(name => {
+                if (name.StartsWith("sys", StringComparison.OrdinalIgnoreCase) &&
+                    !name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
+                    !name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
+                    !name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
+                    !name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException($"System collection name '{name}' is reserved.");
+                }
                 return new CollectionBridge(this, GetCollection(name), engine, cancellationToken);
             }));
 

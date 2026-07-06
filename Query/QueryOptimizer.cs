@@ -41,5 +41,32 @@ namespace AxarDB.Query
 
             return null;
         }
+
+        public static HashSet<string> ExtractAccessedProperties(JsValue predicate)
+        {
+            var props = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            props.Add("_id"); // Always include ID
+
+            if (predicate == null || !predicate.IsObject())
+                return props;
+
+            string code = predicate.ToString();
+            
+            // Match dot notation: x.prop, item.prop, doc.prop
+            var matches = Regex.Matches(code, @"\b(?:x|item|doc)\.(\w+)\b");
+            foreach (Match match in matches)
+            {
+                props.Add(match.Groups[1].Value);
+            }
+
+            // Match bracket notation: x['prop'], x["prop"]
+            var bracketMatches = Regex.Matches(code, @"\b(?:x|item|doc)\[[""'](\w+)[""']\]");
+            foreach (Match match in bracketMatches)
+            {
+                props.Add(match.Groups[1].Value);
+            }
+
+            return props;
+        }
     }
 }
