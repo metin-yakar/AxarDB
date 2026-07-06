@@ -161,8 +161,9 @@ namespace AxarDB.Definitions
                                .Select(id => GetDocument(id))
                                .Where(doc => doc != null)
                                .Select(doc => doc!)
+                               .Where(predicate)
                                .ToList();
-                     return docs.Where(predicate);
+                     return docs;
                  }
              }
 
@@ -174,8 +175,9 @@ namespace AxarDB.Definitions
                           .Select(id => GetDocument(id))
                           .Where(doc => doc != null)
                           .Select(doc => doc!)
+                          .Where(predicate)
                           .ToList();
-             return allDocs.Where(predicate);
+             return allDocs;
         }
 
         public void CreateIndex(string propertyName, string type)

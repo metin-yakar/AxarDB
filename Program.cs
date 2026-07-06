@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Diagnostics;
+using System.Globalization;
 using AxarDB;
 using AxarDB.Core;
 using AxarDB.Diagnostics;
 using AxarDB.Logging;
 
-// Ensure Console Output is UTF8
+// Set global culture and encoding
+CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("tr-TR");
+CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("tr-TR");
 Console.OutputEncoding = Encoding.UTF8;
 
 
@@ -27,7 +30,7 @@ if (args.Length > 0 && args[0] == "script")
         var db = new DatabaseEngine(tPath);
         try 
         {
-            var content = File.ReadAllText(scriptPath);
+            var content = File.ReadAllText(scriptPath, Encoding.UTF8);
             var result = db.ExecuteScript(content);
             Console.WriteLine("Result: " + (result?.ToString() ?? "null"));
         }
