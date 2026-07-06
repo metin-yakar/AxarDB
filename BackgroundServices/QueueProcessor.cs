@@ -15,11 +15,12 @@ namespace AxarDB.BackgroundServices
     public class QueueProcessor : BackgroundService
     {
         private readonly DatabaseEngine _db;
-        private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(1);
+        private readonly TimeSpan _pollInterval;
 
         public QueueProcessor(DatabaseEngine db)
         {
             _db = db;
+            _pollInterval = TimeSpan.FromSeconds(db.Settings.QueuePollIntervalSeconds);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

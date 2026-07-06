@@ -711,6 +711,20 @@ res = client.call_view("MyView", {"minAge": 18})
 # You can restrict it using the --cors parameter.
 dotnet run -- --cors "http://localhost:3000,http://example.com"
 
+# Configuration Parameters
+# You can customize limits and database behaviour via command-line switches or in appsettings.json.
+# --memory-limit        : Memory limit percentage (default: 0.4)
+# --bulk-cache-limit    : Bulk store max cache in bytes (default: 52428800)
+# --max-recursion       : Max script recursion depth (default: 100)
+# --query-timeout       : Max query timeout in minutes (default: 10)
+# --queue-poll-seconds  : Background queue poll interval in seconds (default: 1.0)
+dotnet run -- --memory-limit 0.3 --query-timeout 5
+
+# Bootstrap Refactoring (Clean Code)
+# Program.cs is kept extremely simple. The entire application setup and configuration
+# orchestrations are managed by AxarDB.Bootstrap.AppBootstrap.Run(args).
+# Custom middlewares (exception handling, request logging, auth) are extracted as C# classes.
+
 # Show collections
 ./AxarDB.Cli --show-collections
 

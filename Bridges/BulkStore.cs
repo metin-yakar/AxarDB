@@ -16,17 +16,18 @@ namespace AxarDB.Bridges
         private readonly FileSystemWatcher _watcher;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        // Approximate 50MB cap: we track total serialized byte size
+        // Approximate cap: we track total serialized byte size
         private long _totalCachedBytes = 0;
-        private const long MaxCacheBytes = 50 * 1024 * 1024; // 50 MB
+        private readonly long _maxCacheBytes;
 
-        public BulkStore(string basePath)
+        public BulkStore(string basePath, long maxCacheBytes)
         {
             _bulkPath = Path.Combine(basePath, "Bulk");
             if (!Directory.Exists(_bulkPath))
                 Directory.CreateDirectory(_bulkPath);
 
             _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            _maxCacheBytes = maxCacheBytes;
 
             // FileSystemWatcher for auto-reload
             _watcher = new FileSystemWatcher(_bulkPath, "*.jsonl")
@@ -190,13 +191,13 @@ namespace AxarDB.Bridges
 
         private void EnforceMemoryCap(long incomingBytes)
         {
-            if (_totalCachedBytes + incomingBytes <= MaxCacheBytes) return;
+            if (_totalCachedBytes + incomingBytes <= _maxCacheBytes) return;
 
             // Evict oldest entries until we have room
             var ordered = _cache.OrderBy(kv => kv.Value.LoadedAt).ToList();
             foreach (var kv in ordered)
             {
-                if (_totalCachedBytes + incomingBytes <= MaxCacheBytes) break;
+                if (_totalCachedBytes + incomingBytes <= _maxCacheBytes) break;
                 if (_cache.TryRemove(kv.Key, out var removed))
                     Interlocked.Add(ref _totalCachedBytes, -removed.ApproximateBytes);
             }
