@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using MySqlConnector;
 using Npgsql;
+using System.Text;
 
 namespace AxarDB.Core
 {
@@ -720,7 +721,7 @@ namespace AxarDB.Core
                 var viewPath = Path.Combine(GetViewsPath(), viewName + ".js");
                 if (!File.Exists(viewPath)) throw new FileNotFoundException($"View '{viewName}' not found.");
 
-                var script = File.ReadAllText(viewPath);
+                var script = File.ReadAllText(viewPath, Encoding.UTF8);
                 
                 //FOR AI TESTING PURPOSES
                 // Access Control Check (for HTTP calls mostly, but good to enforce)
@@ -825,7 +826,7 @@ namespace AxarDB.Core
                 };
                 
                 var logJson = System.Text.Json.JsonSerializer.Serialize(logEntry, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(Path.Combine(GetLogsPath(), $"{viewName}_{DateTime.UtcNow.Ticks}.json"), logJson);
+                File.WriteAllText(Path.Combine(GetLogsPath(), $"{viewName}_{DateTime.UtcNow.Ticks}.json"), logJson, Encoding.UTF8);
             }
             
             return result;
@@ -837,7 +838,7 @@ namespace AxarDB.Core
             if (!File.Exists(viewPath)) return "private"; 
             
             // Read first few lines
-            foreach(var line in File.ReadLines(viewPath).Take(5))
+            foreach(var line in File.ReadLines(viewPath, Encoding.UTF8).Take(5))
             {
                 if (line.Contains("@access public")) return "public";
             }
@@ -846,7 +847,7 @@ namespace AxarDB.Core
 
         public void SaveView(string name, string content)
         {
-            File.WriteAllText(Path.Combine(GetViewsPath(), name + ".js"), content);
+            File.WriteAllText(Path.Combine(GetViewsPath(), name + ".js"), content, Encoding.UTF8);
         }
 
         public void DeleteView(string name)
@@ -865,7 +866,7 @@ namespace AxarDB.Core
         public string? GetViewContent(string name)
         {
             var path = Path.Combine(GetViewsPath(), name + ".js");
-            return File.Exists(path) ? File.ReadAllText(path) : null;
+            return File.Exists(path) ? File.ReadAllText(path, Encoding.UTF8) : null;
         }
 
         // ---------------------------------------------------------
@@ -943,7 +944,7 @@ namespace AxarDB.Core
                     
                     foreach(var triggerPath in triggers)
                     {
-                        var content = File.ReadAllText(triggerPath);
+                        var content = File.ReadAllText(triggerPath, Encoding.UTF8);
                         // Parse header: // @target collectionName
                         if (content.Contains($"@target {collectionName}") || content.Contains("@target *"))
                         {
@@ -1019,7 +1020,7 @@ namespace AxarDB.Core
                 // Simple file append with lock to ensure thread safety
                 lock(_logLock) 
                 {
-                    File.AppendAllText(path, line + Environment.NewLine);
+                    File.AppendAllText(path, line + Environment.NewLine, Encoding.UTF8);
                 }
             } 
             catch {}
@@ -1037,7 +1038,7 @@ namespace AxarDB.Core
         public string? GetTriggerContent(string name)
         {
             var path = Path.Combine(GetTriggersPath(), name + ".js");
-            return File.Exists(path) ? File.ReadAllText(path) : null;
+            return File.Exists(path) ? File.ReadAllText(path, Encoding.UTF8) : null;
         }
 
         public void SaveTrigger(string name, string targetCollection, string content)
@@ -1046,7 +1047,7 @@ namespace AxarDB.Core
             {
                 content = $"// @target {targetCollection}\n" + content;
             }
-            File.WriteAllText(Path.Combine(GetTriggersPath(), name + ".js"), content);
+            File.WriteAllText(Path.Combine(GetTriggersPath(), name + ".js"), content, Encoding.UTF8);
         }
         
         public void SaveTrigger(string name, string content) => SaveTrigger(name, "*", content);
