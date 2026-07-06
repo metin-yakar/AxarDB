@@ -1,4 +1,4 @@
-# 🔓 AxarDB - JavaScript Tabanlı NoSQL Veritabanı
+﻿# 🔓 AxarDB - JavaScript Tabanlı NoSQL Veritabanı
 
 ![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
@@ -31,6 +31,8 @@
 | **🔗 Join Desteği** | Koleksiyonlar arası güçlü join ve alias (takma ad) desteği. |
 | **📄 Sayfalama (Pagination)** | `skip(n).take(n)` zinciriyle kolayca sayfalama yapın. |
 | **🛡️ Güvenli** | Basic Auth (SHA256 hash desteği ile) ve **Injection Koruması**. |
+| **⏳ Görev Kuyruğu** | `queue("script", params, { priority: 1 })` ile arka plan görevi çalıştırma. `completedAt` zaman damgasıyla tamamlanma takibi sağlar. `db.sysqueue` koleksiyonuna doğrudan ekleme kısıtlanmıştır. |
+| **🔐 Kasa (Vaults)** | `$KEY` sözdizimi ile API anahtarları için güvenli anahtar-değer depolama. `db.sysvaults` koleksiyonuna doğrudan ekleme kısıtlanmıştır; `addVault()` kullanılmalıdır. |
 | **🐋 Docker Uyumlu** | Tek komutla çalıştırın: `docker run`. |
 | **🛠️ Araçlar** | Dahili yardımcı fonksiyonlar: `md5`, `sha256`, `encrypt`, `random`, `base64`. |
 | **🖥️ Yönetim Paneli** | Monaco Editör, Boyutlandırılabilir Grid ve Koyu Mod içeren Web Arayüzü. |
@@ -90,7 +92,7 @@ dotnet run --project SDKs/cli/AxarDB.Cli -- --host http://localhost:5000 --user 
 
 ---
 
-## � Dahili Fonksiyonlar
+## ⚙️ Dahili Fonksiyonlar
 
 AxarDB, script ve view içerisinde kullanabileceğiniz güçlü yardımcı fonksiyonlar sunar.
 
@@ -221,7 +223,7 @@ AxarDB, veritabanının anlık durumunu izleyebilmeniz için dahili bir izleme p
 
 
 
-## �📦 İstemci SDK'ları
+## 📦 İstemci SDK'ları
 
 C# ve Python için tam tip destekli (strongly typed) ve asenkron (async) çalışan resmi SDK'lar mevcuttur.
 

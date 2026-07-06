@@ -466,7 +466,7 @@ var european = bulk.countries.findall(c => c.population > 80000000).toList();
 
 ## 13. Queue Operations (Background Jobs)
 
-Use `queue()` to schedule scripts for background execution.
+Use `queue()` to schedule scripts for background execution. Direct insertions into the `db.sysqueue` collection (e.g. via `db.sysqueue.insert()`) are restricted and will throw an error. You must use the `queue()` function to add background jobs.
 
 ```javascript
 // generic queue usage
@@ -477,6 +477,20 @@ var jobId = queue("db.logs.insert({ msg: @msg })", { msg: "Hello" }, { priority:
 *   **Template**: The JavaScript code to execute. Use `@param` for binding.
 *   **Parameters**: Object containing values for `@param` placeholders.
 *   **Options**: Object with settings (e.g., `{ priority: 1 }`). Higher priority runs first.
+
+### Queue Record Schema (`db.sysqueue`)
+Queued jobs are recorded in the `db.sysqueue` collection with the following fields:
+*   `_id`: Job identifier (string).
+*   `queryTemplate`: Script template to run (string).
+*   `parameters`: Query parameters (object).
+*   `options`: Execution options (object).
+*   `createdAt`: UTC creation time (DateTime).
+*   `executionTime`: UTC start time, `null` if pending (DateTime).
+*   `completedAt`: UTC completion time, `null` if pending/running (DateTime).
+*   `priority`: Execution priority (int).
+*   `duration`: Execution duration in milliseconds (long).
+*   `successResult`: Execution result object, `null` on failure (object).
+*   `errorMessage`: Failure error message, `null` on success (string).
 
 ### Logging
 Execution logs are stored in `queue_logs/` directory.
@@ -535,6 +549,13 @@ Execution logs are stored in `queue_logs/` directory.
 | `alias(source, name)` | `object, string -> object` | Assign alias for joins | `alias(db.users, "u")` |
 
 ## 11. Security
+
+### System Collection Protections
+To prevent unauthorized modification of core database operations, direct insertions via standard insert queries (e.g. `db.collection.insert(...)`) are strictly prohibited on the following collections:
+*   `db.sysqueue`: Insertion must go through the global `queue()` function.
+*   `db.sysvaults`: Insertion/updates must go through the `addVault()` / `db.addVault()` function.
+
+Attempting a direct insert on these system collections will throw an `InvalidOperationException`.
 
 ### Authentication
 *   **Method**: HTTP Basic Auth
