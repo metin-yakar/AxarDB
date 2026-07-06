@@ -1,25 +1,26 @@
-# AxarDB Release Notes — Case-Insensitivity, StartsWith & Turkish Character Normalization
+# AxarDB Release Notes — Parameterized Database Configuration & Clean Architecture Refactoring
 
-This release resolves character encoding and casing issues with Turkish characters in query execution and parameters, and introduces case-insensitive `contains` and `startsWith` methods at both string and collection levels across all storage backends (`db`, `memory`, and `bulk`).
+This release introduces parameterized runtime configuration management with CLI overrides, and completely reorganizes the bootstrapping layer into modular, clean components following SOLID and DRY principles.
 
 ---
 
 ## 🌟 New Features & Improvements
 
-### 1. Turkish Character Normalization & Casing Support
-- **Jint JavaScript Engine Fix**: Overrode `String.prototype.toLowerCase` globally within Jint to correctly normalize Turkish characters (such as mapping `İ` -> `i`, `I` -> `i`, `ı` -> `i`, etc.) and eliminated Jint casing discrepancies caused by combining diacritical marks (`\u0307`).
-- **C# Wrapper Casing Alignment**: Updated `CaseInsensitiveDocumentWrapper` to use a Turkish-normalized casing mapping and made property member access case-insensitive.
+### 1. Parameterized Database Settings & CLI Overrides
+- Moved all hardcoded database boundaries, memory limits, and query timeouts into `appsettings.json`.
+- Implemented command-line argument bindings via `ConfigHelper` to easily override settings at startup.
+- Introduced parameter mappings for:
+  - `--memory-limit` (MemoryLimitPercentage)
+  - `--bulk-cache-limit` (BulkStoreMaxCacheBytes)
+  - `--max-recursion` (MaxRecursionDepth)
+  - `--query-timeout` (QueryTimeoutMinutes)
+  - `--queue-poll-seconds` (QueuePollIntervalSeconds)
 
-### 2. Case-Insensitive `contains` and `startsWith` APIs
-- **String Prototype Methods**: Extended `String.prototype` inside the Jint environment with case-insensitive and Turkish-normalized versions of `contains` (aliased to includes) and `startsWith` for queries.
-- **Collection-Level APIs**: Added case-insensitive `contains` and `startsWith` methods to `db.collection`, `memory.collection`, and `bulk.collection` to allow direct case-insensitive predicate filtering.
-
-### 3. Jint Thread Safety & Query Optimization
-- Addressed Jint engine corruption exceptions (such as `ReferenceError: x is not defined`) during parallel execution on the database level.
-- Streamlined `Collection.FindAll` to load and deserialize documents in parallel while executing the Jint predicate evaluator sequentially on the main query thread.
-
-### 4. JSONL/Bulk Integration & JsonElement Support
-- Enabled `CaseInsensitiveDocumentWrapper` to inherit from `DocumentWrapper`, reusing the robust `Unwrap` logic to handle `JsonElement` values properly in JSONL-based Bulk collections.
-
-### 5. UTF-8 HTTP Request Body Reading
-- Configured the `/query` HTTP POST endpoint to read incoming HTTP request bodies explicitly using `Encoding.UTF8`, preventing encoding corruption from clients.
+### 2. Clean Architecture & Bootstrapping Simplification
+- **Extreme Program.cs Simplification**: Reduced `Program.cs` into a clean 3-line entry point delegating all start orchestration to `AppBootstrap.Run(args)`.
+- **Modular Middlewares**: Extracted inline middlewares into dedicated, isolated classes:
+  - `GlobalExceptionHandlingMiddleware`: Centralizes error logging and Problem Details responses.
+  - `RequestLoggingMiddleware`: Handles stopwatch profiling, request buffering, and metrics recording.
+  - `BasicAuthenticationMiddleware`: Standardizes API security boundary checks.
+- **Unified Endpoint Routing**: Extracted all API route mapping logic into a reusable `EndpointExtensions.MapDatabaseEndpoints()` method.
+- **DRY Basic Authentication**: Consolidated redundant authentication parsing and decoding logic into `HttpContextExtensions.TryGetBasicCredentials()`.

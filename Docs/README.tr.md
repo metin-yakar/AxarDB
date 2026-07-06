@@ -1,4 +1,4 @@
-﻿# 🔓 AxarDB - JavaScript Tabanlı NoSQL Veritabanı
+# 🔓 AxarDB - JavaScript Tabanlı NoSQL Veritabanı
 
 ![AxarDB Logo](../wwwroot/AxarDBLogo.png)
 
@@ -66,6 +66,26 @@ docker run -d -p 5000:5000 -v $(pwd)/data:/app/data --name AxarDB AxarDB:latest
 dotnet run -- -p 5001 --cors "http://localhost:3000"
 ```
 
+---
+
+## ⚙️ Yapılandırma (Configuration)
+
+AxarDB, `appsettings.json` dosyası üzerinden özelleştirilebilen veya doğrudan başlatma sırasında komut satırı argümanları ile ezilebilen esnek veritabanı ayarlarına sahiptir.
+
+### Kullanılabilir Parametreler
+
+| Parametre | Konfigürasyon Anahtarı | Varsayılan Değer | Açıklama |
+| :--- | :--- | :--- | :--- |
+| `--memory-limit` | `DatabaseSettings:MemoryLimitPercentage` | `0.4` | Veritabanının maksimum bellek kullanım oranını belirler (örn: %30 için `0.3`). |
+| `--bulk-cache-limit` | `DatabaseSettings:BulkStoreMaxCacheBytes` | `52428800` (50MB) | Toplu önbellek boyutu limitidir (byte). |
+| `--max-recursion` | `DatabaseSettings:MaxRecursionDepth` | `100` | Çalıştırılan script'lerin maksimum yineleme (recursion) derinliğini sınırlar. |
+| `--query-timeout` | `DatabaseSettings:QueryTimeoutMinutes` | `10` | Sorgu çalışma süresi sınırıdır (dakika). |
+| `--queue-poll-seconds` | `DatabaseSettings:QueuePollIntervalSeconds` | `1.0` | Arka plan kuyruğunun kontrol edilme sıklığıdır (saniye). |
+
+### Yapılandırma Örneği
+Veritabanı sunucusunu %30 bellek limiti ve 5 dakikalık sorgu zaman aşımı ile başlatmak için:
+```bash
+dotnet run -- --memory-limit 0.3 --query-timeout 5
 ```
 
 ---
@@ -304,7 +324,6 @@ users = client.call_view("myview", { "minAge": 18 })
 
 AxarDB'nin geleceğini inşa etmek için katkılarınızı bekliyoruz!
 **İhtiyaç Duyulan Alanlar:**
-- [ ] Gelişmiş Konfigürasyon Sistemi
 - [ ] Gerçek Zamanlı Senkronizasyon (Real-time Sync)
 - [ ] Küme İzleme Paneli (Monitoring)
 - [ ] İstemci SDK'ları (Node.js, Python, Go)
