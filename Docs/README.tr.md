@@ -23,7 +23,8 @@
 
 | Özellik | Açıklama |
 |:---|:---|
-| **📜 JavaScript Sorguları** | Tam JavaScript sözdizimi kullanın: `db.users.findall(x => x.active).toList()`. ResultSet ve Native dizi üzerinde yepyeni `count()` ve `distinct()` uzantılarını destekler. |
+| **📜 JavaScript Sorguları** | Tam JavaScript sözdizimi kullanın: `db.users.findall(x => x.active).toList()`. Uzantıları (`count()`, `distinct()`) destekler. |
+| **🆔 UUID v7 Desteği** | Varsayılan `_id` düzeni olarak native RFC 9562 UUID v7 kullanılır. Zaman sıralı ID'ler üretir ve `guidv7()`, `guidv7(datetime)`, `guidv7CreatedAt(id)` fonksiyonlarını sunar. |
 | **⚡ Yüksek Performans** | `ConcurrentDictionary`, PLINQ ile Tembel Değerlendirme (Lazy Eval) ve katı %40 RAM kapasite limitli Dinamik Önbellek Yönetimi. |
 | **🧠 Bellek İçi Depo (Memory Store)** | `memory.sessions.insert({...})` ile TTL destekli geçici depolama. Oturum, önbellek ve kısa ömürlü veriler için idealdir. |
 | **📄 CSV Motoru** | İki yönlü, güçlü CSV desteği. `csv(girdi)` fonksiyonu ile metinleri anında nesnelere, nesne listelerini ise CSV dosyalarına çevirin. |
@@ -239,6 +240,28 @@ var istanbulKodlari = bulk.postalcodes.findall(x => x.placeName.startsWith("ista
 
 // Önbelleği manuel yenile
 bulk.reload("countries");
+```
+
+---
+
+## 🆔 UUID v7 Desteği
+
+AxarDB, varsayılan birincil anahtar (`_id`) üretim şeması olarak native **RFC 9562** uyumlu UUID v7'yi kullanır. Bu sayede üretilen tüm ID'ler zamana göre sıralı (time-sortable) olur, indeks ve disk arama performansını artırır. Geriye dönük uyumluluk korunarak eski v4 GUID anahtarlarıyla aynı koleksiyonda sorunsuz çalışabilir.
+
+### Global Sorgu Fonksiyonları:
+- `guidv7()`: Mevcut UTC zamanıyla yeni bir UUID v7 üretir.
+- `guidv7(datetime)`: Belirtilen ISO 8601 tarih damgasıyla UUID v7 üretir.
+- `guidv7CreatedAt(guid)`: v7 GUID dizesinden oluşturulma tarihini UTC `DateTime` olarak çıkarır.
+- `guid()`: Standart UUID v4 üretir (geriye dönük uyumluluk için korunmuştur).
+
+### Örnek Kullanım:
+```javascript
+// Sorgu içerisinde kaydın oluşturulma tarihini çekme
+var urun = db.products.find(p => p.name == "Super Phone 0");
+if (urun) {
+    var olusturulmaTarihi = guidv7CreatedAt(urun._id);
+    console.log("Ürün oluşturulma zamanı: " + olusturulmaTarihi);
+}
 ```
 
 ---

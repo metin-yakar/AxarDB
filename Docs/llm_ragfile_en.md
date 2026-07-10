@@ -180,6 +180,33 @@ var city = "İZMİR".toLowerCase(); // "izmir" (not "İzmİr" as standard JS wou
 var found = city.contains("iz");  // true
 ```
 
+#### UUID v7 Functions
+
+AxarDB uses UUID v7 as its default `_id` generation scheme for all collections (Standard, Memory, and Bulk). It also exposes query utility functions to generate or extract metadata from UUID v7.
+
+| Function | Description | Example |
+|:---|:---|:---|
+| `guidv7()` | Generates a new UUID v7 using the current UTC time. Returns `string`. | `guidv7()` → `"019853ab-1c2d-7e4f-..."` |
+| `guidv7(datetime)` | Generates a new UUID v7 using the specified ISO 8601 datetime string. Returns `string`. | `guidv7("2024-01-15T10:30:00Z")` |
+| `guidv7CreatedAt(guidStr)` | Extracts the UTC creation timestamp from a UUID v7 string. Returns `Date` (or `null` if invalid/not v7). | `guidv7CreatedAt("019853ab-...")` |
+| `guid()` | Generates a standard UUID v4. (Maintained for backward compatibility). Returns `string`. | `guid()` |
+
+**Usage examples:**
+```javascript
+// Insert with explicit UUID v7 using a custom date
+db.history.insert({
+    _id: guidv7("2023-05-10T14:20:00Z"),
+    event: "Legacy Import"
+});
+
+// Extract creation date from a document's ID
+var doc = db.users.find(u => u.name == "John");
+if (doc && doc._id) {
+    var createdTime = guidv7CreatedAt(doc._id);
+    console.log("Document was created at: " + createdTime);
+}
+```
+
 #### Array Prototype Extensions
 
 These methods are available on **any JavaScript array**, including arrays returned by `.toList()`:

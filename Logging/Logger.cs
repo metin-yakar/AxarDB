@@ -23,7 +23,7 @@ namespace AxarDB.Logging
                 var fileName = DateTime.Now.ToString("yyyy-MM-dd") + ".txt";
                 var filePath = Path.Combine(RequestLogsPath, fileName);
                 
-                // [zaman] - [istemci ip adresi] - [db kullanıcısı] - [request json tek satırda trimlenmiş] - [istek ile cevap arasında geçen süre milisaniye (ms) olarak] - [sonuç başarılı veya başarısız ise kısa bir hata sebebi açıklaması]
+                // Log format: [timestamp] - [client ip] - [db user] - [request json, single-line trimmed] - [duration in ms] - [Success or Failed: <reason>]
                 var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
                 var status = success ? "Success" : $"Failed: {errorMessage}";
                 var cleanedJson = requestJson?.Replace("\r", "").Replace("\n", "").Trim() ?? "";
