@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <PackageReference Include="Jint" Version="4.4.2" />
+    <PackageReference Include="Acornima" Version="1.2.0" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.2" />
     <PackageReference Include="MySqlConnector" Version="2.3.5" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

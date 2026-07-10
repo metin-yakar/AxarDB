@@ -48,13 +48,44 @@
 
 Unlike traditional databases that require complex protocols, AxarDB executes your logic on the server.
 
-```mermaid
-pie title AxarDB vs Traditional (Ops/Sec)
-    "AxarDB (In-Memory)" : 15000
-    "Traditional In-Memory DB" : 12000
-    "File-Based DB" : 4000
-```
+### Multi-Engine Benchmark Results (1000 records)
+
+> 📊 **See the full interactive report: [output.html](output.html)** — includes Chart.js visualizations and a feature comparison matrix.
+
+| Operation | AxarDB (memory) | AxarDB (db) | AxarDB (bulk) | PostgreSQL | MariaDB | MongoDB |
+|:---|---:|---:|---:|---:|---:|---:|
+| Setup (DDL) | 0 ms | 0 ms | 0 ms | 15.81 ms | 41.61 ms | 0.29 ms |
+| Single Insert | 1.00 ms | 2.00 ms | 1.00 ms | 0.22 ms | 2.99 ms | 0.44 ms |
+| Bulk Insert | 17.00 ms | 948.00 ms | 8.00 ms | 199.14 ms | 13.11 ms | 6.06 ms |
+| Index Creation | — | 12.00 ms | — | 6.39 ms | 50.19 ms | 26.58 ms |
+| Count (COUNT) | 0.05 ms | 4.82 ms | 0.02 ms | 0.45 ms | 0.34 ms | 0.81 ms |
+| Filter Query | 0.08 ms | 0.22 ms | 0.06 ms | 0.37 ms | 0.47 ms | 0.78 ms |
+| Range Query | 0.08 ms | 5.28 ms | 0.06 ms | 0.92 ms | 4.49 ms | 1.96 ms |
+| Aggregation (avg age) | 0.05 ms | 0 ms | 0 ms | 0.36 ms | 0.29 ms | 1.39 ms |
+| Update | — | 175.00 ms | — | 1.79 ms | 3.25 ms | 2.05 ms |
+| Delete | 3.00 ms | 147.00 ms | — | 2.43 ms | 4.45 ms | 7.23 ms |
+| **Total** | **21.26 ms** | **1294.32 ms** | **9.14 ms** | **227.89 ms** | **121.20 ms** | **47.59 ms** |
+| **How many times faster is AxarDB (memory)?** | — | 60.88x slower | 0.43x faster | 10.72x slower | 5.70x slower | 2.24x slower |
+
+> **Methodology:** Each engine received an identical workload. AxarDB times exclude HTTP overhead via server-side `Stopwatch` through `sysqueue`. PostgreSQL/MariaDB/MongoDB were measured with native drivers. Filter and Range queries used an indexed `age` column. The `memory` and `bulk` stores lack update/index APIs (shown as —). Results vary by hardware and load. Run `python compare.py` to regenerate with current data.
+
+### Feature Comparison Matrix
+
+| Feature | AxarDB | PostgreSQL | MariaDB | MongoDB |
+|:---|:---:|:---:|:---:|:---:|
+| JavaScript-based server-side query language | ✅ | ❌ | ❌ | Limited |
+| Built-in task queue (queue / sysqueue) | ✅ | ❌ | ❌ | ❌ |
+| Multiple stores in one system (db / memory / bulk) | ✅ | ❌ | ❌ | ❌ |
+| Native HTTP REST API | ✅ | ❌ | ❌ | ❌ |
+| Embedded mode | ✅ | ❌ | ❌ | ❌ |
+| In-memory store (TTL-based) | ✅ | ❌ | ❌ | ❌ |
+| Bulk (JSONL chunk) store | ✅ | ❌ | ❌ | ❌ |
+| Schemaless document model | ✅ | ❌ | ❌ | ✅ |
+| Built-in authentication (Basic Auth) | ✅ | ❌ | ❌ | ❌ |
+| SQL compatibility | ❌ | ✅ | ✅ | ❌ |
+
 *Benchmark run on standard workstation. Actual performance depends on hardware.*
+
 
 ---
 
