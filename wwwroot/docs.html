@@ -505,6 +505,8 @@
                         <li><strong>Bulk Query Memory Optimization:</strong> Bulk (JSONL) queries now use chunked processing with temporary lightweight indexes, keeping memory bounded by <code>bulkStoreMaxCacheBytes</code> even for very large files.</li>
                         <li><strong>Multi-Language UTF-8 HTTP Encoding:</strong> Full UTF-8 support for query string parameters, resolving encoding issues for non-Latin alphabets (Turkish, Arabic, Russian, Chinese, Japanese, etc.).</li>
                         <li><strong>Lazy Collection Directory Creation:</strong> Collection folders are generated only when the first write operation (<code>insert</code>) occurs, preventing clutter from read-only checks on non-existent collections.</li>
+                        <li><strong>UUID v7 as Default ID Scheme:</strong> All collections (Standard, Memory, Bulk) now generate RFC 9562 compliant UUID v7 IDs by default. New query functions <code>guidv7()</code>, <code>guidv7(datetime)</code>, and <code>guidv7CreatedAt(guid)</code> are available in all script contexts.</li>
+                        <li><strong>Multi-Engine Benchmark Tool (compare.py):</strong> A Python-based benchmark measures AxarDB (db/memory/bulk) against PostgreSQL, MariaDB, and MongoDB. Generates an interactive Chart.js HTML report (<code>output.html</code>) with per-operation timing, a <em>"How many times faster is AxarDB (memory)?"</em> speedup chart, and a feature comparison matrix. The tool automatically raises <code>queryTimeoutMinutes</code> to 30 minutes before running and awaits each queue job with a 300-second timeout to prevent false cancellations.</li>
                     </ul>
                 </div>
             </section>
@@ -1006,7 +1008,7 @@ db.sysconfig.<span class="function">findall</span>().<span class="function">upda
 });</code></pre>
 
                 <div class="warning-box">
-                    <strong>⚠️ Restart Required:</strong> <code>sysconfig</code> koleksiyonundaki sistem ayarları değişiklikleri, sunucu yeniden başlatıldığında aktif olacaktır. The management console displays a contextual banner only when you are actively working on the <code>sysconfig</code> collection.
+                    <strong>⚠️ Restart Required:</strong> Changes to the <code>sysconfig</code> collection take effect after a server restart. The management console displays a contextual banner only when you are actively working on the <code>sysconfig</code> collection.
                 </div>
 
                 <h3>System Collections Overview</h3>
