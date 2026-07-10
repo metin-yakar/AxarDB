@@ -134,7 +134,7 @@ namespace AxarDB.Core
                  // Let's stick to existing Logger class structure OR extend it.
                  // Given the complexity of SQL logs, JSON might be better but let's try to fit into Logger.
                  // However, "request_log" usually implies HTTP requests in this project. 
-                 // The prompt says "request_log, error_log... detayları ilgili log tiplerinin standardına uygun olarak kayda düşmelidir".
+                 // The prompt specified that request_log, error_log, etc. should be written according to the standard format of the relevant log type.
                  // I will use a new method in Logger or just append to a dedicated mysql log file to avoid polluting HTTP logs 
                  // OR I simply use Logger.LogRequest if it fits? 
                  // Logger.LogRequest takes (ip, user, json, duration, success).
@@ -253,6 +253,37 @@ namespace AxarDB.Core
             engine.SetValue("split", new Func<string, string, string[]>(AxarDB.Helpers.ScriptUtils.Split));
             engine.SetValue("toDecimal", new Func<string, decimal>(AxarDB.Helpers.ScriptUtils.ToDecimal));
             engine.SetValue("guid", new Func<string>(() => Guid.NewGuid().ToString()));
+
+            // --- UUID v7 Functions ---
+            // guidv7()             → new UUID v7 using the current UTC time
+            // guidv7(datetime)     → new UUID v7 using the supplied datetime string (ISO 8601)
+            // guidv7CreatedAt(str) → extracts the creation timestamp (UTC) from a UUID v7 string
+            engine.SetValue("guidv7", new Func<object?, string>(arg =>
+            {
+                if (arg == null || arg is Jint.Native.JsValue jsv && jsv.IsNull() || arg is Jint.Native.JsValue jsv2 && jsv2.IsUndefined())
+                    return AxarDB.Helpers.GuidV7.NewGuid().ToString();
+
+                var argStr = arg.ToString();
+                if (string.IsNullOrWhiteSpace(argStr))
+                    return AxarDB.Helpers.GuidV7.NewGuid().ToString();
+
+                if (DateTimeOffset.TryParse(argStr, null,
+                        System.Globalization.DateTimeStyles.AssumeUniversal |
+                        System.Globalization.DateTimeStyles.AdjustToUniversal,
+                        out var dto))
+                    return AxarDB.Helpers.GuidV7.NewGuid(dto).ToString();
+
+                throw new InvalidOperationException(
+                    $"guidv7(): Invalid datetime format '{argStr}'. Use ISO 8601, e.g. '2024-01-15T10:30:00Z'.");
+            }));
+
+            engine.SetValue("guidv7CreatedAt", new Func<string, object?>(guidStr =>
+            {
+                if (string.IsNullOrWhiteSpace(guidStr))
+                    return null;
+                var ts = AxarDB.Helpers.GuidV7.GetTimestamp(guidStr);
+                return ts.HasValue ? (object)ts.Value.UtcDateTime : null;
+            }));
             engine.SetValue("toJson", new Func<object, string>(o => System.Text.Json.JsonSerializer.Serialize(o, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })));
             engine.SetValue("csv", new Func<object, object>(AxarDB.Helpers.ScriptUtils.Csv));
 
@@ -706,7 +737,7 @@ namespace AxarDB.Core
         private string QueueJob(string template, object? parameters, object? options)
         {
             var sysqueue = GetCollection("sysqueue");
-            var id = Guid.NewGuid().ToString();
+            var id = AxarDB.Helpers.GuidV7.NewGuid().ToString();
             
             var job = new Dictionary<string, object>
             {

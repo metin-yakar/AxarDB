@@ -111,7 +111,7 @@ namespace AxarDB.Bridges
             foreach (var doc in documents)
             {
                 if (!doc.ContainsKey("_id"))
-                    doc["_id"] = Guid.NewGuid().ToString();
+                    doc["_id"] = AxarDB.Helpers.GuidV7.NewGuid().ToString();
                 lines.Add(JsonSerializer.Serialize(doc));
             }
 
