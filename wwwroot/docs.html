@@ -427,12 +427,9 @@
                 <a class="nav-link" data-target="bulk-store">
                     <i data-lucide="hard-drive"></i> Bulk Store (JSONL)
                 </a>
-                <a class="nav-link" data-target="joins">
-                    <i data-lucide="git-merge"></i> Join Operations
-                </a>
-                <a class="nav-link" data-target="indexing">
-                    <i data-lucide="list-ordered"></i> Index
-                </a>
+                <a class="nav-link" data-target="joins"><i data-lucide="git-merge"></i>Join Operations</a>
+                <a class="nav-link" data-target="uuid-v7"><i data-lucide="fingerprint"></i>UUID v7 Support</a>
+                <a class="nav-link" data-target="indexing"><i data-lucide="list-ordered"></i> Index</a>
             </div>
 
             <div class="nav-section">
@@ -696,6 +693,53 @@ bulk.<span class="function">reload</span>(<span class="string">"countries"</span
     name: x.j1.productName,
     category: x.j2.categoryName
 }));</code></pre>
+            </section>
+
+            <!-- UUID v7 Support -->
+            <section class="section" id="uuid-v7">
+                <h2>UUID v7 Support</h2>
+                <p>AxarDB uses native RFC 9562 compliant UUID v7 as its default <code>_id</code> generation strategy for all collections. This guarantees chronologically ordered, time-sortable IDs that enhance lookup speeds. Older UUID v4 keys are fully compatible and can coexist within the same collections.</p>
+                
+                <h3>Global Functions</h3>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Function</th>
+                            <th>Description</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>guidv7()</code></td>
+                            <td>Generates a new UUID v7 using current UTC time.</td>
+                            <td><code>guidv7()</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>guidv7(datetime)</code></td>
+                            <td>Generates a new UUID v7 using the specified ISO 8601 date string.</td>
+                            <td><code>guidv7("2024-01-15T10:30:00Z")</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>guidv7CreatedAt(id)</code></td>
+                            <td>Extracts the UTC creation timestamp from a valid UUID v7 string. Returns <code>Date</code> or <code>null</code>.</td>
+                            <td><code>guidv7CreatedAt(doc._id)</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>guid()</code></td>
+                            <td>Generates a standard UUID v4. Maintained for legacy compatibility.</td>
+                            <td><code>guid()</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Usage Example</h3>
+                <pre><code><span class="comment">// Query creation date of a document</span>
+<span class="keyword">var</span> doc = db.products.<span class="function">find</span>(p => p.name == <span class="string">"Super Phone 0"</span>);
+<span class="keyword">if</span> (doc) {
+    <span class="keyword">var</span> createdTime = <span class="function">guidv7CreatedAt</span>(doc._id);
+    console.<span class="function">log</span>(<span class="string">"Product created at: "</span> + createdTime);
+}</code></pre>
             </section>
 
             <!-- Indexing -->

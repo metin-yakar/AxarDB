@@ -22,7 +22,8 @@
 
 | Feature | Description |
 |:---|:---|
-| **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active).toList()`. Supports new extensions like `count()` and `distinct()` on both ResultSets and Native Arrays. |
+| **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active).toList()`. Supports prototype extensions like `count()` and `distinct()`. |
+| **🆔 UUID v7 Support** | Native RFC 9562 UUID v7 is the default `_id` scheme. Generates sortable IDs and supports `guidv7()`, `guidv7(datetime)` and `guidv7CreatedAt(id)`. |
 | **⚡ High Performance** | In-memory storage with `ConcurrentDictionary`, lazy evaluation using PLINQ, and strictly-capped dynamic 40% Memory Cache expiration. |
 | **🧠 Memory Store** | `memory.sessions.insert({...})` with TTL support for sessions, caches, and short-lived data. |
 | **💾 Bulk Store** | High-performance JSONL static storage with LRU caching and memory-bounded chunked queries for large files. |
@@ -137,6 +138,28 @@ var large = bulk.countries.findall(c => c.population > 1000000).toList();
 
 // Manually reload cache
 bulk.reload("countries");
+```
+
+---
+
+## 🆔 UUID v7 Support
+
+AxarDB implements native **RFC 9562** compliant UUID v7 as its default primary key (`_id`) generation scheme. This provides sequentially ordered, time-sortable IDs that perform exceptionally well with indexing and database partitioning, while maintaining full backward compatibility with older UUID v4 keys.
+
+### Global Functions:
+- `guidv7()`: Generates a new UUID v7 using the current UTC time.
+- `guidv7(datetime)`: Generates a new UUID v7 with the specified date/time string.
+- `guidv7CreatedAt(guid)`: Extracts the creation date of a v7 GUID as a UTC DateTime.
+- `guid()`: Generates a standard UUID v4 (backward compatibility).
+
+### Usage Example:
+```javascript
+// Check creation date of a document directly in queries
+var product = db.products.find(p => p.name == "Super Phone 0");
+if (product) {
+    var creationDate = guidv7CreatedAt(product._id);
+    console.log("Product created at: " + creationDate);
+}
 ```
 
 ---
