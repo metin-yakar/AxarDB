@@ -44,7 +44,7 @@ namespace AxarDB.Definitions
             
             // Indices
             Indices.Clear();
-            var path = Path.Combine("Data", Name);
+            var path = Path.Combine(_storage.BasePath, Name);
             if (Directory.Exists(path))
             {
                 foreach (var file in Directory.EnumerateFiles(path, "idx_*.json"))
@@ -186,9 +186,21 @@ namespace AxarDB.Definitions
                                .ToList();
                      return docs;
                  }
+
+                 // Full Scan with Parallelism (C# Optimized Evaluator Fallback)
+                 string[] allIds2;
+                 lock (_indexLock) { allIds2 = _primaryIndex.ToArray(); }
+
+                 var allDocs2 = allIds2.AsParallel().WithCancellation(cancellationToken)
+                              .Select(id => GetDocument(id))
+                              .Where(doc => doc != null)
+                              .Select(doc => doc!)
+                              .Where(doc => AxarDB.Query.QueryOptimizer.Evaluate(doc, analysis.Value))
+                              .ToList();
+                 return allDocs2;
              }
 
-             // Full Scan with Parallelism
+             // Full Scan with Parallelism (Jint execution)
              string[] allIds;
              lock (_indexLock) { allIds = _primaryIndex.ToArray(); }
 
@@ -211,13 +223,15 @@ namespace AxarDB.Definitions
                 index.IndexDocument(doc);
             }
             Indices.Add(index);
-            index.Save(Path.Combine("Data", Name));
+            _storage.EnsureCollection(Name);
+            index.Save(Path.Combine(_storage.BasePath, Name));
         }
 
         public void SaveIndices()
         {
             _indexSaveCounter = 0;
-            var path = Path.Combine("Data", Name);
+            _storage.EnsureCollection(Name);
+            var path = Path.Combine(_storage.BasePath, Name);
             foreach (var index in Indices)
             {
                 index.Save(path);

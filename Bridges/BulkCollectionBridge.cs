@@ -1,6 +1,7 @@
 using Jint;
 using Jint.Native;
 using AxarDB.Wrappers;
+using System.Diagnostics;
 
 namespace AxarDB.Bridges
 {
@@ -13,6 +14,12 @@ namespace AxarDB.Bridges
         private readonly BulkStore _store;
         private readonly string _collectionName;
         private readonly Engine? _engine;
+
+        private static readonly bool Diag = Environment.GetEnvironmentVariable("AXARDB_DIAG") == "1";
+        private static void Log(string step, string detail, long ms)
+        {
+            if (Diag) Console.WriteLine($"[diag:bulk-bridge] {step} | {detail} | {ms} ms");
+        }
 
         public BulkCollectionBridge(BulkStore store, string collectionName, Engine? engine = null)
         {
@@ -29,7 +36,10 @@ namespace AxarDB.Bridges
         {
             var list = ConvertToList(docsObj);
             if (list == null || list.Count == 0) return 0;
+            var sw = Stopwatch.StartNew();
             _store.Insert(_collectionName, list);
+            sw.Stop();
+            Log("insert", $"{_collectionName} docs={list.Count}", sw.ElapsedMilliseconds);
             return list.Count;
         }
 
@@ -40,6 +50,25 @@ namespace AxarDB.Bridges
             {
                 var all = _store.GetDocuments(_collectionName);
                 return new BulkResultSet(all, _store, _collectionName);
+            }
+
+            // Optimize simple queries
+            var optimized = AxarDB.Query.QueryOptimizer.AnalyzePredicate(predicate);
+            if (optimized != null)
+            {
+                var analysis = new AxarDB.Query.QueryOptimizer.AnalysisResult
+                {
+                    Prop = optimized.Value.prop!,
+                    Val = optimized.Value.val!,
+                    Op = optimized.Value.op
+                };
+
+                var sw = Stopwatch.StartNew();
+                var all = _store.GetDocuments(_collectionName);
+                var filtered = all.Where(d => AxarDB.Query.QueryOptimizer.Evaluate(d, analysis)).ToList();
+                sw.Stop();
+                Log("findall(fast)", $"{_collectionName} prop={analysis.Prop} op={analysis.Op} matched={filtered.Count}", sw.ElapsedMilliseconds);
+                return new BulkResultSet(filtered, _store, _collectionName);
             }
 
             Func<Dictionary<string, object>, bool> csPredicate = (d) =>

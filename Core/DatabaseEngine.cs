@@ -613,13 +613,33 @@ namespace AxarDB.Core
                 }
             }
 
-            // Create a new engine for scope isolation with constraints
+            // Build a fresh Jint engine per script execution. The engine captures
+            // the cancellation token at construction time, so a cached/shared
+            // engine would permanently bind to the first request's abort token
+            // and cancel every subsequent script once that request completes.
+            var engine = CreateScriptEngine(cancellationToken, ctx);
+
+            // Execute user script. A fresh engine per call keeps each request's
+            // cancellation token and global scope isolated.
+            var result = engine.Evaluate(script);
+
+            // Convert result back to native object if possible
+            return result.ToObject();
+        }
+
+        /// <summary>
+        /// Creates a fully configured Jint engine bound to the supplied
+        /// cancellation token. Called once per <see cref="ExecuteScript"/> so the
+        /// engine never inherits a stale request-aborted token from a previous call.
+        /// </summary>
+        private Engine CreateScriptEngine(CancellationToken cancellationToken, ScriptContext ctx)
+        {
             var engine = new Engine(options => {
                  options.AllowClr();
                  options.CancellationToken(cancellationToken);
                  options.LimitRecursion(Settings.MaxRecursionDepth);
                  options.TimeoutInterval(TimeSpan.FromMinutes(Settings.QueryTimeoutMinutes));
-            });
+             });
 
             // Expose console.log for CLI scripts and debugging
             engine.SetValue("console", new { log = new Action<object>(o => AxarDB.Logging.Logger.LogDebug(FormatLog(o))) });
@@ -663,12 +683,8 @@ namespace AxarDB.Core
 
             // --- Utility Functions ---
             RegisterUtils(engine, ctx);
-            
-            // Execute
-            var result = engine.Evaluate(script);
-            
-            // Convert result back to native object if possible
-            return result.ToObject();
+
+            return engine;
         }
 
         private bool IsValidInput(string input)
@@ -1011,6 +1027,11 @@ namespace AxarDB.Core
                     // Path: Data/CollectionName/doc.json OR Data/CollectionName/_id_wrapper if shards (but current impl is simple)
                     // Current DiskStorage: Data/CollectionName/{guid}.json
                     
+                    // Index files (idx_*.json) are metadata, not documents — ignore them so the
+                    // watcher doesn't treat index writes as document changes.
+                    if (Path.GetFileName(fullPath).StartsWith("idx_", StringComparison.OrdinalIgnoreCase))
+                        return;
+
                     var relative = Path.GetRelativePath(Path.Combine(_basePath, "Data"), fullPath);
                     var parts = relative.Split(Path.DirectorySeparatorChar);
                     
