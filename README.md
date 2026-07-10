@@ -52,6 +52,8 @@ Unlike traditional databases that require complex protocols, AxarDB executes you
 
 > 📊 **See the full interactive report: [output.html](output.html)** — includes Chart.js visualizations and a feature comparison matrix.
 
+![AxarDB Web UI](./axarchart.png)
+
 | Operation | AxarDB (memory) | AxarDB (db) | AxarDB (bulk) | PostgreSQL | MariaDB | MongoDB |
 |:---|---:|---:|---:|---:|---:|---:|
 | Setup (DDL) | 0 ms | 0 ms | 0 ms | 15.81 ms | 41.61 ms | 0.29 ms |
