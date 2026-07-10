@@ -50,7 +50,7 @@ namespace AxarDB.Bridges
         {
             if (!document.ContainsKey("_id"))
             {
-                document["_id"] = Guid.NewGuid().ToString();
+                document["_id"] = AxarDB.Helpers.GuidV7.NewGuid().ToString();
             }
 
             var id = document["_id"].ToString()!;
