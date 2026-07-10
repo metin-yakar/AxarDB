@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text;
+using System.Diagnostics;
 
 namespace AxarDB.Bridges
 {
@@ -11,6 +12,14 @@ namespace AxarDB.Bridges
     /// </summary>
     public class BulkStore : IDisposable
     {
+        private static readonly bool Diag = Environment.GetEnvironmentVariable("AXARDB_DIAG") == "1";
+        private static void Log(string step, string detail, long ms, long count = -1)
+        {
+            if (!Diag) return;
+            var c = count >= 0 ? $" count={count}" : "";
+            Console.WriteLine($"[diag:bulk] {step}{c} | {detail} | {ms} ms");
+        }
+
         private readonly string _bulkPath;
         private readonly ConcurrentDictionary<string, BulkCacheEntry> _cache = new();
         private readonly FileSystemWatcher _watcher;
@@ -99,12 +108,17 @@ namespace AxarDB.Bridges
             if (_cache.TryGetValue(name, out var entry))
                 return entry.Documents;
 
-            return LoadAndCache(name);
+            var sw = Stopwatch.StartNew();
+            var r = LoadAndCache(name);
+            sw.Stop();
+            Log("GetDocuments(miss)", name, sw.ElapsedMilliseconds);
+            return r;
         }
 
         /// <summary>Insert/append documents to a JSONL file, creating it if it doesn't exist.</summary>
         public void Insert(string name, IEnumerable<Dictionary<string, object>> documents)
         {
+            var sw = Stopwatch.StartNew();
             var path = GetFilePath(name);
             var lines = new List<string>();
 
@@ -120,6 +134,8 @@ namespace AxarDB.Bridges
 
             // Invalidate cache so it reloads fresh
             InvalidateCache(name);
+            sw.Stop();
+            Log("Insert", $"{name} docs={lines.Count}", sw.ElapsedMilliseconds, lines.Count);
         }
 
         /// <summary>Manually reload a specific collection from disk.</summary>

@@ -1,57 +1,47 @@
-# AxarDB Release Notes - System Collection Restrictions & Bulk Query Memory Optimization
+# AxarDB Release Notes — Benchmark Tool Improvements & Documentation Refresh
 
-This release introduces protection against custom `sys`-prefixed collection names, and a major optimization for Bulk collection queries using memory-bounded chunked processing with temporary lightweight indexing.
-
----
-
-## 🌟 New Features & Improvements
-
-### 1. System Collection Name Restrictions
-
-- **Reserved Prefix Enforcement**: Users are now blocked from creating, accessing, or inserting into any collection whose name starts with `sys`, unless it is one of the pre-defined system collections (`sysusers`, `sysqueue`, `sysvaults`, `sysconfig`).
-- **Multi-layer Protection**: Restrictions are enforced at three levels:
-  - `db.sysnew` — throws `InvalidOperationException` via `AxarDBBridge.TryGetMember`
-  - `AxarDB("sysnew")` — throws `InvalidOperationException` via `DatabaseEngine` constructor binding
-  - `db.sysnew.insert(...)` — blocked via `CollectionBridge.insert` and `Collection.Insert`
-- **Rationale**: Prevents accidental or malicious creation of collections that shadow internal database infrastructure.
-
-### 2. Bulk Query Memory-Bounded Chunked Processing
-
-- **Problem Solved**: Previously, Bulk (JSONL) collection queries loaded all data into memory at once — unsafe for very large files.
-- **Chunked Iteration**: `BulkStore.QueryChunks` now reads JSONL files line-by-line, accumulating data up to the configured `BulkStoreMaxCacheBytes` limit per chunk, then:
-  1. Builds a **temporary lightweight index** containing only the fields accessed by the predicate.
-  2. Runs the predicate (prediction/filtering) against the temp index.
-  3. For matched entries, loads the full document for the result set.
-  4. Releases chunk memory and advances to the next chunk.
-- **Memory Cleanup**: After each chunk is processed, `GC.Collect(0, GCCollectionMode.Optimized)` is called to reclaim memory promptly.
-
-### 3. Temporary Index Optimization for Bulk Predicates
-
-- **Field Extraction via QueryOptimizer**: `QueryOptimizer.ExtractAccessedProperties(JsValue predicate)` uses regex analysis of the JavaScript predicate code to identify accessed property names (dot notation and bracket notation).
-- **Selective Parsing**: `BulkStore.ParseSelectedProperties` uses `System.Text.Json.JsonDocument` to parse only the required fields from each JSON line, without full deserialization — significantly reducing memory pressure for large collections.
-- **Always includes `_id`**: The `_id` field is always extracted regardless of the predicate.
-
-### 4. Bulk Collection Bridge Refactoring
-
-- Updated `findall`, `find`, `contains`, and `startsWith` in `BulkCollectionBridge` to accept `JsValue` instead of `Func<object, bool>`.
-- `findall()` without a predicate still falls back to the fast cached `GetDocuments()` path — no chunk overhead when not needed.
-- `contains` and `startsWith` now correctly route through `QueryChunks` using the `CaseInsensitiveDocumentWrapper`.
-
-### 5. Documentation Fix
-
-- Corrected misleading documentation in `Docs/llm_ragfile_en.md` regarding `findall()`. The function does NOT produce a runtime error when used without `.toList()`. It returns a `ResultSet` that is fully chainable and iterable.
+This release fixes the multi-engine benchmark tool (`compare.py`), corrects terminology in the generated HTML report, removes all non-English content from benchmark-related files, and updates documentation across the project to reflect the latest features.
 
 ---
 
-## 🔧 Files Changed
+## 🔧 Fixes & Improvements
 
-| File | Change |
-|---|---|
-| `Definitions/Collection.cs` | Added sys-prefix validation in `Insert` |
-| `Bridges/CollectionBridge.cs` | Restricted insert on sys-prefixed collections |
-| `Bridges/AxarDBBridge.cs` | Blocked access to reserved sys-prefixed names in `TryGetMember` |
-| `Core/DatabaseEngine.cs` | Blocked `AxarDB("sysnew")` constructor calls |
-| `Query/QueryOptimizer.cs` | Added `ExtractAccessedProperties(JsValue)` method |
-| `Bridges/BulkStore.cs` | Added `QueryChunks`, `ProcessChunk`, `ParseSelectedProperties`, `GetJsonValue` |
-| `Bridges/BulkCollectionBridge.cs` | Refactored `findall`, `find`, `contains`, `startsWith` to use `QueryChunks` |
-| `Docs/llm_ragfile_en.md` | Corrected `findall()` description |
+### 1. Benchmark Tool (`compare.py`) — Now Fully Runnable
+
+- **Fixed script cancellation:** The benchmark previously failed for all AxarDB stores (`memory`, `db`, `bulk`) with `"The script execution was canceled."` because the default `queryTimeoutMinutes` in `sysconfig` was too short for the workload. The tool now calls `db.sysconfig.findall().update({ queryTimeoutMinutes: 30 })` immediately after AxarDB becomes ready, extending the allowed script execution time before any benchmark jobs are queued.
+- **Extended queue job await timeout:** The `_await_duration` polling timeout was increased from **60 seconds** to **300 seconds**, preventing false `None` results for slow operations such as JavaScript-loop-based bulk inserts in the `db` store.
+- **Removed all Turkish content:** City name placeholders in benchmark data records were changed from Turkish cities to neutral international cities (`London`, `Berlin`, `Paris`, `Madrid`). No Turkish strings remain anywhere in `compare.py`.
+
+### 2. HTML Report (`output.html`) — Label Correction
+
+- **Corrected speedup row label:** The table row and chart section previously labeled `"Speedup vs AxarDB (memory) (x)"` have been renamed to **`"How many times faster is AxarDB (memory)?"`** in both the HTML table and the Chart.js bar chart dataset label.
+- **No Turkish content:** Verified that `output.html` contains no Turkish-language strings.
+
+### 3. README.md — Benchmark Section Refresh
+
+- Updated the performance benchmarks section with data from the latest `output.html` run.
+- Added a **Feature Comparison Matrix** table highlighting AxarDB-unique capabilities vs. PostgreSQL, MariaDB, and MongoDB.
+- Added a prominent link to the interactive `output.html` report.
+- Replaced the old speedup row label with **"How many times faster is AxarDB (memory)?"** to match the updated report.
+
+### 4. `Docs/llm_ragfile_en.md` — Benchmark Documentation Expanded
+
+- Extended Section 17 (Multi-Engine Benchmark Tool) with details about:
+  - Automatic `queryTimeoutMinutes` extension at startup.
+  - The 300-second queue job await timeout.
+  - The new **"How many times faster is AxarDB (memory)?"** speedup label.
+  - A description of all report sections (`Engine Status`, `Operation Times`, speedup chart, feature matrix, configuration).
+
+### 5. `wwwroot/docs.html` — Latest Updates Section
+
+- Added two new bullet points to the **Latest Updates** info box:
+  - **UUID v7 as Default ID Scheme:** Clarifies that all collection types now use RFC 9562 UUID v7 by default, and documents the `guidv7()`, `guidv7(datetime)`, and `guidv7CreatedAt(guid)` query functions.
+  - **Multi-Engine Benchmark Tool (`compare.py`):** Documents the `queryTimeoutMinutes` auto-expansion, 300-second await timeout, and the `"How many times faster is AxarDB (memory)?"` speedup chart.
+
+---
+
+## 🎯 Backward Compatibility
+
+- No breaking changes to the AxarDB server, SDK, or query language.
+- The `compare.py` benchmark script remains fully optional and does not affect the database runtime.
+- All `sysconfig` changes made by the benchmark tool are temporary runtime updates and do not persist across server restarts unless the server is restarted after the update.

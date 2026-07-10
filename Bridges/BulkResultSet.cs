@@ -6,8 +6,13 @@ namespace AxarDB.Bridges
     /// <summary>
     /// ResultSet for bulk (JSONL) collections. Supports chaining but no direct modification.
     /// delete() rewrites the JSONL file without the matched rows.
+    ///
+    /// Enumeration yields the underlying <see cref="Dictionary{string,object}"/> directly so
+    /// Jint can marshal the result into a JavaScript array WITHOUT an extra `.toList()` call
+    /// and WITHOUT a per-document <see cref="DocumentWrapper"/> allocation. Wrappers are used
+    /// only where a script explicitly needs them (select/first/find/foreach predicates).
     /// </summary>
-    public class BulkResultSet : IEnumerable<DocumentWrapper>
+    public class BulkResultSet : IEnumerable<Dictionary<string, object>>
     {
         private readonly IEnumerable<Dictionary<string, object>> _source;
         private readonly BulkStore _store;
@@ -20,13 +25,12 @@ namespace AxarDB.Bridges
             _collectionName = collectionName;
         }
 
-        public IEnumerator<DocumentWrapper> GetEnumerator()
-            => _source.Select(d => new DocumentWrapper(d)).GetEnumerator();
+        public IEnumerator<Dictionary<string, object>> GetEnumerator() => _source.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public List<DocumentWrapper> toList() => _source.Select(d => new DocumentWrapper(d)).ToList();
-        public List<DocumentWrapper> ToList() => toList();
+        public List<Dictionary<string, object>> toList() => _source.ToList();
+        public List<Dictionary<string, object>> ToList() => toList();
 
         public BulkResultSet take(int count)
             => new BulkResultSet(_source.Take(count), _store, _collectionName);

@@ -840,7 +840,36 @@ dotnet run -- --cors "http://localhost:3000,http://example.com"
 ./AxarDB.Cli --insert users "{\"name\":\"Alice\"}"
 ```
 
-## 17. Common Patterns & Troubleshooting
+## 17. Multi-Engine Benchmark Tool
+
+AxarDB ships with a Python-based benchmark tool (`compare.py`) that measures AxarDB (db/memory/bulk) against PostgreSQL, MariaDB, and MongoDB. It generates an interactive HTML report (`output.html`) with Chart.js visualizations.
+
+### Running the Benchmark
+```bash
+python compare.py
+```
+
+### What It Tests
+- Setup (DDL), Single Insert, Bulk Insert, Index Creation
+- Count (COUNT), Filter Query, Range Query, Aggregation (avg age), Update, Delete
+
+### Key Details
+- AxarDB times are measured server-side via `sysqueue` Stopwatch, excluding HTTP overhead.
+- Filter and Range queries use the indexed `age` column across all engines.
+- The report includes a feature comparison table highlighting AxarDB-unique capabilities.
+- On startup, the benchmark automatically raises `queryTimeoutMinutes` in `sysconfig` to 30 minutes to prevent script cancellation during long-running workloads.
+- The speedup row label in both the HTML table and chart is **"How many times faster is AxarDB (memory)?"**, comparing total operation times across all engines against AxarDB (memory) as the baseline.
+- The benchmark awaits queue job completion with a 300-second timeout per operation.
+
+### Report Sections
+- **Engine Status**: Lists each engine with OK or error status.
+- **Operation Times (ms)**: Per-operation timing table.
+- **How many times faster is AxarDB (memory)?**: Speedup comparison chart.
+- **Advanced Features Comparison**: Feature matrix showing AxarDB-unique capabilities.
+- **Test Configuration**: Connection details and methodology notes.
+
+
+## 18. Common Patterns & Troubleshooting
 
 ### Frequent Mistakes
 

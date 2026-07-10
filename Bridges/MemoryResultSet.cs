@@ -5,10 +5,16 @@ namespace AxarDB.Bridges
 {
     /// <summary>
     /// A ResultSet variant for in-memory collections.
-    /// Supports chaining (take, skip, select, toList, foreach, count, delete) 
-    /// where delete() works directly against the MemoryStore.
+    /// Supports chaining (take, skip, select, toList, foreach, count, delete).
+    ///
+    /// IMPORTANT: enumeration yields the underlying <see cref="Dictionary{string,object}"/>
+    /// directly — NOT a <see cref="DocumentWrapper"/>. The documents are already plain CLR
+    /// objects (converted via CustomObjectConverter), so returning them directly lets Jint
+    /// marshal the result into a real JavaScript array WITHOUT an extra `.toList()` call and
+    /// WITHOUT allocating a wrapper per document. <see cref="DocumentWrapper"/> is still used
+    /// only where a script explicitly needs it (select/first/find/foreach predicates).
     /// </summary>
-    public class MemoryResultSet : IEnumerable<DocumentWrapper>
+    public class MemoryResultSet : IEnumerable<Dictionary<string, object>>
     {
         private readonly IEnumerable<Dictionary<string, object>> _source;
         private readonly MemoryStore _store;
@@ -21,13 +27,12 @@ namespace AxarDB.Bridges
             _collectionName = collectionName;
         }
 
-        public IEnumerator<DocumentWrapper> GetEnumerator()
-            => _source.Select(d => new DocumentWrapper(d)).GetEnumerator();
+        public IEnumerator<Dictionary<string, object>> GetEnumerator() => _source.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public List<DocumentWrapper> toList() => _source.Select(d => new DocumentWrapper(d)).ToList();
-        public List<DocumentWrapper> ToList() => toList();
+        public List<Dictionary<string, object>> toList() => _source.ToList();
+        public List<Dictionary<string, object>> ToList() => toList();
 
         public MemoryResultSet take(int count)
             => new MemoryResultSet(_source.Take(count), _store, _collectionName);
