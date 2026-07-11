@@ -430,6 +430,7 @@
                 <a class="nav-link" data-target="joins"><i data-lucide="git-merge"></i>Join Operations</a>
                 <a class="nav-link" data-target="uuid-v7"><i data-lucide="fingerprint"></i>UUID v7 Support</a>
                 <a class="nav-link" data-target="indexing"><i data-lucide="list-ordered"></i> Index</a>
+                <a class="nav-link" data-target="prototype-extensions"><i data-lucide="code"></i> Prototype Extensions</a>
             </div>
 
             <div class="nav-section">
@@ -467,6 +468,22 @@
                 </a>
                 <a class="nav-link" data-target="security">
                     <i data-lucide="shield"></i> Security
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">SDKs & Tools</div>
+                <a class="nav-link" data-target="dotnet-sdk">
+                    <i data-lucide="code-2"></i> .NET SDK (C#)
+                </a>
+                <a class="nav-link" data-target="python-sdk">
+                    <i data-lucide="binary"></i> Python SDK
+                </a>
+                <a class="nav-link" data-target="cli-tool">
+                    <i data-lucide="terminal"></i> CLI Tool
+                </a>
+                <a class="nav-link" data-target="benchmark">
+                    <i data-lucide="bar-chart-3"></i> Benchmark Tool
                 </a>
             </div>
 
@@ -755,6 +772,86 @@ db.users.<span class="function">index</span>(x => x.createdAt, <span class="stri
 
 <span class="comment">// Chaining</span>
 db.users.<span class="function">insert</span>({...}).<span class="function">index</span>(x => x.name);</code></pre>
+            </section>
+
+            <!-- Prototype Extensions & Case-Insensitive Search -->
+            <section class="section" id="prototype-extensions">
+                <h2>Built-in Prototype Extensions & Case-Insensitive Search</h2>
+                <p>AxarDB extends native JavaScript prototypes on every script execution to add powerful utility methods. It also provides two distinct methods for case-insensitive searching.</p>
+
+                <h3>Case-Insensitive Search Mechanisms</h3>
+                <p>Do not confuse these two mechanisms as they serve different purposes:</p>
+                <ul>
+                    <li><strong>Collection-Level <code>contains</code> (Exact Match)</strong>: Uses a case-insensitive wrapper so property access is case-insensitive, performing exact matching.</li>
+                    <li><strong>String Prototype <code>.contains(str)</code> (Substring Search)</strong>: Custom method injected into all string instances for case-insensitive substring matching.</li>
+                </ul>
+                <pre><code><span class="comment">// 1. Collection-Level exact match (case-insensitive properties)</span>
+<span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>).<span class="function">toList</span>();
+<span class="comment">// Matches "Developer", "DEVELOPER", "developer"</span>
+
+<span class="comment">// 2. String Prototype case-insensitive substring search</span>
+<span class="keyword">var</span> matches = bulk.postalcodes.<span class="function">findall</span>(x => x.placeName.<span class="function">contains</span>(<span class="string">"esen"</span>)).<span class="function">toList</span>();
+<span class="comment">// Matches "Esenler", "ESENYURT", "Büyükçekmece" (contains "esen")</span></code></pre>
+
+                <h3>String Prototype Extensions</h3>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Description</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>.contains(str)</code></td>
+                            <td>Case-insensitive substring search. Turkish character aware.</td>
+                            <td><code>"İstanbul".contains("istan")</code> &rarr; <code>true</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>.startsWith(str)</code></td>
+                            <td>Case-insensitive prefix check. Turkish character aware.</td>
+                            <td><code>"İZMİR".startsWith("izm")</code> &rarr; <code>true</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>.toLowerCase()</code></td>
+                            <td>Turkish-aware lowercase conversion (handles <code>İ &rarr; i</code>, etc.).</td>
+                            <td><code>"İZMİR".toLowerCase()</code> &rarr; <code>"izmir"</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Array & Object Prototype Extensions</h3>
+                <table class="endpoint-table">
+                    <thead>
+                        <tr>
+                            <th>Prototype</th>
+                            <th>Method</th>
+                            <th>Description</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Array</td>
+                            <td><code>.count(predicate?)</code></td>
+                            <td>Counts matching elements, or returns array length if no predicate.</td>
+                            <td><code>arr.count(x => x.age > 18)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Array</td>
+                            <td><code>.distinct(selector?)</code></td>
+                            <td>Deduplicates array. Optional selector projects values first.</td>
+                            <td><code>arr.distinct(x => x.role)</code></td>
+                        </tr>
+                        <tr>
+                            <td>Array / Object</td>
+                            <td><code>.toList()</code></td>
+                            <td>Converts resultsets/iterables to standard arrays. Identity on arrays.</td>
+                            <td><code>db.users.findall().toList()</code></td>
+                        </tr>
+                    </tbody>
+                </table>
             </section>
 
             <!-- Views -->
@@ -1150,11 +1247,124 @@ db.users.<span class="function">insert</span>({
                 </div>
             </section>
 
+            <!-- .NET SDK -->
+            <section class="section" id="dotnet-sdk">
+                <h2>.NET SDK (C#)</h2>
+                <p>Integrate AxarDB into your .NET applications using the official AxarDB SDK.</p>
+                <pre><code><span class="keyword">using</span> AxarDB.Sdk;
+
+<span class="comment">// Initialize Client</span>
+<span class="keyword">using</span> <span class="keyword">var</span> client = <span class="keyword">new</span> <span class="function">AxarClient</span>(<span class="string">"http://localhost:5000"</span>, <span class="string">"unlocker"</span>, <span class="string">"unlocker"</span>);
+
+<span class="comment">// Insert Document</span>
+<span class="keyword">await</span> client.<span class="function">InsertAsync</span>(<span class="string">"users"</span>, <span class="keyword">new</span> { Name = <span class="string">"John"</span>, Age = <span class="number">30</span> });
+
+<span class="comment">// Query with Parameters</span>
+<span class="keyword">var</span> script = <span class="string">"db.users.findall(u => u.name == @name).toList()"</span>;
+<span class="keyword">var</span> users = <span class="keyword">await</span> client.<span class="function">QueryAsync</span>&lt;<span class="keyword">List</span>&lt;User&gt;&gt;(script, <span class="keyword">new</span> { name = <span class="string">"John"</span> });
+
+<span class="comment">// Update Documents</span>
+<span class="keyword">await</span> client.<span class="function">UpdateAsync</span>(<span class="string">"users"</span>, <span class="string">"u => u.name == 'John'"</span>, <span class="keyword">new</span> { Age = <span class="number">31</span> });
+
+<span class="comment">// Builder Pattern (Fluent API)</span>
+<span class="keyword">var</span> count = <span class="keyword">await</span> client.<span class="function">Collection</span>&lt;User&gt;(<span class="string">"users"</span>).<span class="function">Where</span>(<span class="string">"age"</span>, <span class="string">">"</span>, <span class="number">18</span>).<span class="function">CountAsync</span>();
+<span class="keyword">var</span> first = <span class="keyword">await</span> client.<span class="function">Collection</span>&lt;User&gt;(<span class="string">"users"</span>).<span class="function">FirstAsync</span>();
+
+<span class="comment">// View Management</span>
+<span class="keyword">await</span> client.<span class="function">CreateViewAsync</span>(<span class="string">"ActiveUsers"</span>, <span class="string">"return db.users.findall(u => u.active).toList()"</span>);
+<span class="keyword">var</span> list = <span class="keyword">await</span> client.<span class="function">CallViewAsync</span>&lt;<span class="keyword">List</span>&lt;User&gt;&gt;(<span class="string">"ActiveUsers"</span>);
+<span class="keyword">var</span> filtered = <span class="keyword">await</span> client.<span class="function">CallViewAsync</span>&lt;<span class="keyword">List</span>&lt;User&gt;&gt;(<span class="string">"myview"</span>, <span class="keyword">new</span> { minAge = <span class="number">18</span> });
+
+<span class="comment">// Vault Storage</span>
+<span class="keyword">await</span> client.<span class="function">AddVaultAsync</span>(<span class="string">"MY_SECRET"</span>, <span class="string">"12345"</span>);</code></pre>
+            </section>
+
+            <!-- Python SDK -->
+            <section class="section" id="python-sdk">
+                <h2>Python SDK</h2>
+                <p>Interact with AxarDB programmatically from your Python scripts and services.</p>
+                <pre><code><span class="keyword">from</span> axardb <span class="keyword">import</span> AxarClient
+
+<span class="comment"># Initialize Client</span>
+client = <span class="function">AxarClient</span>(<span class="string">"http://localhost:5000"</span>, <span class="string">"unlocker"</span>, <span class="string">"unlocker"</span>)
+
+<span class="comment"># Insert Document</span>
+client.<span class="function">insert</span>(<span class="string">"users"</span>, {<span class="string">"name"</span>: <span class="string">"John"</span>, <span class="string">"age"</span>: <span class="number">30</span>})
+
+<span class="comment"># Query via Builder API</span>
+users = client.<span class="function">collection</span>(<span class="string">"users"</span>).<span class="function">where</span>(<span class="string">"age"</span>, <span class="string">">"</span>, <span class="number">20</span>).<span class="function">to_list</span>()
+
+<span class="comment"># Document Count</span>
+count = client.<span class="function">collection</span>(<span class="string">"users"</span>).<span class="function">count</span>()
+
+<span class="comment"># Delete Documents</span>
+client.<span class="function">collection</span>(<span class="string">"users"</span>).<span class="function">where</span>(<span class="string">"age"</span>, <span class="string">"<"</span>, <span class="number">18</span>).<span class="function">delete</span>()
+
+<span class="comment"># View Management</span>
+client.<span class="function">create_view</span>(<span class="string">"MyView"</span>, <span class="string">"return db.users.take(10).toList()"</span>)
+res = client.<span class="function">call_view</span>(<span class="string">"MyView"</span>)
+res = client.<span class="function">call_view</span>(<span class="string">"MyView"</span>, {<span class="string">"minAge"</span>: <span class="number">18</span>})</code></pre>
+            </section>
+
+            <!-- CLI Tool -->
+            <section class="section" id="cli-tool">
+                <h2>CLI Tool</h2>
+                <p>AxarDB includes a Command Line Interface (CLI) tool for executing scripts, importing data, and running database commands directly from your terminal.</p>
+
+                <h3>Usage Examples</h3>
+                <pre><code><span class="comment"># Interactive query login</span>
+./AxarDB.Cli -s <span class="string">"db.users.count()"</span>
+
+<span class="comment"># Executing script from file</span>
+./AxarDB.Cli -f query.js
+
+<span class="comment"># Fully automated CI/CD mode with credentials and output file</span>
+./AxarDB.Cli -u admin -p pass -f query.js -o result.json
+
+<span class="comment"># List collections on the server</span>
+./AxarDB.Cli --show-collections
+
+<span class="comment"># Direct document insertion</span>
+./AxarDB.Cli --insert users <span class="string">"{\"name\":\"Alice\"}"</span></code></pre>
+
+                <div class="info-box">
+                    <strong>🌐 CORS Configuration:</strong><br>
+                    By default, AxarDB allows all origins (<code>*</code>). You can restrict allowed origins when starting the database server using the CLI parameter:
+                    <pre><code>dotnet run -- --cors "http://localhost:3000,http://example.com"</code></pre>
+                </div>
+            </section>
+
+            <!-- Benchmark Tool -->
+            <section class="section" id="benchmark">
+                <h2>Multi-Engine Benchmark Tool</h2>
+                <p>AxarDB comes with a Python-based benchmark runner (<code>compare.py</code>) to test database throughput (CRUD operations, indexing, and queries) against PostgreSQL, MariaDB, and MongoDB under the same workloads.</p>
+
+                <h3>Running the Benchmark</h3>
+                <pre><code>python compare.py</code></pre>
+
+                <h3>Technical Specifications</h3>
+                <ul>
+                    <li><strong>Metrics Measured:</strong> Single and Bulk Insert times, Index Creation, Count (COUNT), filtered Query/Range searches, record Updates, and Deletes.</li>
+                    <li><strong>Latency Tracing:</strong> Server-side execution times are captured via the <code>sysqueue</code> Stopwatch mechanism, excluding HTTP network payload overhead to measure clean database engine performance.</li>
+                    <li><strong>Timeout Configuration:</strong> To avoid cancellations during deep range searches or heavy bulk inserts, the benchmark script automatically raises the <code>queryTimeoutMinutes</code> in <code>sysconfig</code> to 30 minutes, and waits up to 300 seconds for queue jobs.</li>
+                    <li><strong>Report Generation:</strong> Generates a clean interactive HTML output report (<code>output.html</code>) with Chart.js line and bar charts tracking operation duration and total speedup comparisons.</li>
+                </ul>
+            </section>
+
             <!-- Utilities -->
             <section class="section" id="utilities">
                 <h2>Utility Functions</h2>
-                <pre><code><span class="comment">// Create unique ID (UUID)</span>
+                <pre><code><span class="comment">// Create unique ID (UUID v4)</span>
 <span class="keyword">var</span> id = <span class="function">guid</span>();
+
+<span class="comment">// Create unique ID (UUID v7) using current time</span>
+<span class="keyword">var</span> idV7 = <span class="function">guidv7</span>();
+
+<span class="comment">// Create unique ID (UUID v7) using specified datetime string</span>
+<span class="keyword">var</span> customIdV7 = <span class="function">guidv7</span>(<span class="string">"2024-01-15T10:30:00Z"</span>);
+
+<span class="comment">// Extract creation date from UUID v7</span>
+<span class="keyword">var</span> createdDate = <span class="function">guidv7CreatedAt</span>(idV7);
 
 <span class="comment">// Write log to console (server console and logs/)</span>
 console.<span class="function">log</span>(<span class="string">"Message"</span>);
@@ -1170,6 +1380,15 @@ console.<span class="function">log</span>(<span class="string">"Message"</span>)
 
 <span class="comment">// List existing collections</span>
 <span class="keyword">var</span> cols = <span class="function">showCollections</span>();
+
+<span class="comment">// Schedule background job</span>
+<span class="keyword">var</span> jobId = <span class="function">queue</span>(<span class="string">"db.logs.insert({ msg: @msg })"</span>, { msg: <span class="string">"Hello"</span> }, { priority: <span class="number">1</span> });
+
+<span class="comment">// Get list of indexes for a collection</span>
+<span class="keyword">var</span> indexes = <span class="function">getIndexes</span>(<span class="string">"users"</span>);
+
+<span class="comment">// Create alias for joins</span>
+<span class="keyword">var</span> userAlias = <span class="function">alias</span>(db.users, <span class="string">"u"</span>);
 
 <span class="comment">// Create SHA256 hash</span>
 <span class="keyword">var</span> hash = <span class="function">sha256</span>(<span class="string">"password"</span>);
@@ -1190,6 +1409,12 @@ console.<span class="function">log</span>(<span class="string">"Message"</span>)
 <span class="comment">// OpenAI compatible LLM Client</span>
 <span class="keyword">var</span> ai = <span class="function">openai</span>(url, token);
 
+<span class="comment">// Add system message to LLM Client</span>
+ai.<span class="function">addSysMsg</span>(<span class="string">"You are a helpful assistant"</span>);
+
+<span class="comment">// Send message to LLM Client</span>
+<span class="keyword">var</span> response = ai.<span class="function">msg</span>(<span class="string">"Hello"</span>, {}, <span class="keyword">null</span>);
+
 <span class="comment">// AES Encryption / Decryption</span>
 <span class="keyword">var</span> secret = <span class="function">encrypt</span>(<span class="string">"hello"</span>, <span class="string">"salt"</span>);
 <span class="keyword">var</span> plain = <span class="function">decrypt</span>(secret, <span class="string">"salt"</span>);
@@ -1202,7 +1427,9 @@ console.<span class="function">log</span>(<span class="string">"Message"</span>)
 <span class="keyword">var</span> later = <span class="function">addMinutes</span>(<span class="keyword">new</span> Date(), <span class="number">15</span>);
 <span class="keyword">var</span> hourLater = <span class="function">addHours</span>(<span class="keyword">new</span> Date(), <span class="number">1</span>);
 
-<span class="comment">// Converters</span>
+<span class="comment">// Converters & String Utilities</span>
+<span class="keyword">var</span> str = <span class="function">toString</span>(<span class="number">42</span>);
+<span class="keyword">var</span> parts = <span class="function">split</span>(<span class="string">"a,b,c"</span>, <span class="string">","</span>);
 <span class="keyword">var</span> b64 = <span class="function">toBase64</span>(<span class="string">"text"</span>);
 <span class="keyword">var</span> txt = <span class="function">fromBase64</span>(b64);
 <span class="keyword">var</span> num = <span class="function">toDecimal</span>(<span class="string">"10.5"</span>);
@@ -1210,7 +1437,7 @@ console.<span class="function">log</span>(<span class="string">"Message"</span>)
 
 <span class="comment">// Randoms</span>
 <span class="keyword">var</span> n = <span class="function">randomNumber</span>(<span class="number">1</span>, <span class="number">100</span>);
-<span class="keyword">var</span> d = <span class="function">randomDecimal</span>(<span class="number">0</span>, <span class="number">1</span>);</code></pre>
+<span class="keyword">var</span> d = <span class="function">randomDecimal</span>(<span class="string">"0.01"</span>, <span class="string">"99.99"</span>);</code></pre>
             </section>
 
         </div>
