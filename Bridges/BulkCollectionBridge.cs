@@ -157,6 +157,12 @@ namespace AxarDB.Bridges
         /// <summary>Manually reload this collection from disk.</summary>
         public void reload() => _store.Reload(_collectionName);
 
+        /// <summary>
+        /// Deletes all documents from this bulk collection by removing its JSONL file.
+        /// After this call the collection will no longer appear in the sidebar.
+        /// </summary>
+        public void delete() => _store.DropCollection(_collectionName);
+
         /// <summary>Count of all documents in this collection.</summary>
         public int count() => _store.GetDocuments(_collectionName).Count();
 
