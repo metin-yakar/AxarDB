@@ -10,6 +10,7 @@ let sortCol = null;
 let sortDir = 1;
 let filters = {};
 let lastCollectionName = "sysusers";
+let lastCollectionType = "db"; // 'db', 'memory', or 'bulk'
 let activeHistoryId = null;
 let _historyDebounceTimer = null;
 let _suppressHistorySync = false;
@@ -34,7 +35,8 @@ function createTab(title, script) {
         filters: {},
         sortCol: null,
         sortDir: 1,
-        lastCollectionName: 'sysusers'
+        lastCollectionName: 'sysusers',
+        lastCollectionType: 'db'
     };
     tabs.push(tab);
     switchTab(id);
@@ -51,6 +53,7 @@ function saveCurrentTabState() {
     tab.sortCol = sortCol;
     tab.sortDir = sortDir;
     tab.lastCollectionName = lastCollectionName;
+    tab.lastCollectionType = lastCollectionType;
 }
 
 function updateSysconfigBanner(force) {
@@ -80,6 +83,7 @@ function restoreTabState(tab) {
     sortCol = tab.sortCol || null;
     sortDir = tab.sortDir || 1;
     lastCollectionName = tab.lastCollectionName || 'sysusers';
+    lastCollectionType = tab.lastCollectionType || 'db';
     updateSysconfigBanner();
     if (editor) {
         _suppressHistorySync = true;
@@ -444,6 +448,7 @@ async function loadCollections() {
 
             item.onclick = () => {
                 lastCollectionName = name;
+                lastCollectionType = 'db';
                 updateSysconfigBanner();
                 setEditorValue(`// Find, Filter, Limit and List for '${name}'
 // Returns top 10 documents
@@ -485,6 +490,7 @@ db.${name}
 
             item.onclick = () => {
                 lastCollectionName = name;
+                lastCollectionType = 'db';
                 updateSysconfigBanner();
                 setEditorValue(`// Find, Filter, Limit and List for '${name}'
 // Returns top 10 documents
@@ -524,6 +530,8 @@ db.${name}
             item.style.color = '#c084fc';
             item.innerHTML = `<i data-lucide="cpu"></i> <span>${mc.name} (${mc.count})</span>`;
             item.onclick = () => {
+                lastCollectionName = mc.name;
+                lastCollectionType = 'memory';
                 setEditorValue(`// Query Temporary Memory Store
 memory.${mc.name}.findall().take(10).toList()`);
                 executeSelectedQuery();
@@ -558,6 +566,8 @@ memory.${mc.name}.findall().take(10).toList()`);
             item.style.color = '#34d399';
             item.innerHTML = `<i data-lucide="archive"></i> <span>${bc.name} (${bc.recordCount})</span>`;
             item.onclick = () => {
+                lastCollectionName = bc.name;
+                lastCollectionType = 'bulk';
                 setEditorValue(`// Query Bulk (JSONL) collection
 bulk.${bc.name}.findall().take(10).toList()`);
                 executeSelectedQuery();
@@ -771,8 +781,12 @@ async function executeSelectedQuery() {
     const script = editor.getValue();
     const originalText = `<i data-lucide="play"></i> Execute (Ctrl+Enter)`;
 
-    const match = script.match(/db\.([a-zA-Z0-9_]+)\./);
-    if (match) { lastCollectionName = match[1]; updateSysconfigBanner(); }
+    const memMatch = script.match(/\bmemory\.([a-zA-Z0-9_]+)\./);
+    const bulkMatch = script.match(/\bbulk\.([a-zA-Z0-9_]+)\./);
+    const match = script.match(/\bdb\.([a-zA-Z0-9_]+)\./);
+    if (memMatch) { lastCollectionName = memMatch[1]; lastCollectionType = 'memory'; }
+    else if (bulkMatch) { lastCollectionName = bulkMatch[1]; lastCollectionType = 'bulk'; }
+    else if (match) { lastCollectionName = match[1]; lastCollectionType = 'db'; updateSysconfigBanner(); }
 
     btn.innerHTML = '<i data-lucide="square" style="fill: currentColor; width: 14px; height: 14px;"></i> Cancel Executing';
     btn.style.backgroundColor = '#ef4444'; // Red background for cancel
@@ -1079,15 +1093,20 @@ function handleRowAction(e, rowIdx) {
     const id = row._id;
     const updateObj = { ...row }; delete updateObj._id;
 
+    // Snapshot at click-time so menu closures are immune to any global state changes
+    // (e.g. loadCollections() running in the background after query completion)
+    const snapPrefix = lastCollectionType || 'db';
+    const snapName = lastCollectionName;
+
     showContextMenu(e, [
         {
             label: 'Edit Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
+                setEditorValue(`${snapPrefix}.${snapName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
             }
         },
         {
             label: 'Delete Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
+                setEditorValue(`${snapPrefix}.${snapName}.findall(x => x._id == "${id}").delete();`);
             }
         },
         { label: 'Export specific record (JSON)', action: () => exportData([row], 'json') }
