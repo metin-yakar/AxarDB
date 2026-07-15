@@ -237,20 +237,100 @@ namespace AxarDB.Definitions
             }
         }
 
+        public void UpdateExisting(Dictionary<string, object> document, Dictionary<string, object> oldDocument, CancellationToken cancellationToken = default, bool bypassSystemRules = false)
+        {
+            if (!document.TryGetValue("_id", out var idObj) || idObj == null)
+            {
+                throw new ArgumentException("Document must contain an '_id' field for updates.");
+            }
+
+            string id = idObj.ToString()!;
+
+            lock (_indexLock)
+            {
+                if (!_primaryIndex.Contains(id))
+                {
+                    throw new KeyNotFoundException($"Document with ID '{id}' was not found in primary index to update.");
+                }
+            }
+
+            if (Name.StartsWith("sys", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Users cannot modify custom system collections starting with 'sys'.");
+                }
+
+                if (Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) && !bypassSystemRules)
+                {
+                    throw new InvalidOperationException("Update operation is not allowed on sysconfig collection.");
+                }
+            }
+
+            ValidateSystemCollectionStructure(document);
+
+            // 1. Disk Persist
+            _storage.SaveDocument(Name, document);
+
+            // 2. Update/Invalidate Cache
+            long size = System.Text.Json.JsonSerializer.Serialize(document).Length * 2L;
+            if (size < 1000) size = 1000;
+            
+            var entryOptions = new MemoryCacheEntryOptions
+            {
+                Size = size,
+                SlidingExpiration = TimeSpan.FromMinutes(10)
+            };
+            _cache.Set(GetCacheKey(id), document, entryOptions);
+
+            // 3. Update Secondary Indexes
+            foreach (var index in Indices)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (oldDocument.TryGetValue(index.PropertyName, out var oldPropVal))
+                {
+                    index.RemoveDocument(id, oldPropVal);
+                }
+                index.IndexDocument(document);
+            }
+
+            // Debounced index persistence
+            if (++_indexSaveCounter >= IndexSaveDebounceInterval)
+            {
+                SaveIndices();
+            }
+        }
+
         public void Update(Func<Dictionary<string, object>, bool> predicate, Dictionary<string, object> updateFields, CancellationToken cancellationToken = default)
         {
             // 1. Identify matches (Parallel Scan) -- pass token!
-            var matches = FindAll(predicate, null, cancellationToken);
+            var matches = FindAll(predicate, null, cancellationToken).ToList();
+            
+            if (matches.Count == 0)
+            {
+                throw new KeyNotFoundException("No documents matched the update predicate.");
+            }
             
             // 2. Perform Updates
             foreach (var doc in matches)
             {
                  cancellationToken.ThrowIfCancellationRequested();
+                 
+                 // Deep copy old document for index cleanup
+                 var oldDocCopy = AxarDB.Helpers.ScriptUtils.DeepCopy(doc) as Dictionary<string, object>;
+                 string id = doc["_id"].ToString()!;
+
                  foreach (var kvp in updateFields)
                  {
+                     if (kvp.Key == "_id") continue; // Prevent altering _id
                      doc[kvp.Key] = kvp.Value;
                  }
-                 Insert(doc, cancellationToken, bypassSystemRules: true);
+                 doc["_id"] = id; // Enforce original _id
+
+                 UpdateExisting(doc, oldDocCopy!, cancellationToken, bypassSystemRules: true);
             }
             SaveIndices();
         }
