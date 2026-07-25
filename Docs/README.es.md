@@ -22,7 +22,7 @@
 
 | Característica | Descripción |
 |:---|:---|
-| **📜 Consultas JavaScript** | Sintaxis JS completa: `db.users.findall(x => x.active).toList()`. Soporta nuevas extensiones como `count()` y `distinct()` tanto en ResultSets como en matrices nativas. |
+| **📜 Consultas JavaScript** | Sintaxis JS completa: `db.users.findall(x => x.active)`. Soporta nuevas extensiones como `count()` y `distinct()` tanto en ResultSets como en matrices nativas. |
 | **⚡ Alto Rendimiento** | Almacenamiento en memoria con `ConcurrentDictionary`, evaluación diferida (Lazy Evaluation) vía PLINQ, y límite estricto del 40% de RAM para caché dinámico. |
 | **📄 Motor CSV** | Soporte bidireccional robusto para CSV. Convierta texto a colecciones o colecciones a CSV mediante `csv(input)`. |
 | **🛡️ Seguro** | Autenticación básica (soporta hash SHA256), **prevención de inyecciones** y protección de colecciones reservadas con prefijo `sys`. |

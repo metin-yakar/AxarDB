@@ -22,7 +22,7 @@
 
 | Feature | Description |
 |:---|:---|
-| **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active).toList()`. Supports prototype extensions like `count()` and `distinct()`. |
+| **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active)`. Supports prototype extensions like `count()` and `distinct()`. |
 | **🆔 UUID v7 Support** | Native RFC 9562 UUID v7 is the default `_id` scheme. Generates sortable IDs and supports `guidv7()`, `guidv7(datetime)` and `guidv7CreatedAt(id)`. |
 | **⚡ High Performance** | In-memory storage with `ConcurrentDictionary`, lazy evaluation using PLINQ, and strictly-capped dynamic 40% Memory Cache expiration. |
 | **🧠 Memory Store** | `memory.sessions.insert({...})` with TTL support for sessions, caches, and short-lived data. |
@@ -167,7 +167,7 @@ bulk.countries.insert([
 var tr = bulk.countries.find(c => c.code == "TR");
 
 // Query with filtering
-var large = bulk.countries.findall(c => c.population > 1000000).toList();
+var large = bulk.countries.findall(c => c.population > 1000000);
 
 // Manually reload cache
 bulk.reload("countries");
@@ -267,7 +267,7 @@ await client.insert_async("users", MyUser("Alice"))
 **C# Example:**
 ```csharp
 // Create a view
-await client.CreateViewAsync("myview", "db.users.findall(x => x.age > @minAge).toList()");
+await client.CreateViewAsync("myview", "db.users.findall(x => x.age > @minAge)");
 
 // Call the view with parameters
 var users = await client.CallViewAsync<User[]>("myview", new { minAge = 18 });
@@ -276,7 +276,7 @@ var users = await client.CallViewAsync<User[]>("myview", new { minAge = 18 });
 **Python Example:**
 ```python
 # Create a view
-client.create_view("myview", "db.users.findall(x => x.age > @minAge).toList()")
+client.create_view("myview", "db.users.findall(x => x.age > @minAge)")
 
 # Call the view with parameters
 users = client.call_view("myview", { "minAge": 18 })
