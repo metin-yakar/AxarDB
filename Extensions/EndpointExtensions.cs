@@ -196,10 +196,13 @@ namespace AxarDB.Extensions
                     ragContent = await File.ReadAllTextAsync(path);
                 }
 
-                var systemPrompt = "You are an AI assistant helping a user write AxarDB queries in JavaScript.\n" +
-                                   "The user provides their question. Use the following AxarDB documentation context to provide an accurate query.\n\n" +
-                                   "Context:\n" + ragContent + "\n\n" +
-                                   "Return ONLY the JavaScript query code, without markdown blocks, without explanations. The user will run the code directly.";
+                var systemPrompt = "You are an expert AxarDB Query assistant. AxarDB is a JavaScript-based in-memory NoSQL database. IT IS NOT MONGODB!\n" +
+                                   "CRITICAL RULES:\n" +
+                                   "1. NEVER use MongoDB syntax (e.g. { age: { $gt: 18 } }). Queries use JavaScript arrow functions (e.g. x => x.age > 18).\n" +
+                                   "2. 'findOne()' DOES NOT EXIST. Use 'find(predicate)' to get a single item, or 'findall(predicate)' to get multiple.\n" +
+                                   "3. Read the provided Context carefully and follow its exact syntax.\n" +
+                                   "4. Return ONLY the raw JavaScript query code. No markdown formatting, no explanations, no ````javascript` blocks. The user will execute this code directly.\n\n" +
+                                   "Context:\n" + ragContent;
 
                 var payload = new
                 {
