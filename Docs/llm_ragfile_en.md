@@ -37,13 +37,13 @@ db.products.insert({ name: "Laptop", price: 999.99, inStock: true });
 
 ```javascript
 // ✅ CORRECT — Get all users as array
-var list = db.users.findall().toList();
+var list = db.users.findall();
 
 // ✅ CORRECT — Filter with predicate
-var adults = db.users.findall(u => u.age > 18).toList();
+var adults = db.users.findall(u => u.age > 18);
 
 // ✅ CORRECT — Case variants both work
-var items = db.orders.findall().ToList();
+var items = db.orders.findall();
 
 // ✅ VALID — Returns ResultSet
 var resultSet = db.users.findall();
@@ -66,8 +66,8 @@ if (user) {
 #### Boolean Filtering
 Booleans are compared with `== true` or `== false`:
 ```javascript
-var premiums = db.users.findall(u => u.isPremium == true).toList();
-var freeUsers = db.users.findall(u => u.isPremium == false).toList();
+var premiums = db.users.findall(u => u.isPremium == true);
+var freeUsers = db.users.findall(u => u.isPremium == false);
 ```
 
 ### C. Update Data
@@ -96,11 +96,11 @@ After `findall()`, you can chain these methods **before** `.toList()`:
 | Method | Description | Example |
 |:---|:---|:---|
 | `.toList()` / `.ToList()` | **Required** — Convert ResultSet to array | `findall().toList()` |
-| `.take(n)` | Limit results to first N items | `findall().take(5).toList()` |
-| `.skip(n)` | Skip the first N items | `findall().skip(10).toList()` |
-| `.select(fn)` | Project/transform each document | `findall().select(u => u.name).toList()` |
+| `.take(n)` | Limit results to first N items | `findall().take(5)` |
+| `.skip(n)` | Skip the first N items | `findall().skip(10)` |
+| `.select(fn)` | Project/transform each document | `findall().select(u => u.name)` |
 | `.count(predicate?)` | Get total count or conditionally count matches | `findall().count(x => x.age > 18)` |
-| `.distinct(selector?)`| Get a list of unique values or objects | `findall().distinct(x => x.role).toList()` |
+| `.distinct(selector?)`| Get a list of unique values or objects | `findall().distinct(x => x.role)` |
 | `.first()` | Get first matching item (no `.toList()`) | `findall().first()` |
 | `.foreach(fn)` | Execute callback for each item | `findall().foreach(u => console.log(u.name))` |
 | `.update(obj)` | Update all matching records | `findall(u => u.old == true).update({old: false})` |
@@ -112,7 +112,7 @@ After `findall()`, you can chain these methods **before** `.toList()`:
 var top5 = db.products.findall(p => p.price > 1000)
                       .take(5)
                       .select(p => p.name)
-                      .toList();
+                      ;
 
 // Count active users
 var count = db.users.findall(u => u.active == true).count();
@@ -133,7 +133,7 @@ AxarDB provides **two distinct** mechanisms for case-insensitive operations. The
 #### 1. Collection-Level `db.collection.contains(predicate)` — Exact Match
 Uses a `CaseInsensitiveDocumentWrapper` so that **property access** on documents is case-insensitive. Performs exact equality comparisons:
 ```javascript
-var devs = db.users.contains(x => x.title == "developer").toList();
+var devs = db.users.contains(x => x.title == "developer");
 // Matches "Developer", "DEVELOPER", "developer" — exact equality, case-insensitive property access
 ```
 
@@ -141,7 +141,7 @@ var devs = db.users.contains(x => x.title == "developer").toList();
 AxarDB injects a custom `String.prototype.contains()` method into every script execution. This performs **case-insensitive substring** matching on any string field:
 ```javascript
 // Substring search inside a predicate
-var results = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
+var results = bulk.postalcodes.findall(x => x.placeName.contains("esen"));
 // Matches "Esenler", "ESENYURT", "Büyükçekmece" — any placeName containing "esen" (case-insensitive)
 
 // Also works in any JavaScript string context
@@ -167,13 +167,13 @@ AxarDB injects several methods into JavaScript's built-in prototypes on **every 
 **Usage in predicates:**
 ```javascript
 // Substring search inside a findall predicate
-var gmailUsers = db.users.findall(u => u.email.contains("gmail")).toList();
+var gmailUsers = db.users.findall(u => u.email.contains("gmail"));
 
 // Bulk store substring search
-var matches = bulk.products.findall(p => p.name.contains("phone")).toList();
+var matches = bulk.products.findall(p => p.name.contains("phone"));
 
 // Prefix check (case-insensitive)
-var adminEmails = db.users.findall(u => u.email.startsWith("admin")).toList();
+var adminEmails = db.users.findall(u => u.email.startsWith("admin"));
 
 // Turkish character handling
 var city = "İZMİR".toLowerCase(); // "izmir" (not "İzmİr" as standard JS would produce)
@@ -244,7 +244,7 @@ var result = db.join(
     item: x.product.name,
     date: x.order.createdAt
 }))
-.toList();
+;
 ```
 
 ### B. Default Indexed Joins
@@ -253,7 +253,7 @@ If aliases are not provided, sources are indexed as `j1`, `j2`, `j3`, etc., base
 // j1 = users, j2 = orders
 var result = db.join(db.users, db.orders)
     .where(x => x.j1._id == x.j2.userId)
-    .toList();
+    ;
 ```
 
 ### C. Joining Arrays/Parameters
@@ -262,7 +262,7 @@ You can join literal arrays or objects passed as parameters:
 // order.items is an array inside the view
 return db.join(alias(order.items, "item"), alias(db.products, "prod"))
     .where(x => x.item.productId == x.prod._id)
-    .toList();
+    ;
 ```
 
 ## 5. Index Creation
@@ -297,19 +297,19 @@ db.saveView("getUsersByAge", `
 // @access public
 var minAge = @minAge;
 var maxAge = @maxAge;
-return db.users.findall(u => u.age >= minAge && u.age <= maxAge).toList();
+return db.users.findall(u => u.age >= minAge && u.age <= maxAge);
 `);
 
 // Create a public view WITHOUT parameters
 db.saveView("activeUsers", `
 // @access public
-return db.users.findall(u => u.active == true).toList();
+return db.users.findall(u => u.active == true);
 `);
 
 // Create a private view
 db.saveView("internalReport", `
 // @access private
-return db.orders.findall().toList();
+return db.orders.findall();
 `);
 ```
 
@@ -502,10 +502,10 @@ memory.cache.insert({ key: "homepage", html: "<h1>Hi</h1>" }, 0.5);
 ### Find Data
 ```javascript
 // Get all entries from memory collection
-var sessions = memory.sessions.findall().toList();
+var sessions = memory.sessions.findall();
 
 // Filter with a predicate
-var active = memory.sessions.findall(s => s.active == true).toList();
+var active = memory.sessions.findall(s => s.active == true);
 
 // Find a single entry
 var session = memory.sessions.find(s => s.userId == "abc");
@@ -538,7 +538,7 @@ The `bulk` object manages collections of data serialized in the JSONL (JSON Line
 
 ### Bulk Operations
 - **Bulk Insert / Initialize**: `bulk.countries.insert([...ArrayOfObjects])`
-- **Bulk Retrieve**: `bulk.countries.findall().toList()`
+- **Bulk Retrieve**: `bulk.countries.findall()`
 - **Bulk Find**: `bulk.countries.find(c => c.code == "TR")`
 - **Bulk Delete**: `bulk.countries.findall(c => c.code == "US").delete()`
 - **Bulk Count**: `bulk.countries.count()`
@@ -552,13 +552,13 @@ bulk.countries.insert([
 ]);
 
 // Querying bulk
-var european = bulk.countries.findall(c => c.population > 80000000).toList();
+var european = bulk.countries.findall(c => c.population > 80000000);
 
 // Substring search (case-insensitive via String.prototype.contains)
-var esenDistricts = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
+var esenDistricts = bulk.postalcodes.findall(x => x.placeName.contains("esen"));
 
 // Prefix check (case-insensitive via String.prototype.startsWith)
-var istanbulCodes = bulk.postalcodes.findall(x => x.placeName.startsWith("istan")).toList();
+var istanbulCodes = bulk.postalcodes.findall(x => x.placeName.startsWith("istan"));
 ```
 
 ## 13. Queue Operations (Background Jobs)
@@ -703,12 +703,12 @@ AxarDB blocks dangerous patterns: `eval()`, `Function()`, `<script>` tags, and o
 # Execute a query
 curl -X POST "http://localhost:5000/query" \
      -u "unlocker:unlocker" \
-     -d "db.users.findall().toList()"
+     -d "db.users.findall()"
 
 # Query with safe parameters
 curl -X POST "http://localhost:5000/query?ageLimit=20" \
      -u "unlocker:unlocker" \
-     -d "db.users.findall(u => u.age > @ageLimit).toList()"
+     -d "db.users.findall(u => u.age > @ageLimit)"
 
 # Insert data
 curl -X POST "http://localhost:5000/query" \
@@ -749,7 +749,7 @@ using var client = new AxarClient("http://localhost:5000", "unlocker", "unlocker
 await client.InsertAsync("users", new { Name = "John", Age = 30 });
 
 // Query with parameters
-var script = "db.users.findall(u => u.name == @name).toList()";
+var script = "db.users.findall(u => u.name == @name)";
 var users = await client.QueryAsync<List<User>>(script, new { name = "John" });
 
 // Update
@@ -760,7 +760,7 @@ var count = await client.Collection<User>("users").Where("age", ">", 18).CountAs
 var first = await client.Collection<User>("users").FirstAsync();
 
 // View management
-await client.CreateViewAsync("ActiveUsers", "return db.users.findall(u => u.active).toList()");
+await client.CreateViewAsync("ActiveUsers", "return db.users.findall(u => u.active)");
 var list = await client.CallViewAsync<List<User>>("ActiveUsers");
 var filtered = await client.CallViewAsync<List<User>>("myview", new { minAge = 18 });
 
@@ -786,7 +786,7 @@ count = client.collection("users").count()
 client.collection("users").where("age", "<", 18).delete()
 
 # View management
-client.create_view("MyView", "return db.users.take(10).toList()")
+client.create_view("MyView", "return db.users.take(10)")
 res = client.call_view("MyView")
 res = client.call_view("MyView", {"minAge": 18})
 ```
@@ -885,9 +885,9 @@ python compare.py
 ### Common Query Patterns
 ```javascript
 // Pagination — skip + take pattern
-var page1 = db.products.findall().take(10).toList();          // Page 1 (records 1-10)
-var page2 = db.products.findall().skip(10).take(10).toList(); // Page 2 (records 11-20)
-var page3 = db.products.findall().skip(20).take(10).toList(); // Page 3 (records 21-30)
+var page1 = db.products.findall().take(10);          // Page 1 (records 1-10)
+var page2 = db.products.findall().skip(10).take(10); // Page 2 (records 11-20)
+var page3 = db.products.findall().skip(20).take(10); // Page 3 (records 21-30)
 
 // Aggregation by iterating
 var total = 0;
@@ -916,13 +916,13 @@ var token = encrypt(guid(), $MY_SALT);
 var hashed = sha256("plaintext_password");
 
 // Case-insensitive substring search (AxarDB String.prototype.contains)
-var devUsers = db.users.findall(u => u.email.contains("dev")).toList();
+var devUsers = db.users.findall(u => u.email.contains("dev"));
 
 // Case-insensitive prefix check (AxarDB String.prototype.startsWith)
-var adminMails = db.users.findall(u => u.email.startsWith("admin@")).toList();
+var adminMails = db.users.findall(u => u.email.startsWith("admin@"));
 
 // Bulk substring search
-var esenPlaces = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
+var esenPlaces = bulk.postalcodes.findall(x => x.placeName.contains("esen"));
 ```
 
 ### Troubleshooting
