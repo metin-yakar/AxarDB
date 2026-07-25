@@ -69,16 +69,29 @@ namespace AxarDB.Core
 
             if (fields == null) return;
 
-            foreach (var doc in _source.ToList())
+            var docsToUpdate = _source.ToList();
+            if (docsToUpdate.Count == 0)
             {
+                throw new KeyNotFoundException("No documents found matching the update criteria.");
+            }
+
+            foreach (var doc in docsToUpdate)
+            {
+                var oldDocCopy = AxarDB.Helpers.ScriptUtils.DeepCopy(doc) as Dictionary<string, object>;
+                string id = doc["_id"].ToString()!;
+
                 foreach (var kv in fields)
                 {
+                    if (kv.Key == "_id") continue; // Prevent altering _id
                     doc[kv.Key] = kv.Value;
                 }
-                // bypassSystemRules=true: update reuses Insert as an upsert internally;
-                // it must bypass insert restrictions on system collections (e.g. sysconfig).
-                _collection.Insert(doc, bypassSystemRules: true);
+                doc["_id"] = id; // Enforce original _id
+
+                // bypassSystemRules=true: update reuses UpdateExisting internally;
+                // it must bypass insert/update restrictions on system collections (e.g. sysconfig).
+                _collection.UpdateExisting(doc, oldDocCopy!, bypassSystemRules: true);
             }
+            _collection.SaveIndices();
         }
 
         public void delete()

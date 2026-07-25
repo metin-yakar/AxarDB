@@ -11,6 +11,7 @@ let sortCol = null;
 let sortDir = 1;
 let filters = {};
 let lastCollectionName = "sysusers";
+let lastCollectionType = "db"; // 'db', 'memory', or 'bulk'
 let activeHistoryId = null;
 let _historyDebounceTimer = null;
 let _suppressHistorySync = false;
@@ -52,6 +53,7 @@ function saveCurrentTabState() {
     tab.sortCol = sortCol;
     tab.sortDir = sortDir;
     tab.lastCollectionName = lastCollectionName;
+    tab.lastCollectionType = lastCollectionType;
 }
 
 function updateSysconfigBanner(force) {
@@ -81,6 +83,7 @@ function restoreTabState(tab) {
     sortCol = tab.sortCol || null;
     sortDir = tab.sortDir || 1;
     lastCollectionName = tab.lastCollectionName || 'sysusers';
+    lastCollectionType = tab.lastCollectionType || 'db';
     updateSysconfigBanner();
     if (editor) {
         _suppressHistorySync = true;
@@ -192,14 +195,14 @@ function initEditor() {
 
         monaco.languages.registerCompletionItemProvider('javascript', {
             triggerCharacters: ['.'],
-            provideCompletionItems: function(model, position) {
+            provideCompletionItems: function (model, position) {
                 const textBefore = model.getValueInRange({
                     startLineNumber: 1,
                     startColumn: 1,
                     endLineNumber: position.lineNumber,
                     endColumn: position.column
                 });
-                
+
                 const wordInfo = model.getWordUntilPosition(position);
                 const range = {
                     startLineNumber: position.lineNumber,
@@ -213,10 +216,10 @@ function initEditor() {
                 if (textBeforeWord.endsWith('.')) {
                     const lineUntilDot = textBeforeWord.substring(0, textBeforeWord.length - 1);
                     const tokenMatch = lineUntilDot.match(/([a-zA-Z0-9_]+)$/);
-                    
+
                     if (tokenMatch) {
                         const token = tokenMatch[1];
-                        
+
                         // Case A: db., memory., bulk.
                         if (token === 'db') {
                             return {
@@ -257,7 +260,7 @@ function initEditor() {
                         const isMemCol = currentMemoryCollections.includes(token);
                         const isBulkCol = currentBulkCollections.includes(token);
                         const chainRegex = /\b(db|memory|bulk)\.([a-zA-Z0-9_]+)\b/;
-                        
+
                         if (isDbCol || isMemCol || isBulkCol || chainRegex.test(lineUntilDot)) {
                             const methods = [
                                 { label: 'findall', insertText: 'findall()', detail: 'Find all documents in collection', kind: monaco.languages.CompletionItemKind.Method },
@@ -317,7 +320,7 @@ function initEditor() {
                         suggestions: globals.map(g => ({ ...g, range: range }))
                     };
                 }
-                
+
                 return { suggestions: [] };
             }
         });
@@ -445,6 +448,7 @@ async function loadCollections() {
 
             item.onclick = () => {
                 lastCollectionName = name;
+                lastCollectionType = 'db';
                 updateSysconfigBanner();
                 createTab(name, `// Find, Filter, Limit and List for '${name}'
 // Returns top 100 documents
@@ -486,6 +490,7 @@ db.${name}
 
             item.onclick = () => {
                 lastCollectionName = name;
+                lastCollectionType = 'db';
                 updateSysconfigBanner();
                 createTab(name, `// Find, Filter, Limit and List for '${name}'
 // Returns top 100 documents
@@ -525,8 +530,8 @@ db.${name}
             item.style.color = '#c084fc';
             item.innerHTML = `<i data-lucide="cpu"></i> <span>${mc.name} (${mc.count})</span>`;
             item.onclick = () => {
-                createTab(mc.name, `// Query Temporary Memory Store
-memory.${mc.name}.findall().take(100)`);
+                setEditorValue(`// Query Temporary Memory Store
+memory.${mc.name}.findall().take(10).toList()`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
@@ -559,8 +564,8 @@ memory.${mc.name}.findall().take(100)`);
             item.style.color = '#34d399';
             item.innerHTML = `<i data-lucide="archive"></i> <span>${bc.name} (${bc.recordCount})</span>`;
             item.onclick = () => {
-                createTab(bc.name, `// Query Bulk (JSONL) collection
-bulk.${bc.name}.findall().take(100)`);
+                setEditorValue(`// Query Bulk (JSONL) collection
+bulk.${bc.name}.findall().take(10).toList()`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
@@ -771,7 +776,7 @@ async function executeSelectedQuery() {
     const script = editor.getValue();
     const originalText = `<i data-lucide="play"></i> Execute (Ctrl+Enter)`;
 
-    const match = script.match(/\b(?:db|memory|bulk)\.([a-zA-Z0-9_]+)\b/);
+    const match = script.match(/db\.([a-zA-Z0-9_]+)\./);
     if (match) { lastCollectionName = match[1]; updateSysconfigBanner(); }
 
     btn.innerHTML = '<i data-lucide="square" style="fill: currentColor; width: 14px; height: 14px;"></i> Cancel Executing';
@@ -941,19 +946,19 @@ function renderGrid() {
         displayData.sort((a, b) => {
             const idA = a._id !== undefined && a._id !== null ? String(a._id) : '';
             const idB = b._id !== undefined && b._id !== null ? String(b._id) : '';
-            
+
             const isV7A = idA.length === 36 && idA.charAt(14) === '7' && idA.charAt(8) === '-';
             const isV7B = idB.length === 36 && idB.charAt(14) === '7' && idB.charAt(8) === '-';
-            
+
             if (isV7A && !isV7B) return -1;
             if (!isV7A && isV7B) return 1;
-            
+
             if (isV7A && isV7B) {
                 if (idA < idB) return 1;
                 if (idA > idB) return -1;
                 return 0;
             }
-            
+
             return 0;
         });
     }
@@ -1096,47 +1101,28 @@ function showContextMenu(e, items) {
 
 function handleRowAction(e, rowIdx) {
     e.preventDefault(); e.stopPropagation();
-    
-    // Radical fix: Use currentDisplayData instead of queryResults to ensure sorted/filtered items are targeted correctly.
-    const row = currentDisplayData[rowIdx];
-    if (!row) {
-        alert("Record not found in the current display data.");
-        return;
-    }
+    const row = queryResults[rowIdx];
+    const id = row._id;
+    const updateObj = { ...row }; delete updateObj._id;
 
-    const actions = [];
-    
-    // Only add Edit/Delete if we have an _id, as these rely on _id to target the record safely.
-    if (row._id !== undefined && row._id !== null) {
-        const id = row._id;
-        const updateObj = { ...row };
-        delete updateObj._id;
-        
-        const safeId = JSON.stringify(id);
-
-        actions.push({
-            label: 'Inline Edit', action: () => {
-                enableInlineEdit(rowIdx);
+    showContextMenu(e, [
+        {
+            label: 'Edit Record', action: () => {
+                setEditorValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
             }
         });
 
-        actions.push({
-            label: 'Edit Record (Script)', action: () => {
-                setEditorValue(`db.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});`);
-            }
-        });
-        
-        actions.push({
-            label: 'Delete Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.findall(x => x._id == ${safeId}).delete();`);
-            }
-        });
-    }
+    actions.push({
+        label: 'Delete Record', action: () => {
+            setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
+        }
+    });
+}
 
-    // Always allow exporting the record
-    actions.push({ label: 'Export specific record (JSON)', action: () => exportData([row], 'json') });
+// Always allow exporting the record
+actions.push({ label: 'Export specific record (JSON)', action: () => exportData([row], 'json') });
 
-    showContextMenu(e, actions);
+showContextMenu(e, actions);
 }
 
 function exportData(data, format) {
@@ -1430,17 +1416,17 @@ function enableInlineEdit(rowIdx) {
     if (!tr) return;
 
     const rowData = currentDisplayData[rowIdx];
-    
+
     currentGridKeys.forEach((key, colIdx) => {
         // Skip ID fields
         if (key === '_id' || key.toLowerCase().endsWith('id')) {
             return;
         }
-        
+
         // +1 because td index 0 is the row action button (#)
         const td = tr.children[colIdx + 1];
         const val = rowData[key];
-        
+
         let inputHtml = '';
         if (typeof val === 'boolean') {
             inputHtml = `<select class="inline-edit-input" data-key="${escapeHtml(key)}" onchange="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">
@@ -1460,7 +1446,7 @@ function enableInlineEdit(rowIdx) {
             const strVal = val === null || val === undefined ? '' : String(val);
             inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${escapeHtml(strVal)}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
         }
-        
+
         td.innerHTML = inputHtml;
     });
 
@@ -1481,7 +1467,7 @@ function updateInlineEdit(rowIdx) {
     inputs.forEach(input => {
         const key = input.getAttribute('data-key');
         let val;
-        
+
         if (input.tagName === 'SELECT') {
             val = input.value === 'true';
         } else if (input.type === 'number') {
@@ -1505,7 +1491,7 @@ function updateInlineEdit(rowIdx) {
         } else {
             val = input.value;
         }
-        
+
         // Update the object with new value
         if (val !== undefined) {
             updateObj[key] = val;
@@ -1514,7 +1500,7 @@ function updateInlineEdit(rowIdx) {
 
     const safeId = JSON.stringify(originalRow._id);
     const script = `db.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});`;
-    
+
     setEditorValue(script);
 }
 
@@ -1540,7 +1526,7 @@ async function triggerFetchCollectionFields(dbCols, memCols, bulkCols) {
         });
         if (!res.ok) return;
         const data = await res.json();
-        
+
         // Reset cache
         collectionFields = { db: {}, memory: {}, bulk: {} };
 
@@ -1570,7 +1556,7 @@ async function triggerFetchCollectionFields(dbCols, memCols, bulkCols) {
 
 function resolveCollectionForParam(textBeforeCursor, paramName) {
     const lambdaRegex = new RegExp(`\\b${paramName}\\s*=>|\\(\\s*${paramName}\\s*(?:,\\s*[a-zA-Z0-9_]+\\s*)*\\)\\s*=>|\\bfunction\\s*\\(\\s*${paramName}\\s*\\)`);
-    
+
     let match;
     let lastDefIdx = -1;
     const regexGlobal = new RegExp(lambdaRegex.source, 'g');

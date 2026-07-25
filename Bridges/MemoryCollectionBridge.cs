@@ -173,13 +173,14 @@ namespace AxarDB.Bridges
 
         /// <summary>
         /// Deletes documents matching the predicate from the in-memory collection.
+        /// When called without arguments, drops the entire collection from the store.
         /// </summary>
         public void delete(JsValue? predicate = null)
         {
             if (predicate == null || predicate.IsNull() || predicate.IsUndefined())
             {
-                // Delete all
-                _store.Delete(_collectionName, _ => true);
+                // Drop the whole collection so it disappears from memory/list
+                _store.DropCollection(_collectionName);
                 return;
             }
 
