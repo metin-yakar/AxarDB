@@ -777,8 +777,21 @@ async function executeSelectedQuery() {
     const script = editor.getValue();
     const originalText = `<i data-lucide="play"></i> Execute (Ctrl+Enter)`;
 
-    const match = script.match(/db\.([a-zA-Z0-9_]+)\./);
-    if (match) { lastCollectionName = match[1]; updateSysconfigBanner(); }
+    let lastColMatchName = null;
+    let lastColMatchType = null;
+
+    const regex = /(db|memory|bulk)\.([a-zA-Z0-9_]+)\./g;
+    let m;
+    while ((m = regex.exec(script)) !== null) {
+        lastColMatchType = m[1];
+        lastColMatchName = m[2];
+    }
+
+    if (lastColMatchName) {
+        lastCollectionName = lastColMatchName;
+        lastCollectionType = lastColMatchType;
+        if (lastColMatchType === 'db') updateSysconfigBanner();
+    }
 
     btn.innerHTML = '<i data-lucide="square" style="fill: currentColor; width: 14px; height: 14px;"></i> Cancel Executing';
     btn.style.backgroundColor = '#ef4444'; // Red background for cancel
@@ -820,8 +833,8 @@ async function executeSelectedQuery() {
                     const viewMatch = script.match(/db\.view\(["']([^"']+)["']/);
                     if (viewMatch) {
                         tab.title = viewMatch[1];
-                    } else if (match) {
-                        tab.title = match[1];
+                    } else if (lastColMatchName) {
+                        tab.title = lastColMatchName;
                     }
                     tab.queryResults = queryResults;
                     renderTabBar();
@@ -1108,16 +1121,20 @@ function handleRowAction(e, rowIdx) {
 
     const actions = [];
     
-    if (lastCollectionName && id !== undefined) {
-        actions.push({
-            label: 'Edit Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
-            }
-        });
+    if (lastCollectionName && id !== undefined && lastCollectionType !== 'memory') {
+        const prefix = lastCollectionType === 'bulk' ? 'bulk' : 'db';
+        
+        if (lastCollectionType !== 'bulk') {
+            actions.push({
+                label: 'Edit Record', action: () => {
+                    setEditorValue(`${prefix}.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
+                }
+            });
+        }
 
         actions.push({
             label: 'Delete Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
+                setEditorValue(`${prefix}.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
             }
         });
     }
