@@ -23,7 +23,7 @@
 
 | Özellik | Açıklama |
 |:---|:---|
-| **📜 JavaScript Sorguları** | Tam JavaScript sözdizimi kullanın: `db.users.findall(x => x.active).toList()`. Uzantıları (`count()`, `distinct()`) destekler. |
+| **📜 JavaScript Sorguları** | Tam JavaScript sözdizimi kullanın: `db.users.findall(x => x.active)`. Uzantıları (`count()`, `distinct()`) destekler. |
 | **🆔 UUID v7 Desteği** | Varsayılan `_id` düzeni olarak native RFC 9562 UUID v7 kullanılır. Zaman sıralı ID'ler üretir ve `guidv7()`, `guidv7(datetime)`, `guidv7CreatedAt(id)` fonksiyonlarını sunar. |
 | **⚡ Yüksek Performans** | `ConcurrentDictionary`, PLINQ ile Tembel Değerlendirme (Lazy Eval) ve katı %40 RAM kapasite limitli Dinamik Önbellek Yönetimi. |
 | **🧠 Bellek İçi Depo (Memory Store)** | `memory.sessions.insert({...})` ile TTL destekli geçici depolama. Oturum, önbellek ve kısa ömürlü veriler için idealdir. |
@@ -174,7 +174,7 @@ memory.sessions.insert({ userId: "abc123", token: "xyz" });
 memory.sessions.insert({ userId: "def456", token: "abc" }, 2.5);
 
 // Tüm kayıtları getir
-var sessions = memory.sessions.findall().toList();
+var sessions = memory.sessions.findall();
 
 // Filtreleyerek getir
 var session = memory.sessions.find(s => s.userId == "abc123");
@@ -197,13 +197,13 @@ memory.sessions.findall(s => s.token == "xyz").delete();
 
 ```javascript
 // 1. sayfa (1-10 arası kayıtlar)
-var page1 = db.users.findall().take(10).toList();
+var page1 = db.users.findall().take(10);
 
 // 2. sayfa (11-20 arası kayıtlar)
-var page2 = db.users.findall().skip(10).take(10).toList();
+var page2 = db.users.findall().skip(10).take(10);
 
 // 3. sayfa (21-30 arası kayıtlar)
-var page3 = db.users.findall().skip(20).take(10).toList();
+var page3 = db.users.findall().skip(20).take(10);
 ```
 
 ---
@@ -227,16 +227,16 @@ bulk.countries.insert([
 ]);
 
 // Tüm verileri çek
-var list = bulk.countries.findall().toList();
+var list = bulk.countries.findall();
 
 // Belirli bir kaydı bul
 var tr = bulk.countries.find(c => c.code == "TR");
 
 // Büyük/küçük harf duyarsız alt string araması (AxarDB özel String.prototype.contains)
-var esenYerler = bulk.postalcodes.findall(x => x.placeName.contains("esen")).toList();
+var esenYerler = bulk.postalcodes.findall(x => x.placeName.contains("esen"));
 
 // Büyük/küçük harf duyarsız ön ek kontrolü (AxarDB özel String.prototype.startsWith)
-var istanbulKodlari = bulk.postalcodes.findall(x => x.placeName.startsWith("istan")).toList();
+var istanbulKodlari = bulk.postalcodes.findall(x => x.placeName.startsWith("istan"));
 
 // Önbelleği manuel yenile
 bulk.reload("countries");
@@ -341,7 +341,7 @@ C# ve yazılım mimarisi üzerine **2011'den bu güne** tecrübesiyle Metin, yü
 **C# Örneği:**
 ```csharp
 // View oluşturulur
-await client.CreateViewAsync("myview", "db.users.findall(x => x.age > @minAge).toList()");
+await client.CreateViewAsync("myview", "db.users.findall(x => x.age > @minAge)");
 
 // View parametre ile çağrılır
 var users = await client.CallViewAsync<User[]>("myview", new { minAge = 18 });
@@ -350,7 +350,7 @@ var users = await client.CallViewAsync<User[]>("myview", new { minAge = 18 });
 **Python Örneği:**
 ```python
 # View oluşturulur
-client.create_view("myview", "db.users.findall(x => x.age > @minAge).toList()")
+client.create_view("myview", "db.users.findall(x => x.age > @minAge)")
 
 # View parametre ile çağrılır
 users = client.call_view("myview", { "minAge": 18 })

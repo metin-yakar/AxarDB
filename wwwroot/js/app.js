@@ -6,6 +6,7 @@ let currentBulkCollections = [];
 let collectionFields = { db: {}, memory: {}, bulk: {} };
 let queryResults = [];
 let currentDisplayData = []; // To easily reference data for grid actions
+let currentGridKeys = []; // Stores keys currently visible in the grid
 let sortCol = null;
 let sortDir = 1;
 let filters = {};
@@ -34,7 +35,7 @@ function createTab(title, script) {
         filters: {},
         sortCol: null,
         sortDir: 1,
-        lastCollectionName: 'sysusers'
+        lastCollectionName: lastCollectionName || 'sysusers'
     };
     tabs.push(tab);
     switchTab(id);
@@ -445,18 +446,18 @@ async function loadCollections() {
             item.onclick = () => {
                 lastCollectionName = name;
                 updateSysconfigBanner();
-                setEditorValue(`// Find, Filter, Limit and List for '${name}'
-// Returns top 10 documents
+                createTab(name, `// Find, Filter, Limit and List for '${name}'
+// Returns top 100 documents
 db.${name}
   .findall() // No filter
-  .take(10)`);
+  .take(100)`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall().take(5)`); executeSelectedQuery(); } },
-                    { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } },
+                    { label: `Default Query`, action: () => { createTab(name, `db.${name}.findall().take(5)`); executeSelectedQuery(); } },
+                    { label: `Clear ${name}`, action: () => { createTab(`Clear ${name}`, `db.${name}.findall().delete()`); } },
                     { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
                 ]);
             };
@@ -486,18 +487,18 @@ db.${name}
             item.onclick = () => {
                 lastCollectionName = name;
                 updateSysconfigBanner();
-                setEditorValue(`// Find, Filter, Limit and List for '${name}'
-// Returns top 10 documents
+                createTab(name, `// Find, Filter, Limit and List for '${name}'
+// Returns top 100 documents
 db.${name}
   .findall() // No filter
-  .take(10)`);
+  .take(100)`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: `Default Query`, action: () => { setEditorValue(`db.${name}.findall().take(5)`); executeSelectedQuery(); } },
-                    { label: `Clear ${name}`, action: () => { setEditorValue(`db.${name}.findall().delete()`); } },
+                    { label: `Default Query`, action: () => { createTab(name, `db.${name}.findall().take(5)`); executeSelectedQuery(); } },
+                    { label: `Clear ${name}`, action: () => { createTab(`Clear ${name}`, `db.${name}.findall().delete()`); } },
                     { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
                 ]);
             };
@@ -524,15 +525,15 @@ db.${name}
             item.style.color = '#c084fc';
             item.innerHTML = `<i data-lucide="cpu"></i> <span>${mc.name} (${mc.count})</span>`;
             item.onclick = () => {
-                setEditorValue(`// Query Temporary Memory Store
-memory.${mc.name}.findall().take(10).toList()`);
+                createTab(mc.name, `// Query Temporary Memory Store
+memory.${mc.name}.findall().take(100)`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: `Default Query`, action: () => { setEditorValue(`memory.${mc.name}.findall().toList()`); executeSelectedQuery(); } },
-                    { label: `Clear ${mc.name}`, action: () => { setEditorValue(`memory.${mc.name}.findall().delete()`); } }
+                    { label: `Default Query`, action: () => { createTab(mc.name, `memory.${mc.name}.findall()`); executeSelectedQuery(); } },
+                    { label: `Clear ${mc.name}`, action: () => { createTab(`Clear ${mc.name}`, `memory.${mc.name}.findall().delete()`); } }
                 ]);
             };
             tree.appendChild(item);
@@ -558,15 +559,15 @@ memory.${mc.name}.findall().take(10).toList()`);
             item.style.color = '#34d399';
             item.innerHTML = `<i data-lucide="archive"></i> <span>${bc.name} (${bc.recordCount})</span>`;
             item.onclick = () => {
-                setEditorValue(`// Query Bulk (JSONL) collection
-bulk.${bc.name}.findall().take(10).toList()`);
+                createTab(bc.name, `// Query Bulk (JSONL) collection
+bulk.${bc.name}.findall().take(100)`);
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: `Default Query`, action: () => { setEditorValue(`bulk.${bc.name}.findall().toList()`); executeSelectedQuery(); } },
-                    { label: `Reload ${bc.name}`, action: () => { setEditorValue(`bulk.reload("${bc.name}")`); executeSelectedQuery(); } }
+                    { label: `Default Query`, action: () => { createTab(bc.name, `bulk.${bc.name}.findall()`); executeSelectedQuery(); } },
+                    { label: `Reload ${bc.name}`, action: () => { createTab(`Reload ${bc.name}`, `bulk.reload("${bc.name}")`); executeSelectedQuery(); } }
                 ]);
             };
             tree.appendChild(item);
@@ -583,7 +584,7 @@ bulk.${bc.name}.findall().take(10).toList()`);
         btnAddView.style.opacity = '0.7';
         btnAddView.innerHTML = '<i data-lucide="plus-circle"></i> <span>New View</span>';
         btnAddView.onclick = () => {
-            editor.setValue(`// Create/Update View with Projection, Filtering, and Parameters
+            createTab("New View", `// Create/Update View with Projection, Filtering, and Parameters
 // @access private
 db.saveView("ActiveUsers", \`
     // Example: Find active users older than 'minAge' param
@@ -600,8 +601,7 @@ db.saveView("ActiveUsers", \`
             fullName: u.firstName + " " + u.lastName, 
             role: u.role 
         }))
-        .take(limit)
-        .ToList();
+        .take(limit);
 \`);`);
         };
         tree.appendChild(btnAddView);
@@ -619,29 +619,29 @@ db.saveView("ActiveUsers", \`
                         const code = await res.json();
                         const params = extractViewParams(code);
                         if (Object.keys(params).length > 0) {
-                            setEditorValue(`db.view("${vName}", ${JSON.stringify(params, null, 2)})`);
+                            createTab(vName, `db.view("${vName}", ${JSON.stringify(params, null, 2)})`);
                         } else {
-                            setEditorValue(`db.view("${vName}")`);
+                            createTab(vName, `db.view("${vName}")`);
                         }
                     } else {
-                        setEditorValue(`db.view("${vName}")`);
+                        createTab(vName, `db.view("${vName}")`);
                     }
                 } catch {
-                    setEditorValue(`db.view("${vName}")`);
+                    createTab(vName, `db.view("${vName}")`);
                 }
                 executeSelectedQuery();
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
                 showContextMenu(e, [
-                    { label: 'Run View', action: () => { setEditorValue(`db.view("${vName}")`); executeSelectedQuery(); } },
+                    { label: 'Run View', action: () => { createTab(vName, `db.view("${vName}")`); executeSelectedQuery(); } },
                     {
                         label: 'Edit/View Code', action: async () => {
                             const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getView("${vName}")` });
                             if (res.ok) {
                                 const raw = await res.json();
                                 const prettyCode = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                                setEditorValue(`db.saveView("${vName}", \`\n${prettyCode}\n\`);`);
+                                createTab(`Edit ${vName}`, `db.saveView("${vName}", \`\n${prettyCode}\n\`);`);
                             }
                         }
                     },
@@ -672,7 +672,7 @@ db.saveView("ActiveUsers", \`
         btnAddTrig.innerHTML = '<i data-lucide="zap"></i> <span>New Trigger</span>';
         btnAddTrig.onclick = () => {
             // New signature: saveTrigger(name, target, code)
-            editor.setValue(`// Create Trigger - Responds to data changes
+            createTab("New Trigger", `// Create Trigger - Responds to data changes
 // Defines an async event listener for 'sysusers' collection
 db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
     // Event object contains: type (created/changed/deleted), collection, documentId
@@ -703,7 +703,7 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
                             // Extract target? Regex?
                             // Simple: Just let user edit body and re-save
                             // Or show full wrapper command
-                            setEditorValue(`// Update Trigger\ndb.saveTrigger("${tName}", "sysusers", ${JSON.stringify(code)});\n// Note: Update "sysusers" to your target parameter if changed.`);
+                            createTab(`Edit ${tName}`, `// Update Trigger\ndb.saveTrigger("${tName}", "sysusers", ${JSON.stringify(code)});\n// Note: Update "sysusers" to your target parameter if changed.`);
                         }
                     }
                 } catch (e) { console.error(e); }
@@ -714,7 +714,7 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
                     {
                         label: 'View Code', action: async () => {
                             const res = await fetchWithAuth('/query', { method: 'POST', body: `db.getTrigger("${tName}")` });
-                            if (res.ok) setEditorValue(await res.json());
+                            if (res.ok) createTab(`View ${tName}`, await res.json());
                         }
                     },
                     {
@@ -771,7 +771,7 @@ async function executeSelectedQuery() {
     const script = editor.getValue();
     const originalText = `<i data-lucide="play"></i> Execute (Ctrl+Enter)`;
 
-    const match = script.match(/db\.([a-zA-Z0-9_]+)\./);
+    const match = script.match(/\b(?:db|memory|bulk)\.([a-zA-Z0-9_]+)\b/);
     if (match) { lastCollectionName = match[1]; updateSysconfigBanner(); }
 
     btn.innerHTML = '<i data-lucide="square" style="fill: currentColor; width: 14px; height: 14px;"></i> Cancel Executing';
@@ -936,6 +936,26 @@ function renderGrid() {
             if (valA < valB) return -1 * sortDir; if (valA > valB) return 1 * sortDir;
             return 0;
         });
+    } else {
+        // Default sort: UUIDv7 latest first, ignore others but keep v7 on top
+        displayData.sort((a, b) => {
+            const idA = a._id !== undefined && a._id !== null ? String(a._id) : '';
+            const idB = b._id !== undefined && b._id !== null ? String(b._id) : '';
+            
+            const isV7A = idA.length === 36 && idA.charAt(14) === '7' && idA.charAt(8) === '-';
+            const isV7B = idB.length === 36 && idB.charAt(14) === '7' && idB.charAt(8) === '-';
+            
+            if (isV7A && !isV7B) return -1;
+            if (!isV7A && isV7B) return 1;
+            
+            if (isV7A && isV7B) {
+                if (idA < idB) return 1;
+                if (idA > idB) return -1;
+                return 0;
+            }
+            
+            return 0;
+        });
     }
 
     Object.keys(filters).forEach(key => {
@@ -944,6 +964,7 @@ function renderGrid() {
     });
 
     currentDisplayData = displayData;
+    currentGridKeys = keys;
 
     let hRow = `<tr>
         <th style="width: 50px">#</th>
@@ -1075,23 +1096,47 @@ function showContextMenu(e, items) {
 
 function handleRowAction(e, rowIdx) {
     e.preventDefault(); e.stopPropagation();
-    const row = queryResults[rowIdx];
-    const id = row._id;
-    const updateObj = { ...row }; delete updateObj._id;
+    
+    // Radical fix: Use currentDisplayData instead of queryResults to ensure sorted/filtered items are targeted correctly.
+    const row = currentDisplayData[rowIdx];
+    if (!row) {
+        alert("Record not found in the current display data.");
+        return;
+    }
 
-    showContextMenu(e, [
-        {
-            label: 'Edit Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
+    const actions = [];
+    
+    // Only add Edit/Delete if we have an _id, as these rely on _id to target the record safely.
+    if (row._id !== undefined && row._id !== null) {
+        const id = row._id;
+        const updateObj = { ...row };
+        delete updateObj._id;
+        
+        const safeId = JSON.stringify(id);
+
+        actions.push({
+            label: 'Inline Edit', action: () => {
+                enableInlineEdit(rowIdx);
             }
-        },
-        {
+        });
+
+        actions.push({
+            label: 'Edit Record (Script)', action: () => {
+                setEditorValue(`db.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});`);
+            }
+        });
+        
+        actions.push({
             label: 'Delete Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
+                setEditorValue(`db.${lastCollectionName}.findall(x => x._id == ${safeId}).delete();`);
             }
-        },
-        { label: 'Export specific record (JSON)', action: () => exportData([row], 'json') }
-    ]);
+        });
+    }
+
+    // Always allow exporting the record
+    actions.push({ label: 'Export specific record (JSON)', action: () => exportData([row], 'json') });
+
+    showContextMenu(e, actions);
 }
 
 function exportData(data, format) {
@@ -1188,7 +1233,7 @@ function initButtons() {
     document.getElementById('btnAddDb').onclick = () => {
         const name = prompt("Enter new collection name:");
         if (name) {
-            setEditorValue(`// Create Collection '${name}' by inserting a document
+            createTab(`New DB: ${name}`, `// Create Collection '${name}' by inserting a document
     // Collections are created automatically on first write
     db.${name}.insert({
         created: new Date(),
@@ -1374,7 +1419,103 @@ function renderHistoryList() {
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
-    return div.innerHTML;
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// --- Inline Edit Logic ---
+
+function enableInlineEdit(rowIdx) {
+    const tbody = document.getElementById('tableBody');
+    const tr = tbody.children[rowIdx];
+    if (!tr) return;
+
+    const rowData = currentDisplayData[rowIdx];
+    
+    currentGridKeys.forEach((key, colIdx) => {
+        // Skip ID fields
+        if (key === '_id' || key.toLowerCase().endsWith('id')) {
+            return;
+        }
+        
+        // +1 because td index 0 is the row action button (#)
+        const td = tr.children[colIdx + 1];
+        const val = rowData[key];
+        
+        let inputHtml = '';
+        if (typeof val === 'boolean') {
+            inputHtml = `<select class="inline-edit-input" data-key="${escapeHtml(key)}" onchange="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">
+                <option value="true" ${val ? 'selected' : ''}>true</option>
+                <option value="false" ${!val ? 'selected' : ''}>false</option>
+            </select>`;
+        } else if (typeof val === 'number') {
+            inputHtml = `<input type="number" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${val}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
+        } else if (typeof val === 'object' && val !== null) {
+            const strVal = JSON.stringify(val);
+            inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="json" value="${escapeHtml(strVal)}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;" title="Edit as JSON">`;
+        } else if (typeof val === 'string' && val.length >= 19 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+            const dateStr = val.substring(0, 19);
+            const originalTail = val.substring(19);
+            inputHtml = `<input type="datetime-local" step="1" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="datetime" data-tail="${escapeHtml(originalTail)}" value="${escapeHtml(dateStr)}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
+        } else {
+            const strVal = val === null || val === undefined ? '' : String(val);
+            inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${escapeHtml(strVal)}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
+        }
+        
+        td.innerHTML = inputHtml;
+    });
+
+    // Immediately trigger to update the script editor with the current values
+    updateInlineEdit(rowIdx);
+}
+
+function updateInlineEdit(rowIdx) {
+    const tbody = document.getElementById('tableBody');
+    const tr = tbody.children[rowIdx];
+    if (!tr) return;
+
+    const originalRow = currentDisplayData[rowIdx];
+    const updateObj = { ...originalRow };
+    delete updateObj._id; // Ensure we don't try to update _id
+
+    const inputs = tr.querySelectorAll('.inline-edit-input');
+    inputs.forEach(input => {
+        const key = input.getAttribute('data-key');
+        let val;
+        
+        if (input.tagName === 'SELECT') {
+            val = input.value === 'true';
+        } else if (input.type === 'number') {
+            val = input.value === '' ? null : Number(input.value);
+        } else if (input.getAttribute('data-type') === 'json') {
+            try {
+                val = input.value === '' ? null : JSON.parse(input.value);
+            } catch (e) {
+                val = input.value; // Fallback to string if invalid JSON
+            }
+        } else if (input.getAttribute('data-type') === 'datetime') {
+            if (input.value === '') {
+                val = null;
+            } else {
+                const tail = input.getAttribute('data-tail') || '';
+                let timeStr = input.value;
+                // datetime-local omits seconds if they are 00 in some browsers, ensure it's full length
+                if (timeStr.length === 16) timeStr += ':00';
+                val = timeStr + tail;
+            }
+        } else {
+            val = input.value;
+        }
+        
+        // Update the object with new value
+        if (val !== undefined) {
+            updateObj[key] = val;
+        }
+    });
+
+    const safeId = JSON.stringify(originalRow._id);
+    const script = `db.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});`;
+    
+    setEditorValue(script);
 }
 
 // --- Autocomplete Helpers ---
