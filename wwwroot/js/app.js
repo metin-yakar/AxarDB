@@ -138,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuthAndLoad();
     initIcons();
     initSysconfigBanner();
+    initAiQuery();
     createTab('Query 1');
 });
 
@@ -1105,24 +1106,26 @@ function handleRowAction(e, rowIdx) {
     const id = row._id;
     const updateObj = { ...row }; delete updateObj._id;
 
-    showContextMenu(e, [
-        {
+    const actions = [];
+    
+    if (lastCollectionName && id !== undefined) {
+        actions.push({
             label: 'Edit Record', action: () => {
                 setEditorValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
             }
         });
 
-    actions.push({
-        label: 'Delete Record', action: () => {
-            setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
-        }
-    });
-}
+        actions.push({
+            label: 'Delete Record', action: () => {
+                setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
+            }
+        });
+    }
 
-// Always allow exporting the record
-actions.push({ label: 'Export specific record (JSON)', action: () => exportData([row], 'json') });
+    // Always allow exporting the record
+    actions.push({ label: 'Export specific record (JSON)', action: () => exportData([row], 'json') });
 
-showContextMenu(e, actions);
+    showContextMenu(e, actions);
 }
 
 function exportData(data, format) {
@@ -1576,4 +1579,183 @@ function resolveCollectionForParam(textBeforeCursor, paramName) {
         return { type: lastColMatch[1], name: lastColMatch[2] };
     }
     return null;
+}
+
+// --- AI Query Logic ---
+function initAiQuery() {
+    const btnAiQuery = document.getElementById('btnAiQuery');
+    const modal = document.getElementById('aiQueryModal');
+    const btnClose = document.getElementById('btnCloseAiQuery');
+    const header = document.getElementById('aiQueryModalHeader');
+    const aiApiUrl = document.getElementById('aiApiUrl');
+    const aiModelName = document.getElementById('aiModelName');
+    const aiApiKey = document.getElementById('aiApiKey');
+    const aiQueryInput = document.getElementById('aiQueryInput');
+    const btnGenerate = document.getElementById('btnAiGenerate');
+    const accordion = document.getElementById('aiSettingsAccordion');
+
+    if (!btnAiQuery || !modal) return;
+
+    // Load settings without hardcoded defaults
+    aiApiUrl.value = localStorage.getItem('AxarDB_aiApiUrl') || '';
+    aiModelName.value = localStorage.getItem('AxarDB_aiModelName') || '';
+    aiApiKey.value = localStorage.getItem('AxarDB_aiApiKey') || '';
+
+    const saveSettings = () => {
+        localStorage.setItem('AxarDB_aiApiUrl', aiApiUrl.value);
+        localStorage.setItem('AxarDB_aiModelName', aiModelName.value);
+        localStorage.setItem('AxarDB_aiApiKey', aiApiKey.value);
+    };
+
+    aiApiUrl.addEventListener('change', saveSettings);
+    aiModelName.addEventListener('change', saveSettings);
+    aiApiKey.addEventListener('change', saveSettings);
+
+    // Open/Close
+    btnAiQuery.onclick = () => {
+        modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+        if (modal.style.display === 'flex') aiQueryInput.focus();
+    };
+    btnClose.onclick = () => modal.style.display = 'none';
+
+    // Drag Modal Logic
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+    header.onmousedown = (e) => {
+        if (e.target.closest('button')) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = modal.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        document.body.style.userSelect = 'none';
+    };
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        modal.style.left = (initialLeft + dx) + 'px';
+        modal.style.top = (initialTop + dy) + 'px';
+        modal.style.right = 'auto';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            document.body.style.userSelect = '';
+        }
+    });
+
+    // Auto-grow textarea up to 10 rows
+    aiQueryInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        const computed = window.getComputedStyle(this);
+        const lineHeight = parseInt(computed.lineHeight) || 18;
+        const paddingTop = parseInt(computed.paddingTop) || 8;
+        const paddingBottom = parseInt(computed.paddingBottom) || 8;
+        
+        const padding = paddingTop + paddingBottom;
+        const maxHeight = (lineHeight * 10) + padding;
+        
+        if (this.scrollHeight > maxHeight) {
+            this.style.height = maxHeight + 'px';
+            this.style.overflowY = 'auto';
+        } else {
+            this.style.height = this.scrollHeight + 'px';
+            this.style.overflowY = 'hidden';
+        }
+    });
+
+    // Generate action
+    const doGenerate = async () => {
+        const query = aiQueryInput.value.trim();
+        if (!query) return;
+        
+        let hasError = false;
+        aiApiUrl.style.borderColor = '';
+        aiModelName.style.borderColor = '';
+        aiApiKey.style.borderColor = '';
+
+        const apiUrl = aiApiUrl.value.trim();
+        const modelName = aiModelName.value.trim();
+        const apiKey = aiApiKey.value.trim();
+
+        if (!apiUrl) {
+            aiApiUrl.style.borderColor = 'red';
+            hasError = true;
+        }
+        if (!modelName) {
+            aiModelName.style.borderColor = 'red';
+            hasError = true;
+        }
+        if (!apiKey) {
+            aiApiKey.style.borderColor = 'red';
+            hasError = true;
+        }
+
+        if (hasError) {
+            if (accordion) accordion.open = true;
+            return;
+        }
+
+        btnGenerate.disabled = true;
+        btnGenerate.innerHTML = '<i data-lucide="loader"></i> Generating...';
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const res = await fetch('/api/ai-query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    apiUrl: apiUrl,
+                    modelName: modelName,
+                    apiKey: apiKey,
+                    query: query
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || errData.error?.message || 'API request failed');
+            }
+
+            const data = await res.json();
+            let code = data.choices && data.choices.length > 0 ? data.choices[0].message.content : '';
+            
+            // Clean markdown if present
+            if (code.startsWith('```')) {
+                code = code.replace(/^\`\`\`[a-zA-Z]*\n/, '').replace(/\n\`\`\`$/, '');
+            }
+            code = code.trim();
+
+            if (editor) {
+                setEditorValue(code);
+            }
+            
+            // Clear input and close modal on success
+            aiQueryInput.value = '';
+            aiQueryInput.style.height = 'auto';
+            modal.style.display = 'none';
+
+        } catch (err) {
+            alert('AI Generation Error: ' + err.message);
+        } finally {
+            btnGenerate.disabled = false;
+            btnGenerate.innerHTML = '<i data-lucide="sparkles"></i> Generate (Ctrl+Enter)';
+            if (window.lucide) lucide.createIcons();
+        }
+    };
+
+    btnGenerate.onclick = doGenerate;
+
+    aiQueryInput.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            doGenerate();
+        }
+    });
 }
