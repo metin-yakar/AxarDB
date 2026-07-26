@@ -75,7 +75,7 @@ Ayarları değiştirmek için yetkili bir kullanıcı `sysconfig` koleksiyonunda
 
 ### Sistem Koleksiyon Koruması
 
-`sys` ile başlayan tüm koleksiyon adları **rezerve edilmiştir** ve iç altyapı için kullanılır. Yalnızca dört ön tanımlı sistem koleksiyonuna izin verilir: `sysusers`, `sysqueue`, `sysvaults` ve `sysconfig`. Herhangi bir özel `sys` ön ekli koleksiyon oluşturma veya erişme girişimi (örn. `db.sysnew`) `InvalidOperationException` hatası fırlatır. Bu koruma Bridge, Engine ve Collection katmanlarında uygulanır.
+`sys` ile başlayan tüm koleksiyon adları **rezerve edilmiştir** ve iç altyapı için kullanılır. Yalnızca ön tanımlı sistem koleksiyonlarına izin verilir: `sysusers`, `sysqueue`, `sysvaults`, `sysconfig` ve `syslogs`. Herhangi bir özel `sys` ön ekli koleksiyon oluşturma veya erişme girişimi (örn. `db.sysnew`) `InvalidOperationException` hatası fırlatır. Bu koruma Bridge, Engine ve Collection katmanlarında uygulanır.
 
 ### Kullanılabilir Parametreler
 

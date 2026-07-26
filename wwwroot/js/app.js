@@ -503,11 +503,14 @@ db.${name}
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
-                showContextMenu(e, [
-                    { label: `Default Query`, action: () => { createTab(name, `db.${name}.findall().take(5)`); executeSelectedQuery(); } },
-                    { label: `Clear ${name}`, action: () => { createTab(`Clear ${name}`, `db.${name}.findall().delete()`); } },
-                    { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
-                ]);
+                const menuActions = [
+                    { label: `Default Query`, action: () => { createTab(name, `db.${name}.findall().take(5)`); executeSelectedQuery(); } }
+                ];
+                if (name !== 'syslogs' && name !== 'sysconfig') {
+                    menuActions.push({ label: `Clear ${name}`, action: () => { createTab(`Clear ${name}`, `db.${name}.findall().delete()`); } });
+                    menuActions.push({ label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } });
+                }
+                showContextMenu(e, menuActions);
             };
             tree.appendChild(item);
         });
@@ -1025,7 +1028,7 @@ function renderGrid() {
 window.makeEditable = function(td, rowIdx, key) {
     if (td.querySelector('input, select')) return; // Already editing
     if (key === '_id' || key.toLowerCase().endsWith('id')) return; // Cannot modify ID fields
-    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk') return; // Enforce collection-types-rule
+    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk' || lastCollectionName === 'syslogs' || lastCollectionName === 'sysconfig') return; // Enforce collection-types-rule
 
     const row = currentDisplayData[rowIdx];
     if (!row) return;
@@ -1225,8 +1228,8 @@ function handleRowAction(e, rowIdx) {
     if (lastCollectionName && id !== undefined) {
         let prefix = 'db';
         
-        // Enforce collection-types-rule.md: memory & bulk collections cannot be updated; memory cannot update or delete
-        if (lastCollectionType !== 'memory' && lastCollectionType !== 'bulk') {
+        // Enforce collection-types-rule.md: memory, bulk, syslogs & sysconfig collections cannot be updated/deleted directly
+        if (lastCollectionType !== 'memory' && lastCollectionType !== 'bulk' && lastCollectionName !== 'syslogs' && lastCollectionName !== 'sysconfig') {
             actions.push({
                 label: 'Edit Record', action: () => {
                     enableInlineEdit(rowIdx);
@@ -1534,7 +1537,7 @@ function escapeHtml(str) {
 // --- Inline Edit Logic ---
 
 function enableInlineEdit(rowIdx) {
-    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk') return;
+    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk' || lastCollectionName === 'syslogs' || lastCollectionName === 'sysconfig') return;
 
     const tbody = document.getElementById('tableBody');
     const tr = tbody ? tbody.children[rowIdx] : null;
