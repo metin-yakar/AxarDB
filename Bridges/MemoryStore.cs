@@ -206,6 +206,16 @@ namespace AxarDB.Bridges
             Log("Delete", $"{collectionName} removed={toDelete.Count}", sw.ElapsedMilliseconds, toDelete.Count);
         }
 
+        public void Update(string collectionName, string id, Dictionary<string, object> document)
+        {
+            if (!_collections.TryGetValue(collectionName, out var col)) return;
+            if (col.TryGetValue(id, out var entry))
+            {
+                entry.Document = document;
+                col[id] = entry; // Update struct
+            }
+        }
+
         /// <summary>
         /// Completely removes a collection and all its documents from the store.
         /// After this call the collection will no longer appear in GetCollectionNames().

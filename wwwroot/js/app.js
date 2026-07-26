@@ -1005,7 +1005,7 @@ function renderGrid() {
             <td>
                 <div class="row-action-btn" onclick="handleRowAction(event, ${idx})">${idx + 1}</div>
             </td>
-            ${keys.map(k => `<td>${formatValue(row[k], k, idx)}</td>`).join('')}
+            ${keys.map(k => `<td ondblclick="makeEditable(this, ${idx}, '${k.replace(/'/g, "\\'")}')">${formatValue(row[k], k, idx)}</td>`).join('')}
         </tr>
     `).join('');
     initIcons();
@@ -1021,6 +1021,106 @@ function renderGrid() {
         }
     }
 }
+
+window.makeEditable = function(td, rowIdx, key) {
+    if (td.querySelector('input, select')) return; // Already editing
+    if (key === '_id' || key.toLowerCase().endsWith('id')) return; // Cannot modify ID fields
+    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk') return; // Enforce collection-types-rule
+
+    const row = currentDisplayData[rowIdx];
+    if (!row) return;
+    const val = row[key];
+
+    const id = row._id;
+    if (id === undefined || id === null || !lastCollectionName) return; 
+
+    const prefix = 'db';
+    
+    let inputHtml = '';
+    if (typeof val === 'boolean') {
+        inputHtml = `<select class="inline-edit-input" data-key="${escapeHtml(key)}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">
+            <option value="true" ${val ? 'selected' : ''}>true</option>
+            <option value="false" ${!val ? 'selected' : ''}>false</option>
+        </select>`;
+    } else if (typeof val === 'number') {
+        inputHtml = `<input type="number" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${val}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">`;
+    } else if (typeof val === 'object' && val !== null) {
+        const strVal = JSON.stringify(val);
+        inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="json" value="${escapeHtml(strVal)}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;" title="Edit as JSON">`;
+    } else if (typeof val === 'string' && val.length >= 19 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+        const dateStr = val.substring(0, 19);
+        const originalTail = val.substring(19);
+        inputHtml = `<input type="datetime-local" step="1" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="datetime" data-tail="${escapeHtml(originalTail)}" value="${escapeHtml(dateStr)}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">`;
+    } else {
+        const safeVal = (val === null || val === undefined) ? '' : escapeHtml(String(val));
+        inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${safeVal}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">`;
+    }
+
+    td.innerHTML = inputHtml;
+    const input = td.querySelector('input, select');
+    if (!input) return;
+    input.focus();
+
+    const updateQueryInEditor = () => {
+        let newVal;
+        if (input.tagName === 'SELECT') {
+            newVal = input.value === 'true';
+        } else if (input.type === 'number') {
+            newVal = input.value === '' ? null : parseFloat(input.value);
+            if (newVal !== null && isNaN(newVal)) newVal = 0;
+        } else if (input.getAttribute('data-type') === 'json') {
+            try {
+                newVal = input.value === '' ? null : JSON.parse(input.value);
+            } catch (e) {
+                newVal = input.value;
+            }
+        } else if (input.getAttribute('data-type') === 'datetime') {
+            if (input.value === '') {
+                newVal = null;
+            } else {
+                const tail = input.getAttribute('data-tail') || '';
+                let timeStr = input.value;
+                if (timeStr.length === 16) timeStr += ':00';
+                newVal = timeStr + tail;
+            }
+        } else {
+            newVal = input.value;
+        }
+
+        const updateObj = {};
+        updateObj[key] = newVal;
+        
+        const safeId = JSON.stringify(id);
+        const queryStr = `${prefix}.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});\n${prefix}.${lastCollectionName}.findall();`;
+        
+        if (window.editor) {
+            setEditorValue(queryStr);
+        }
+        return newVal;
+    };
+
+    const finishEdit = () => {
+        const newVal = updateQueryInEditor();
+        td.innerHTML = formatValue(newVal, key, rowIdx);
+    };
+
+    input.addEventListener('input', updateQueryInEditor);
+    input.addEventListener('change', updateQueryInEditor);
+    input.addEventListener('blur', finishEdit);
+    input.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            finishEdit();
+            executeSelectedQuery();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEdit();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            td.innerHTML = formatValue(val, key, rowIdx);
+        }
+    });
+};
 
 function formatValue(v, key, rowIdx = -1) {
     if (v === null || v === undefined) return '';
@@ -1117,27 +1217,29 @@ function showContextMenu(e, items) {
 function handleRowAction(e, rowIdx) {
     e.preventDefault(); e.stopPropagation();
     const row = queryResults[rowIdx];
+    if (!row) return;
     const id = row._id;
-    const updateObj = { ...row }; delete updateObj._id;
 
     const actions = [];
     
-    if (lastCollectionName && id !== undefined && lastCollectionType !== 'memory') {
-        const prefix = lastCollectionType === 'bulk' ? 'bulk' : 'db';
+    if (lastCollectionName && id !== undefined) {
+        let prefix = 'db';
         
-        if (lastCollectionType !== 'bulk') {
+        // Enforce collection-types-rule.md: memory & bulk collections cannot be updated; memory cannot update or delete
+        if (lastCollectionType !== 'memory' && lastCollectionType !== 'bulk') {
             actions.push({
                 label: 'Edit Record', action: () => {
-                    setEditorValue(`${prefix}.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
+                    enableInlineEdit(rowIdx);
+                }
+            });
+
+            actions.push({
+                label: 'Delete Record', action: () => {
+                    const safeId = JSON.stringify(id);
+                    setEditorValue(`${prefix}.${lastCollectionName}.findall(x => x._id == ${safeId}).delete();\n${prefix}.${lastCollectionName}.findall();`);
                 }
             });
         }
-
-        actions.push({
-            label: 'Delete Record', action: () => {
-                setEditorValue(`${prefix}.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
-            }
-        });
     }
 
     // Always allow exporting the record
@@ -1432,11 +1534,14 @@ function escapeHtml(str) {
 // --- Inline Edit Logic ---
 
 function enableInlineEdit(rowIdx) {
+    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk') return;
+
     const tbody = document.getElementById('tableBody');
-    const tr = tbody.children[rowIdx];
+    const tr = tbody ? tbody.children[rowIdx] : null;
     if (!tr) return;
 
     const rowData = currentDisplayData[rowIdx];
+    if (!rowData) return;
 
     currentGridKeys.forEach((key, colIdx) => {
         // Skip ID fields
@@ -1446,6 +1551,7 @@ function enableInlineEdit(rowIdx) {
 
         // +1 because td index 0 is the row action button (#)
         const td = tr.children[colIdx + 1];
+        if (!td) return;
         const val = rowData[key];
 
         let inputHtml = '';
@@ -1471,16 +1577,32 @@ function enableInlineEdit(rowIdx) {
         td.innerHTML = inputHtml;
     });
 
-    // Immediately trigger to update the script editor with the current values
+    const rowInputs = tr.querySelectorAll('.inline-edit-input');
+    rowInputs.forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                updateInlineEdit(rowIdx);
+                executeSelectedQuery();
+            }
+        });
+    });
+
+    if (rowInputs.length > 0) {
+        rowInputs[0].focus();
+    }
+
     updateInlineEdit(rowIdx);
 }
 
 function updateInlineEdit(rowIdx) {
     const tbody = document.getElementById('tableBody');
-    const tr = tbody.children[rowIdx];
+    const tr = tbody ? tbody.children[rowIdx] : null;
     if (!tr) return;
 
     const originalRow = currentDisplayData[rowIdx];
+    if (!originalRow) return;
+
     const updateObj = { ...originalRow };
     delete updateObj._id; // Ensure we don't try to update _id
 
@@ -1497,7 +1619,7 @@ function updateInlineEdit(rowIdx) {
             try {
                 val = input.value === '' ? null : JSON.parse(input.value);
             } catch (e) {
-                val = input.value; // Fallback to string if invalid JSON
+                val = input.value;
             }
         } else if (input.getAttribute('data-type') === 'datetime') {
             if (input.value === '') {
@@ -1505,7 +1627,6 @@ function updateInlineEdit(rowIdx) {
             } else {
                 const tail = input.getAttribute('data-tail') || '';
                 let timeStr = input.value;
-                // datetime-local omits seconds if they are 00 in some browsers, ensure it's full length
                 if (timeStr.length === 16) timeStr += ':00';
                 val = timeStr + tail;
             }
@@ -1513,14 +1634,14 @@ function updateInlineEdit(rowIdx) {
             val = input.value;
         }
 
-        // Update the object with new value
         if (val !== undefined) {
             updateObj[key] = val;
         }
     });
 
+    const prefix = 'db';
     const safeId = JSON.stringify(originalRow._id);
-    const script = `db.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});`;
+    const script = `${prefix}.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});\n${prefix}.${lastCollectionName}.findall();`;
 
     setEditorValue(script);
 }
