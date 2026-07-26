@@ -697,6 +697,8 @@ namespace AxarDB.Core
                 return col.Indices.Select(i => new { PropertyName = i.PropertyName, Type = i.Type }).ToList();
             }));
 
+            engine.SetValue("addVault", new Func<string, object, bool>((key, value) => AddVault(key, value)));
+
             // --- Utility Functions ---
             RegisterUtils(engine, ctx);
 
