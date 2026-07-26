@@ -651,8 +651,50 @@ Execution logs are stored in `queue_logs/` directory.
 To prevent unauthorized modification of core database operations, direct insertions via standard insert queries (e.g. `db.collection.insert(...)`) are strictly prohibited on the following collections:
 *   `db.sysqueue`: Insertion must go through the global `queue()` function.
 *   `db.sysvaults`: Insertion/updates must go through the `addVault()` / `db.addVault()` function.
+*   `db.syslogs`: Read-only virtual collection for querying request, error, and debug logs. Direct insertion or modification is prohibited.
 
-Attempting a direct insert on these system collections will throw an `InvalidOperationException`.
+Attempting a direct insert or update on these system collections will throw an `InvalidOperationException`.
+
+### System Log Querying (`db.syslogs` for AI Models & Agents)
+
+> 🤖 **FOR AI MODELS & AGENTS**: When you need to investigate server execution history, diagnose runtime errors, audit past queries, track deleted/modified records, or inspect system performance, **ALWAYS query `db.syslogs`**. Do not search log files on disk manually when a database script query can answer it instantly.
+
+`db.syslogs` is a virtual, read-only collection that aggregates system request logs, error logs, and debug logs. It parses raw log files on demand into structured JSON documents with UUID v7 IDs (`_id`), so queries return results ordered with the newest logs first.
+
+#### Record Schema
+Each log record in `db.syslogs` contains the following fields:
+* `_id`: String (UUID v7, time-ordered)
+* `timestamp`: String (Format: `YYYY-MM-DD HH:mm:ss.fff`)
+* `type`: String (`"request"`, `"error"`, or `"debug"`)
+* `ip`: String (Client IP address)
+* `user`: String (Authenticated username)
+* `query`: String (Executed script payload, error message, or debug log)
+* `durationMs`: Number (Execution time in milliseconds)
+* `status`: String (`"Success"`, `"Failed: <message>"`, `"Error"`, or `"Debug"`)
+
+#### Practical AI Query Examples
+
+```javascript
+// 1. Get recent 50 system logs (newest first)
+db.syslogs.take(50);
+
+// 2. Search for queries referencing a specific collection or keyword (e.g. "sysvaults" or "delete")
+db.syslogs.findall(l => l.query.contains("sysvaults")).take(20);
+
+// 3. Find all failed request executions or error logs
+db.syslogs.findall(l => l.type == "error" || l.status.startsWith("Failed"));
+
+// 4. Inspect slow queries taking longer than 100ms
+db.syslogs.findall(l => l.durationMs > 100).take(20);
+
+// 5. Audit queries executed by a specific user
+db.syslogs.findall(l => l.user == "unlocker" && l.type == "request").take(20);
+
+// 6. Count total logged request entries
+db.syslogs.count(l => l.type == "request");
+```
+
+> **NOTE**: `db.syslogs` is strictly read-only. Calling `.insert()`, `.update()`, or `.delete()` will throw an `InvalidOperationException`.
 
 ### Authentication
 *   **Method**: HTTP Basic Auth
@@ -824,7 +866,7 @@ dotnet run -- --cors "http://localhost:3000,http://example.com"
 #
 # Sys-Prefix Protection:
 # Collection names starting with "sys" are reserved for system use.
-# Only sysusers, sysqueue, sysvaults, and sysconfig are allowed.
+# Only sysusers, sysqueue, sysvaults, sysconfig, and syslogs are allowed.
 # Creating db.sysnew or similar will throw InvalidOperationException.
 # This protection is enforced at Bridge, Engine, and Collection layers.
 

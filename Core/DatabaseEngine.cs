@@ -252,7 +252,7 @@ namespace AxarDB.Core
             engine.SetValue("decrypt", new Func<string, string, string>(AxarDB.Helpers.ScriptUtils.Decrypt));
             engine.SetValue("split", new Func<string, string, string[]>(AxarDB.Helpers.ScriptUtils.Split));
             engine.SetValue("toDecimal", new Func<string, decimal>(AxarDB.Helpers.ScriptUtils.ToDecimal));
-            engine.SetValue("guid", new Func<string>(() => Guid.NewGuid().ToString()));
+            engine.SetValue("guid", new Func<string>(() => AxarDB.Helpers.GuidV7.NewGuid().ToString()));
 
             // --- UUID v7 Functions ---
             // guidv7()             → new UUID v7 using the current UTC time
@@ -500,6 +500,7 @@ namespace AxarDB.Core
             GetCollection("sysusers");
             GetCollection("sysqueue"); // Initialize queue collection
             GetCollection("sysconfig"); // Initialize config collection
+            GetCollection("syslogs"); // Initialize logs collection
             // Add default user
             var sysusers = GetCollection("sysusers");
             // Check via storage if empty
@@ -542,6 +543,7 @@ namespace AxarDB.Core
                     list.Add(key);
                 }
             }
+            list.Add("syslogs");
             var dataPath = Path.Combine(_basePath, "Data");
             if (Directory.Exists(dataPath))
             {
@@ -655,6 +657,10 @@ namespace AxarDB.Core
             {
                 return bcb.findall().ToList();
             }
+            if (obj is AxarDB.Bridges.LogCollectionBridge lcb)
+            {
+                return lcb.findall().ToList();
+            }
 
             return obj;
         }
@@ -698,7 +704,8 @@ namespace AxarDB.Core
                     !name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
                     !name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
                     !name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
-                    !name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                    !name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) &&
+                    !name.Equals("syslogs", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException($"System collection name '{name}' is reserved.");
                 }

@@ -24,9 +24,16 @@ namespace AxarDB.Bridges
                 !binder.Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
                 !binder.Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
                 !binder.Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
-                !binder.Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                !binder.Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) &&
+                !binder.Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException($"System collection name '{binder.Name}' is reserved.");
+            }
+
+            if (binder.Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase))
+            {
+                result = new LogCollectionBridge(_dbEngine.BasePath, "syslogs", _jintEngine, _cancellationToken);
+                return true;
             }
 
             // db.users -> returns CollectionBridge for "users"

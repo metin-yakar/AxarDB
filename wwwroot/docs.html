@@ -1139,6 +1139,11 @@ db.sysconfig.<span class="function">findall</span>().<span class="function">upda
                             <td>Background task queue for deferred execution</td>
                             <td>Must use <code>queue()</code></td>
                         </tr>
+                        <tr>
+                            <td><code>syslogs</code></td>
+                            <td>Virtual read-only collection for querying system logs</td>
+                            <td>Read-only (modifications prohibited)</td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -1150,7 +1155,7 @@ db.sysconfig.<span class="function">findall</span>().<span class="function">upda
                     <li><strong>Collection Layer:</strong> <code>db.sysnew.insert(...)</code> → blocked by <code>Collection.Insert</code></li>
                 </ul>
                 <div class="info-box">
-                    <strong>💡 Only Pre-defined System Collections:</strong> <code>sysusers</code>, <code>sysqueue</code>, <code>sysvaults</code>, and <code>sysconfig</code> are the only allowed <code>sys</code>-prefixed collection names.
+                    <strong>💡 Only Pre-defined System Collections:</strong> <code>sysusers</code>, <code>sysqueue</code>, <code>sysvaults</code>, <code>sysconfig</code>, and <code>syslogs</code> are the only allowed <code>sys</code>-prefixed collection names.
                 </div>
             </section>
 

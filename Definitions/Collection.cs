@@ -105,14 +105,15 @@ namespace AxarDB.Definitions
                 if (!Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
-                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException("Users cannot create custom system collections starting with 'sys'.");
                 }
 
-                if (Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) && !bypassSystemRules)
+                if ((Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) || Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase)) && !bypassSystemRules)
                 {
-                    throw new InvalidOperationException("Insert operation is not allowed on sysconfig collection.");
+                    throw new InvalidOperationException($"Insert operation is not allowed on {Name} collection.");
                 }
             }
 
@@ -289,14 +290,15 @@ namespace AxarDB.Definitions
                 if (!Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
-                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException("Users cannot modify custom system collections starting with 'sys'.");
                 }
 
-                if (Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) && !bypassSystemRules)
+                if ((Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) || Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase)) && !bypassSystemRules)
                 {
-                    throw new InvalidOperationException("Update operation is not allowed on sysconfig collection.");
+                    throw new InvalidOperationException($"Update operation is not allowed on {Name} collection.");
                 }
             }
 
@@ -441,7 +443,8 @@ namespace AxarDB.Definitions
             { "sysusers", new HashSet<string> { "_id", "username", "password" } },
             { "sysvaults", new HashSet<string> { "_id", "key", "value", "created" } },
             { "sysconfig", new HashSet<string> { "_id", "memoryLimitPercentage", "bulkStoreMaxCacheBytes", "maxRecursionDepth", "queryTimeoutMinutes", "queuePollIntervalSeconds" } },
-            { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage", "completedAt" } }
+            { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage", "completedAt" } },
+            { "syslogs", new HashSet<string> { "_id", "timestamp", "type", "ip", "user", "query", "durationMs", "status" } }
         };
 
         private static readonly Dictionary<string, Dictionary<string, Type>> SystemCollectionTypes = new(StringComparer.OrdinalIgnoreCase)
