@@ -143,6 +143,12 @@ namespace AxarDB.Bridges
             return doc != null ? new DocumentWrapper(doc) : null;
         }
 
+        public void update(JsValue predicate, object updateFields)
+        {
+            var resultSet = findall(predicate);
+            resultSet.update(updateFields);
+        }
+
         public MemoryResultSet contains(Func<object, bool> predicate)
         {
             Func<Dictionary<string, object>, bool> safePredicate = (d) =>

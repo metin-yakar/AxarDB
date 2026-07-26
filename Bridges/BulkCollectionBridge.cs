@@ -112,6 +112,12 @@ namespace AxarDB.Bridges
             return doc != null ? new DocumentWrapper(doc) : null;
         }
 
+        public void update(JsValue predicate, object updateFields)
+        {
+            var resultSet = findall(predicate);
+            resultSet.update(updateFields);
+        }
+
         public BulkResultSet contains(JsValue predicate)
         {
             Func<Dictionary<string, object>, bool> safePredicate = (d) =>
@@ -121,7 +127,7 @@ namespace AxarDB.Bridges
                 {
                     try
                     {
-                        var result = _engine.Invoke(predicate, new object[] { new DocumentWrapper(d) });
+                        var result = _engine.Invoke(predicate, new object[] { new CaseInsensitiveDocumentWrapper(d) });
                         return result.AsBoolean();
                     }
                     catch { return false; }
@@ -142,7 +148,7 @@ namespace AxarDB.Bridges
                 {
                     try
                     {
-                        var result = _engine.Invoke(predicate, new object[] { new DocumentWrapper(d) });
+                        var result = _engine.Invoke(predicate, new object[] { new CaseInsensitiveDocumentWrapper(d) });
                         return result.AsBoolean();
                     }
                     catch { return false; }

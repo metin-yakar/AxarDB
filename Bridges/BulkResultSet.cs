@@ -59,6 +59,12 @@ namespace AxarDB.Bridges
                 action(new DocumentWrapper(doc));
         }
 
+        public AxarList distinct(Func<object, object>? selector = null)
+        {
+            if (selector == null) return new AxarList(_source.Select(d => (object)d).Distinct());
+            return new AxarList(_source.Select(d => selector(new DocumentWrapper(d))).Distinct());
+        }
+
         /// <summary>
         /// Removes all matched documents from the JSONL file (rewrites file without them).
         /// </summary>
@@ -71,6 +77,27 @@ namespace AxarDB.Bridges
 
             _store.Delete(_collectionName, d =>
                 d.TryGetValue("_id", out var id) && ids.Contains(id.ToString()!));
+        }
+
+        public void update(object updateFields)
+        {
+            if (updateFields == null) return;
+            Dictionary<string, object>? fields = null;
+            if (updateFields is Dictionary<string, object> d) fields = d;
+            else if (updateFields is IDictionary<string, object> id) fields = new Dictionary<string, object>(id);
+            else if (updateFields is System.Dynamic.ExpandoObject ex) fields = ex.ToDictionary(k => k.Key, v => v.Value ?? new object());
+            
+            if (fields == null) return;
+
+            var ids = _source
+                .Where(d => d.ContainsKey("_id"))
+                .Select(d => d["_id"].ToString()!)
+                .ToHashSet();
+
+            if (ids.Count == 0) return;
+
+            _store.Update(_collectionName, d =>
+                d.TryGetValue("_id", out var id) && ids.Contains(id.ToString()!), fields);
         }
     }
 }
