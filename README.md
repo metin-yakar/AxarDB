@@ -127,7 +127,7 @@ To modify settings, authorized users can update the document in the `sysconfig` 
 
 ### System Collection Protection
 
-All collection names starting with `sys` are **reserved** for internal infrastructure. Only four pre-defined system collections are allowed: `sysusers`, `sysqueue`, `sysvaults`, and `sysconfig`. Attempting to create or access any other `sys`-prefixed collection (e.g., `db.sysnew`) will throw an `InvalidOperationException`. This protection is enforced at multiple layers (Bridge, Engine, and Collection).
+All collection names starting with `sys` are **reserved** for internal infrastructure. Only pre-defined system collections are allowed: `sysusers`, `sysqueue`, `sysvaults`, `sysconfig`, and `syslogs`. Attempting to create or access any other `sys`-prefixed collection (e.g., `db.sysnew`) will throw an `InvalidOperationException`. This protection is enforced at multiple layers (Bridge, Engine, and Collection).
 
 ### Available Settings
 
