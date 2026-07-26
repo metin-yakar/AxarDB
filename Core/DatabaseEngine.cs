@@ -624,7 +624,23 @@ namespace AxarDB.Core
             var result = engine.Evaluate(script);
 
             // Convert result back to native object if possible
-            return result.ToObject();
+            var obj = result.ToObject();
+            
+            // Auto-materialize queries to list if not done by user
+            if (obj is JoinCollectionBridge joinBridge)
+            {
+                return joinBridge.toList();
+            }
+            if (obj is ResultSet resultSet)
+            {
+                return resultSet.ToList();
+            }
+            if (obj is CollectionBridge colBridge)
+            {
+                return colBridge.findall().ToList();
+            }
+
+            return obj;
         }
 
         /// <summary>

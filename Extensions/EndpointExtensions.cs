@@ -182,6 +182,7 @@ namespace AxarDB.Extensions
                 string modelName = root.TryGetProperty("modelName", out var modEl) ? modEl.GetString() ?? "" : "";
                 string apiKey = root.TryGetProperty("apiKey", out var keyEl) ? keyEl.GetString() ?? "" : "";
                 string query = root.TryGetProperty("query", out var queryEl) ? queryEl.GetString() ?? "" : "";
+                string schemaContext = root.TryGetProperty("schemaContext", out var schemaEl) ? schemaEl.GetString() ?? "" : "";
 
                 if (string.IsNullOrEmpty(apiUrl)) return Results.Problem("API URL is required", statusCode: 400);
                 if (string.IsNullOrEmpty(modelName)) return Results.Problem("Model Name is required", statusCode: 400);
@@ -202,6 +203,7 @@ namespace AxarDB.Extensions
                                    "2. 'findOne()' DOES NOT EXIST. Use 'find(predicate)' to get a single item, or 'findall(predicate)' to get multiple.\n" +
                                    "3. Read the provided Context carefully and follow its exact syntax.\n" +
                                    "4. Return ONLY the raw JavaScript query code. No markdown formatting, no explanations, no ````javascript` blocks. The user will execute this code directly.\n\n" +
+                                   "Database Schema (First record of each collection):\n" + schemaContext + "\n\n" +
                                    "Context:\n" + ragContent;
 
                 var payload = new
