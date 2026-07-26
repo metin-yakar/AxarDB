@@ -163,6 +163,31 @@ namespace AxarDB.Bridges
             InvalidateCache(name);
         }
 
+        /// <summary>Update documents matching a predicate and rewrite the JSONL file.</summary>
+        public void Update(string name, Func<Dictionary<string, object>, bool> predicate, Dictionary<string, object> fields)
+        {
+            var docs = GetDocuments(name).ToList();
+            bool modified = false;
+            foreach (var doc in docs)
+            {
+                if (predicate(doc))
+                {
+                    foreach (var kv in fields)
+                    {
+                        if (kv.Key == "_id") continue; // Prevent altering _id
+                        doc[kv.Key] = kv.Value;
+                    }
+                    modified = true;
+                }
+            }
+            if (modified)
+            {
+                var path = GetFilePath(name);
+                File.WriteAllLines(path, docs.Select(d => JsonSerializer.Serialize(d)), Encoding.UTF8);
+                InvalidateCache(name);
+            }
+        }
+
         /// <summary>
         /// Completely removes a bulk collection by deleting its JSONL file from disk.
         /// After this call the collection will no longer appear in ListCollections().

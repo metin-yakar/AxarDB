@@ -639,6 +639,22 @@ namespace AxarDB.Core
             {
                 return colBridge.findall().ToList();
             }
+            if (obj is AxarDB.Bridges.MemoryResultSet mrs)
+            {
+                return mrs.ToList();
+            }
+            if (obj is AxarDB.Bridges.BulkResultSet brs)
+            {
+                return brs.ToList();
+            }
+            if (obj is AxarDB.Bridges.MemoryCollectionBridge mcb)
+            {
+                return mcb.findall().ToList();
+            }
+            if (obj is AxarDB.Bridges.BulkCollectionBridge bcb)
+            {
+                return bcb.findall().ToList();
+            }
 
             return obj;
         }
