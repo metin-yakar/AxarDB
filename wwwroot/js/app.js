@@ -4,6 +4,7 @@ let currentCollections = [];
 let currentMemoryCollections = [];
 let currentBulkCollections = [];
 let collectionFields = { db: {}, memory: {}, bulk: {} };
+let collectionSamples = { db: {}, memory: {}, bulk: {} };
 let queryResults = [];
 let currentDisplayData = []; // To easily reference data for grid actions
 let currentGridKeys = []; // Stores keys currently visible in the grid
@@ -1549,6 +1550,7 @@ async function triggerFetchCollectionFields(dbCols, memCols, bulkCols) {
 
         // Reset cache
         collectionFields = { db: {}, memory: {}, bulk: {} };
+        collectionSamples = { db: {}, memory: {}, bulk: {} };
 
         // Parse unique keys
         for (const type of ['db', 'memory', 'bulk']) {
@@ -1557,6 +1559,9 @@ async function triggerFetchCollectionFields(dbCols, memCols, bulkCols) {
                     const docs = data[type][colName];
                     const keys = new Set();
                     if (Array.isArray(docs)) {
+                        if (docs.length > 0) {
+                            collectionSamples[type][colName] = docs[0];
+                        }
                         for (const doc of docs) {
                             if (doc && typeof doc === 'object') {
                                 for (const key in doc) {
@@ -1731,7 +1736,8 @@ function initAiQuery() {
                     apiUrl: apiUrl,
                     modelName: modelName,
                     apiKey: apiKey,
-                    query: query
+                    query: query,
+                    schemaContext: JSON.stringify(collectionSamples)
                 })
             });
 
