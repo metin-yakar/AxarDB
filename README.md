@@ -179,12 +179,33 @@ var tr = bulk.countries.find(c => c.code == "TR");
 // Query with filtering
 var large = bulk.countries.findall(c => c.population > 1000000);
 
-// Check if an item is in an array (like C# LINQ SequenceEqual/Contains)
-var targetCats = [66, 69, 74];
-var myCats = bulk.categories.findall(x => x.rowNumber.includes(targetCats));
-
 // Manually reload cache
 bulk.reload("countries");
+```
+
+---
+
+## ⚙️ Built-in Functions
+
+AxarDB provides powerful utility functions that can be used directly within your scripts and views.
+
+### 🧩 Object and Array Operations
+
+**Object.prototype.includes(arr)**
+This function checks if an item exists within the specified array, similar to C#'s LINQ `Contains` or `SequenceEqual` logic.
+- If the item being compared is a primitive value (e.g., int, string), it acts like `Contains`.
+- If the item being compared is an array itself, it acts like `SequenceEqual`, performing a strict equality check on both arrays.
+
+```javascript
+// 1. Single Value Check (Contains Logic)
+// Is the rowNumber one of the specified values?
+var targetCats = [66, 69, 74];
+var myCats = db.categories.findall(x => x.rowNumber != null && x.rowNumber.includes(targetCats));
+
+// 2. Array Comparison (SequenceEqual Logic)
+// Find users where the tags array exactly matches ["developer", "senior"]
+var targetTags = ["developer", "senior"];
+var matches = db.users.findall(x => x.tags.includes(targetTags));
 ```
 
 ---

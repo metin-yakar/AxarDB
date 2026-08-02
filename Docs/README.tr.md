@@ -167,6 +167,25 @@ var responseWithHeader = httpGet("https://api.example.com/secure", { "Authorizat
 webhook("https://api.example.com/notify", { message: "Hello" });
 ```
 
+### 🧩 Nesne ve Dizi (Array) İşlemleri
+
+**Object.prototype.includes(arr)**
+Bu fonksiyon, bir öğenin belirtilen dizi içerisinde olup olmadığını kontrol eder. C#'taki LINQ `SequenceEqual` veya `Contains` mantığı ile çalışır.
+- Eğer karşılaştırılan nesne tekil bir değerse (örn: int, string), dizinin bu öğeyi içerip içermediğine bakar (`Contains`).
+- Eğer karşılaştırılan nesne de bir diziyse, iki dizinin birebir aynı elemanlara sahip olup olmadığını kontrol eder (`SequenceEqual`).
+
+```javascript
+// 1. Tekil Değer (Contains Mantığı)
+// Bir kaydın rowNumber alanı [66, 69, 74] değerlerinden biri mi?
+var targetCats = [66, 69, 74];
+var myCats = db.categories.findall(x => x.rowNumber != null && x.rowNumber.includes(targetCats));
+
+// 2. Dizi Karşılaştırması (SequenceEqual Mantığı)
+// tags alanı tam olarak ["developer", "senior"] olanları bul
+var targetTags = ["developer", "senior"];
+var matches = db.users.findall(x => x.tags.includes(targetTags));
+```
+
 ---
 
 ## 🧠 Memory Store (Geçici Bellek Deposu)

@@ -224,6 +224,19 @@ These methods are available on **any JavaScript array**:
 | `.toList()` | Converts iterable objects (ResultSets, .NET enumerables) to plain JavaScript arrays. |
 | `.includes(arr)` | Checks if the object is contained in the specified array. If the object itself is an array, it performs a strict equality check (like C# LINQ `SequenceEqual`). Example: `x.rowNumber.includes([66,69,74])` |
 
+**Usage examples for `.includes(arr)`:**
+```javascript
+// 1. Single Value Check (Similar to LINQ Contains)
+// Check if a document's rowNumber is one of [66, 69, 74]
+var targetCats = [66, 69, 74];
+var myCats = db.categories.findall(x => x.rowNumber != null && x.rowNumber.includes(targetCats));
+
+// 2. Array Comparison (Similar to LINQ SequenceEqual)
+// Find users where tags exactly match ["developer", "senior"]
+var targetTags = ["developer", "senior"];
+var matches = db.users.findall(x => x.tags.includes(targetTags));
+```
+
 ## 4. Join Operations
 
 AxarDB supports powerful multi-joins between collections. By default, results use `j1`, `j2`, `j3`... indexing, but the `alias()` function provides a more readable "named" approach.
