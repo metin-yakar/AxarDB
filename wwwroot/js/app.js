@@ -4,6 +4,7 @@ let currentCollections = [];
 let currentMemoryCollections = [];
 let currentBulkCollections = [];
 let collectionFields = { db: {}, memory: {}, bulk: {} };
+let collectionSamples = { db: {}, memory: {}, bulk: {} };
 let queryResults = [];
 let currentDisplayData = []; // To easily reference data for grid actions
 let currentGridKeys = []; // Stores keys currently visible in the grid
@@ -117,6 +118,13 @@ function closeTab(id) {
     }
 }
 
+function closeOtherTabs() {
+    if (tabs.length <= 1) return;
+    tabs = [tabs[0]];
+    activeTabId = null;
+    switchTab(tabs[0].id);
+}
+
 function renderTabBar() {
     const list = document.getElementById('tabBarList');
     if (!list) return;
@@ -138,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuthAndLoad();
     initIcons();
     initSysconfigBanner();
+    initAiQuery();
     createTab('Query 1');
 });
 
@@ -501,11 +510,14 @@ db.${name}
             };
             item.oncontextmenu = (e) => {
                 e.preventDefault();
-                showContextMenu(e, [
-                    { label: `Default Query`, action: () => { createTab(name, `db.${name}.findall().take(5)`); executeSelectedQuery(); } },
-                    { label: `Clear ${name}`, action: () => { createTab(`Clear ${name}`, `db.${name}.findall().delete()`); } },
-                    { label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } }
-                ]);
+                const menuActions = [
+                    { label: `Default Query`, action: () => { createTab(name, `db.${name}.findall().take(5)`); executeSelectedQuery(); } }
+                ];
+                if (name !== 'syslogs' && name !== 'sysconfig') {
+                    menuActions.push({ label: `Clear ${name}`, action: () => { createTab(`Clear ${name}`, `db.${name}.findall().delete()`); } });
+                    menuActions.push({ label: `Delete ${name}`, action: () => { if (confirm(`Are you sure you want to delete collection '${name}' and all its data?`)) { deleteCollection(name); } } });
+                }
+                showContextMenu(e, menuActions);
             };
             tree.appendChild(item);
         });
@@ -776,8 +788,21 @@ async function executeSelectedQuery() {
     const script = editor.getValue();
     const originalText = `<i data-lucide="play"></i> Execute (Ctrl+Enter)`;
 
-    const match = script.match(/db\.([a-zA-Z0-9_]+)\./);
-    if (match) { lastCollectionName = match[1]; updateSysconfigBanner(); }
+    let lastColMatchName = null;
+    let lastColMatchType = null;
+
+    const regex = /(db|memory|bulk)\.([a-zA-Z0-9_]+)\./g;
+    let m;
+    while ((m = regex.exec(script)) !== null) {
+        lastColMatchType = m[1];
+        lastColMatchName = m[2];
+    }
+
+    if (lastColMatchName) {
+        lastCollectionName = lastColMatchName;
+        lastCollectionType = lastColMatchType;
+        if (lastColMatchType === 'db') updateSysconfigBanner();
+    }
 
     btn.innerHTML = '<i data-lucide="square" style="fill: currentColor; width: 14px; height: 14px;"></i> Cancel Executing';
     btn.style.backgroundColor = '#ef4444'; // Red background for cancel
@@ -819,8 +844,8 @@ async function executeSelectedQuery() {
                     const viewMatch = script.match(/db\.view\(["']([^"']+)["']/);
                     if (viewMatch) {
                         tab.title = viewMatch[1];
-                    } else if (match) {
-                        tab.title = match[1];
+                    } else if (lastColMatchName) {
+                        tab.title = lastColMatchName;
                     }
                     tab.queryResults = queryResults;
                     renderTabBar();
@@ -990,7 +1015,7 @@ function renderGrid() {
             <td>
                 <div class="row-action-btn" onclick="handleRowAction(event, ${idx})">${idx + 1}</div>
             </td>
-            ${keys.map(k => `<td>${formatValue(row[k], k, idx)}</td>`).join('')}
+            ${keys.map(k => `<td ondblclick="makeEditable(this, ${idx}, '${k.replace(/'/g, "\\'")}')">${formatValue(row[k], k, idx)}</td>`).join('')}
         </tr>
     `).join('');
     initIcons();
@@ -1006,6 +1031,106 @@ function renderGrid() {
         }
     }
 }
+
+window.makeEditable = function(td, rowIdx, key) {
+    if (td.querySelector('input, select')) return; // Already editing
+    if (key === '_id' || key.toLowerCase().endsWith('id')) return; // Cannot modify ID fields
+    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk' || lastCollectionName === 'syslogs' || lastCollectionName === 'sysconfig') return; // Enforce collection-types-rule
+
+    const row = currentDisplayData[rowIdx];
+    if (!row) return;
+    const val = row[key];
+
+    const id = row._id;
+    if (id === undefined || id === null || !lastCollectionName) return; 
+
+    const prefix = 'db';
+    
+    let inputHtml = '';
+    if (typeof val === 'boolean') {
+        inputHtml = `<select class="inline-edit-input" data-key="${escapeHtml(key)}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">
+            <option value="true" ${val ? 'selected' : ''}>true</option>
+            <option value="false" ${!val ? 'selected' : ''}>false</option>
+        </select>`;
+    } else if (typeof val === 'number') {
+        inputHtml = `<input type="number" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${val}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">`;
+    } else if (typeof val === 'object' && val !== null) {
+        const strVal = JSON.stringify(val);
+        inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="json" value="${escapeHtml(strVal)}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;" title="Edit as JSON">`;
+    } else if (typeof val === 'string' && val.length >= 19 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+        const dateStr = val.substring(0, 19);
+        const originalTail = val.substring(19);
+        inputHtml = `<input type="datetime-local" step="1" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="datetime" data-tail="${escapeHtml(originalTail)}" value="${escapeHtml(dateStr)}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">`;
+    } else {
+        const safeVal = (val === null || val === undefined) ? '' : escapeHtml(String(val));
+        inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${safeVal}" style="width: 100%; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--accent); padding: 4px; outline: none; border-radius: 4px;">`;
+    }
+
+    td.innerHTML = inputHtml;
+    const input = td.querySelector('input, select');
+    if (!input) return;
+    input.focus();
+
+    const updateQueryInEditor = () => {
+        let newVal;
+        if (input.tagName === 'SELECT') {
+            newVal = input.value === 'true';
+        } else if (input.type === 'number') {
+            newVal = input.value === '' ? null : parseFloat(input.value);
+            if (newVal !== null && isNaN(newVal)) newVal = 0;
+        } else if (input.getAttribute('data-type') === 'json') {
+            try {
+                newVal = input.value === '' ? null : JSON.parse(input.value);
+            } catch (e) {
+                newVal = input.value;
+            }
+        } else if (input.getAttribute('data-type') === 'datetime') {
+            if (input.value === '') {
+                newVal = null;
+            } else {
+                const tail = input.getAttribute('data-tail') || '';
+                let timeStr = input.value;
+                if (timeStr.length === 16) timeStr += ':00';
+                newVal = timeStr + tail;
+            }
+        } else {
+            newVal = input.value;
+        }
+
+        const updateObj = {};
+        updateObj[key] = newVal;
+        
+        const safeId = JSON.stringify(id);
+        const queryStr = `${prefix}.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});\n${prefix}.${lastCollectionName}.findall();`;
+        
+        if (window.editor) {
+            setEditorValue(queryStr);
+        }
+        return newVal;
+    };
+
+    const finishEdit = () => {
+        const newVal = updateQueryInEditor();
+        td.innerHTML = formatValue(newVal, key, rowIdx);
+    };
+
+    input.addEventListener('input', updateQueryInEditor);
+    input.addEventListener('change', updateQueryInEditor);
+    input.addEventListener('blur', finishEdit);
+    input.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            finishEdit();
+            executeSelectedQuery();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEdit();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            td.innerHTML = formatValue(val, key, rowIdx);
+        }
+    });
+};
 
 function formatValue(v, key, rowIdx = -1) {
     if (v === null || v === undefined) return '';
@@ -1102,27 +1227,35 @@ function showContextMenu(e, items) {
 function handleRowAction(e, rowIdx) {
     e.preventDefault(); e.stopPropagation();
     const row = queryResults[rowIdx];
+    if (!row) return;
     const id = row._id;
-    const updateObj = { ...row }; delete updateObj._id;
 
-    showContextMenu(e, [
-        {
-            label: 'Edit Record', action: () => {
-                setEditorValue(`db.${lastCollectionName}.update(x => x._id == "${id}", ${JSON.stringify(updateObj, null, 2)});`);
-            }
-        });
+    const actions = [];
+    
+    if (lastCollectionName && id !== undefined) {
+        let prefix = 'db';
+        
+        // Enforce collection-types-rule.md: memory, bulk, syslogs & sysconfig collections cannot be updated/deleted directly
+        if (lastCollectionType !== 'memory' && lastCollectionType !== 'bulk' && lastCollectionName !== 'syslogs' && lastCollectionName !== 'sysconfig') {
+            actions.push({
+                label: 'Edit Record', action: () => {
+                    enableInlineEdit(rowIdx);
+                }
+            });
 
-    actions.push({
-        label: 'Delete Record', action: () => {
-            setEditorValue(`db.${lastCollectionName}.findall(x => x._id == "${id}").delete();`);
+            actions.push({
+                label: 'Delete Record', action: () => {
+                    const safeId = JSON.stringify(id);
+                    setEditorValue(`${prefix}.${lastCollectionName}.findall(x => x._id == ${safeId}).delete();\n${prefix}.${lastCollectionName}.findall();`);
+                }
+            });
         }
-    });
-}
+    }
 
-// Always allow exporting the record
-actions.push({ label: 'Export specific record (JSON)', action: () => exportData([row], 'json') });
+    // Always allow exporting the record
+    actions.push({ label: 'Export specific record (JSON)', action: () => exportData([row], 'json') });
 
-showContextMenu(e, actions);
+    showContextMenu(e, actions);
 }
 
 function exportData(data, format) {
@@ -1240,6 +1373,11 @@ function initButtons() {
 
     // Tab management
     document.getElementById('btnAddTab').onclick = () => createTab();
+    
+    const btnCloseOther = document.getElementById('btnCloseOtherTabs');
+    if (btnCloseOther) {
+        btnCloseOther.onclick = () => closeOtherTabs();
+    }
 }
 
 // --- View Parameter Extraction ---
@@ -1411,11 +1549,14 @@ function escapeHtml(str) {
 // --- Inline Edit Logic ---
 
 function enableInlineEdit(rowIdx) {
+    if (lastCollectionType === 'memory' || lastCollectionType === 'bulk' || lastCollectionName === 'syslogs' || lastCollectionName === 'sysconfig') return;
+
     const tbody = document.getElementById('tableBody');
-    const tr = tbody.children[rowIdx];
+    const tr = tbody ? tbody.children[rowIdx] : null;
     if (!tr) return;
 
     const rowData = currentDisplayData[rowIdx];
+    if (!rowData) return;
 
     currentGridKeys.forEach((key, colIdx) => {
         // Skip ID fields
@@ -1425,6 +1566,7 @@ function enableInlineEdit(rowIdx) {
 
         // +1 because td index 0 is the row action button (#)
         const td = tr.children[colIdx + 1];
+        if (!td) return;
         const val = rowData[key];
 
         let inputHtml = '';
@@ -1450,16 +1592,32 @@ function enableInlineEdit(rowIdx) {
         td.innerHTML = inputHtml;
     });
 
-    // Immediately trigger to update the script editor with the current values
+    const rowInputs = tr.querySelectorAll('.inline-edit-input');
+    rowInputs.forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                updateInlineEdit(rowIdx);
+                executeSelectedQuery();
+            }
+        });
+    });
+
+    if (rowInputs.length > 0) {
+        rowInputs[0].focus();
+    }
+
     updateInlineEdit(rowIdx);
 }
 
 function updateInlineEdit(rowIdx) {
     const tbody = document.getElementById('tableBody');
-    const tr = tbody.children[rowIdx];
+    const tr = tbody ? tbody.children[rowIdx] : null;
     if (!tr) return;
 
     const originalRow = currentDisplayData[rowIdx];
+    if (!originalRow) return;
+
     const updateObj = { ...originalRow };
     delete updateObj._id; // Ensure we don't try to update _id
 
@@ -1476,7 +1634,7 @@ function updateInlineEdit(rowIdx) {
             try {
                 val = input.value === '' ? null : JSON.parse(input.value);
             } catch (e) {
-                val = input.value; // Fallback to string if invalid JSON
+                val = input.value;
             }
         } else if (input.getAttribute('data-type') === 'datetime') {
             if (input.value === '') {
@@ -1484,7 +1642,6 @@ function updateInlineEdit(rowIdx) {
             } else {
                 const tail = input.getAttribute('data-tail') || '';
                 let timeStr = input.value;
-                // datetime-local omits seconds if they are 00 in some browsers, ensure it's full length
                 if (timeStr.length === 16) timeStr += ':00';
                 val = timeStr + tail;
             }
@@ -1492,14 +1649,14 @@ function updateInlineEdit(rowIdx) {
             val = input.value;
         }
 
-        // Update the object with new value
         if (val !== undefined) {
             updateObj[key] = val;
         }
     });
 
+    const prefix = 'db';
     const safeId = JSON.stringify(originalRow._id);
-    const script = `db.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});`;
+    const script = `${prefix}.${lastCollectionName}.update(x => x._id == ${safeId}, ${JSON.stringify(updateObj, null, 2)});\n${prefix}.${lastCollectionName}.findall();`;
 
     setEditorValue(script);
 }
@@ -1529,6 +1686,7 @@ async function triggerFetchCollectionFields(dbCols, memCols, bulkCols) {
 
         // Reset cache
         collectionFields = { db: {}, memory: {}, bulk: {} };
+        collectionSamples = { db: {}, memory: {}, bulk: {} };
 
         // Parse unique keys
         for (const type of ['db', 'memory', 'bulk']) {
@@ -1537,6 +1695,9 @@ async function triggerFetchCollectionFields(dbCols, memCols, bulkCols) {
                     const docs = data[type][colName];
                     const keys = new Set();
                     if (Array.isArray(docs)) {
+                        if (docs.length > 0) {
+                            collectionSamples[type][colName] = docs[0];
+                        }
                         for (const doc of docs) {
                             if (doc && typeof doc === 'object') {
                                 for (const key in doc) {
@@ -1576,4 +1737,184 @@ function resolveCollectionForParam(textBeforeCursor, paramName) {
         return { type: lastColMatch[1], name: lastColMatch[2] };
     }
     return null;
+}
+
+// --- AI Query Logic ---
+function initAiQuery() {
+    const btnAiQuery = document.getElementById('btnAiQuery');
+    const modal = document.getElementById('aiQueryModal');
+    const btnClose = document.getElementById('btnCloseAiQuery');
+    const header = document.getElementById('aiQueryModalHeader');
+    const aiApiUrl = document.getElementById('aiApiUrl');
+    const aiModelName = document.getElementById('aiModelName');
+    const aiApiKey = document.getElementById('aiApiKey');
+    const aiQueryInput = document.getElementById('aiQueryInput');
+    const btnGenerate = document.getElementById('btnAiGenerate');
+    const accordion = document.getElementById('aiSettingsAccordion');
+
+    if (!btnAiQuery || !modal) return;
+
+    // Load settings without hardcoded defaults
+    aiApiUrl.value = localStorage.getItem('AxarDB_aiApiUrl') || '';
+    aiModelName.value = localStorage.getItem('AxarDB_aiModelName') || '';
+    aiApiKey.value = localStorage.getItem('AxarDB_aiApiKey') || '';
+
+    const saveSettings = () => {
+        localStorage.setItem('AxarDB_aiApiUrl', aiApiUrl.value);
+        localStorage.setItem('AxarDB_aiModelName', aiModelName.value);
+        localStorage.setItem('AxarDB_aiApiKey', aiApiKey.value);
+    };
+
+    aiApiUrl.addEventListener('change', saveSettings);
+    aiModelName.addEventListener('change', saveSettings);
+    aiApiKey.addEventListener('change', saveSettings);
+
+    // Open/Close
+    btnAiQuery.onclick = () => {
+        modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+        if (modal.style.display === 'flex') aiQueryInput.focus();
+    };
+    btnClose.onclick = () => modal.style.display = 'none';
+
+    // Drag Modal Logic
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+    header.onmousedown = (e) => {
+        if (e.target.closest('button')) return;
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = modal.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+        document.body.style.userSelect = 'none';
+    };
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        modal.style.left = (initialLeft + dx) + 'px';
+        modal.style.top = (initialTop + dy) + 'px';
+        modal.style.right = 'auto';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            document.body.style.userSelect = '';
+        }
+    });
+
+    // Auto-grow textarea up to 10 rows
+    aiQueryInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        const computed = window.getComputedStyle(this);
+        const lineHeight = parseInt(computed.lineHeight) || 18;
+        const paddingTop = parseInt(computed.paddingTop) || 8;
+        const paddingBottom = parseInt(computed.paddingBottom) || 8;
+        
+        const padding = paddingTop + paddingBottom;
+        const maxHeight = (lineHeight * 10) + padding;
+        
+        if (this.scrollHeight > maxHeight) {
+            this.style.height = maxHeight + 'px';
+            this.style.overflowY = 'auto';
+        } else {
+            this.style.height = this.scrollHeight + 'px';
+            this.style.overflowY = 'hidden';
+        }
+    });
+
+    // Generate action
+    const doGenerate = async () => {
+        const query = aiQueryInput.value.trim();
+        if (!query) return;
+        
+        let hasError = false;
+        aiApiUrl.style.borderColor = '';
+        aiModelName.style.borderColor = '';
+        aiApiKey.style.borderColor = '';
+
+        const apiUrl = aiApiUrl.value.trim();
+        const modelName = aiModelName.value.trim();
+        const apiKey = aiApiKey.value.trim();
+
+        if (!apiUrl) {
+            aiApiUrl.style.borderColor = 'red';
+            hasError = true;
+        }
+        if (!modelName) {
+            aiModelName.style.borderColor = 'red';
+            hasError = true;
+        }
+        if (!apiKey) {
+            aiApiKey.style.borderColor = 'red';
+            hasError = true;
+        }
+
+        if (hasError) {
+            if (accordion) accordion.open = true;
+            return;
+        }
+
+        btnGenerate.disabled = true;
+        btnGenerate.innerHTML = '<i data-lucide="loader"></i> Generating...';
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const res = await fetch('/api/ai-query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    apiUrl: apiUrl,
+                    modelName: modelName,
+                    apiKey: apiKey,
+                    query: query,
+                    schemaContext: JSON.stringify(collectionSamples)
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || errData.error?.message || 'API request failed');
+            }
+
+            const data = await res.json();
+            let code = data.choices && data.choices.length > 0 ? data.choices[0].message.content : '';
+            
+            // Clean markdown if present
+            if (code.startsWith('```')) {
+                code = code.replace(/^\`\`\`[a-zA-Z]*\n/, '').replace(/\n\`\`\`$/, '');
+            }
+            code = code.trim();
+
+            if (editor) {
+                setEditorValue(code);
+            }
+            
+            // Clear input and close modal on success
+            aiQueryInput.value = '';
+            aiQueryInput.style.height = 'auto';
+            modal.style.display = 'none';
+
+        } catch (err) {
+            alert('AI Generation Error: ' + err.message);
+        } finally {
+            btnGenerate.disabled = false;
+            btnGenerate.innerHTML = '<i data-lucide="sparkles"></i> Generate (Ctrl+Enter)';
+            if (window.lucide) lucide.createIcons();
+        }
+    };
+
+    btnGenerate.onclick = doGenerate;
+
+    aiQueryInput.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            doGenerate();
+        }
+    });
 }

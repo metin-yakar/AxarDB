@@ -105,14 +105,15 @@ namespace AxarDB.Definitions
                 if (!Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
-                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException("Users cannot create custom system collections starting with 'sys'.");
                 }
 
-                if (Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) && !bypassSystemRules)
+                if ((Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) || Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase)) && !bypassSystemRules)
                 {
-                    throw new InvalidOperationException("Insert operation is not allowed on sysconfig collection.");
+                    throw new InvalidOperationException($"Insert operation is not allowed on {Name} collection.");
                 }
             }
 
@@ -156,6 +157,18 @@ namespace AxarDB.Definitions
 
             // Ensure the collection directory exists on first write (lazy creation)
             _storage.EnsureCollection(Name);
+
+            // --- Backup Query: Insert ---
+            try
+            {
+                var query = $"db.{Name}.findall(x => x._id == '{id}').delete()";
+                AxarDB.Core.BackupQuery.LogRecoveryQuery(Directory.GetParent(_storage.BasePath)!.FullName, query);
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for insert: {ex.Message}");
+            }
+            // -----------------------------
 
             // 1. Disk Persist
             _storage.SaveDocument(Name, document);
@@ -289,18 +302,32 @@ namespace AxarDB.Definitions
                 if (!Name.Equals("sysusers", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysqueue", StringComparison.OrdinalIgnoreCase) &&
                     !Name.Equals("sysvaults", StringComparison.OrdinalIgnoreCase) &&
-                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase))
+                    !Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) &&
+                    !Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException("Users cannot modify custom system collections starting with 'sys'.");
                 }
 
-                if (Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) && !bypassSystemRules)
+                if ((Name.Equals("sysconfig", StringComparison.OrdinalIgnoreCase) || Name.Equals("syslogs", StringComparison.OrdinalIgnoreCase)) && !bypassSystemRules)
                 {
-                    throw new InvalidOperationException("Update operation is not allowed on sysconfig collection.");
+                    throw new InvalidOperationException($"Update operation is not allowed on {Name} collection.");
                 }
             }
 
             ValidateSystemCollectionStructure(document);
+
+            // --- Backup Query: Update ---
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(oldDocument);
+                var query = $"db.{Name}.update(x => x._id == '{id}', {json})";
+                AxarDB.Core.BackupQuery.LogRecoveryQuery(Directory.GetParent(_storage.BasePath)!.FullName, query);
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for update: {ex.Message}");
+            }
+            // -----------------------------
 
             // 1. Disk Persist
             _storage.SaveDocument(Name, document);
@@ -375,6 +402,20 @@ namespace AxarDB.Definitions
                 if (doc.TryGetValue("_id", out var idObj))
                 {
                     string id = idObj.ToString()!;
+
+                    // --- Backup Query: Delete ---
+                    try
+                    {
+                        var json = System.Text.Json.JsonSerializer.Serialize(doc);
+                        var query = $"db.{Name}.insert({json})";
+                        AxarDB.Core.BackupQuery.LogRecoveryQuery(Directory.GetParent(_storage.BasePath)!.FullName, query);
+                    }
+                    catch (Exception ex)
+                    {
+                        AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for delete: {ex.Message}");
+                    }
+                    // -----------------------------
+
                     // Update Disk
                     _storage.DeleteDocument(Name, id);
                     // Update Primary Index
@@ -440,8 +481,9 @@ namespace AxarDB.Definitions
         {
             { "sysusers", new HashSet<string> { "_id", "username", "password" } },
             { "sysvaults", new HashSet<string> { "_id", "key", "value", "created" } },
-            { "sysconfig", new HashSet<string> { "_id", "memoryLimitPercentage", "bulkStoreMaxCacheBytes", "maxRecursionDepth", "queryTimeoutMinutes", "queuePollIntervalSeconds" } },
-            { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage", "completedAt" } }
+            { "sysconfig", new HashSet<string> { "_id", "memoryLimitPercentage", "bulkStoreMaxCacheBytes", "maxRecursionDepth", "queryTimeoutMinutes", "queuePollIntervalSeconds", "timezoneOffset" } },
+            { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage", "completedAt" } },
+            { "syslogs", new HashSet<string> { "_id", "timestamp", "type", "ip", "user", "query", "durationMs", "status" } }
         };
 
         private static readonly Dictionary<string, Dictionary<string, Type>> SystemCollectionTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -470,7 +512,8 @@ namespace AxarDB.Definitions
                     { "bulkStoreMaxCacheBytes", typeof(long) },
                     { "maxRecursionDepth", typeof(int) },
                     { "queryTimeoutMinutes", typeof(int) },
-                    { "queuePollIntervalSeconds", typeof(double) }
+                    { "queuePollIntervalSeconds", typeof(double) },
+                    { "timezoneOffset", typeof(double) }
                 }
             },
             {

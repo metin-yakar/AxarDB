@@ -2,7 +2,7 @@
 
 This file teaches AI models how to use AxarDB correctly. AxarDB is an **in-memory NoSQL database** that runs on ASP.NET Core. It uses **JavaScript** for all queries, powered by the Jint engine.
 
-> **CRITICAL**: Read each section carefully. Follow the exact syntax shown. Incorrect usage (e.g., missing `.toList()`) will cause errors.
+> **CRITICAL**: Read each section carefully. Follow the exact syntax shown.
 
 ## 1. Core Concept
 
@@ -33,7 +33,7 @@ db.products.insert({ name: "Laptop", price: 999.99, inStock: true });
 ### B. Find Data (Reading)
 
 #### `findall()` — Returns a ResultSet (fully chainable and iterable)
-> **NOTE**: `findall()` returns a `ResultSet`, which represents the query result. While it is fully chainable and can be iterated directly in JS loops, you can call `.toList()` or `.ToList()` to convert it to a standard JavaScript array. Both casing variants work.
+> **NOTE**: `findall()` returns a `ResultSet`, which represents the query result. While it is fully chainable and can be iterated directly in JS loops, you can optionally call `.toList()` or `.ToList()` to convert it to a standard JavaScript array if needed. Both casing variants work.
 
 ```javascript
 // ✅ CORRECT — Get all users as array
@@ -51,7 +51,7 @@ var resultSet = db.users.findall();
 // and is fully iterable in JS (e.g. for (var x of resultSet))
 ```
 
-#### `find()` — Returns one item (no `.toList()` needed)
+#### `find()` — Returns one item
 ```javascript
 // Find first user matching condition
 var admin = db.users.find(u => u.isAdmin == true);
@@ -91,17 +91,17 @@ db.orders.findall(u => u._id == "order_123").delete();
 
 ## 3. ResultSet Chain Methods
 
-After `findall()`, you can chain these methods **before** `.toList()`:
+After `findall()`, you can chain these methods:
 
 | Method | Description | Example |
 |:---|:---|:---|
-| `.toList()` / `.ToList()` | **Required** — Convert ResultSet to array | `findall().toList()` |
+| `.toList()` / `.ToList()` | **Optional** — Convert ResultSet to array | `findall().toList()` |
 | `.take(n)` | Limit results to first N items | `findall().take(5)` |
 | `.skip(n)` | Skip the first N items | `findall().skip(10)` |
 | `.select(fn)` | Project/transform each document | `findall().select(u => u.name)` |
 | `.count(predicate?)` | Get total count or conditionally count matches | `findall().count(x => x.age > 18)` |
 | `.distinct(selector?)`| Get a list of unique values or objects | `findall().distinct(x => x.role)` |
-| `.first()` | Get first matching item (no `.toList()`) | `findall().first()` |
+| `.first()` | Get first matching item | `findall().first()` |
 | `.foreach(fn)` | Execute callback for each item | `findall().foreach(u => console.log(u.name))` |
 | `.update(obj)` | Update all matching records | `findall(u => u.old == true).update({old: false})` |
 | `.delete()` | Delete all matching records | `findall(u => u.expired == true).delete()` |
@@ -209,7 +209,7 @@ if (doc && doc._id) {
 
 #### Array Prototype Extensions
 
-These methods are available on **any JavaScript array**, including arrays returned by `.toList()`:
+These methods are available on **any JavaScript array**:
 
 | Method | Description | Example |
 |:---|:---|:---|
@@ -651,8 +651,50 @@ Execution logs are stored in `queue_logs/` directory.
 To prevent unauthorized modification of core database operations, direct insertions via standard insert queries (e.g. `db.collection.insert(...)`) are strictly prohibited on the following collections:
 *   `db.sysqueue`: Insertion must go through the global `queue()` function.
 *   `db.sysvaults`: Insertion/updates must go through the `addVault()` / `db.addVault()` function.
+*   `db.syslogs`: Read-only virtual collection for querying request, error, and debug logs. Direct insertion or modification is prohibited.
 
-Attempting a direct insert on these system collections will throw an `InvalidOperationException`.
+Attempting a direct insert or update on these system collections will throw an `InvalidOperationException`.
+
+### System Log Querying (`db.syslogs` for AI Models & Agents)
+
+> 🤖 **FOR AI MODELS & AGENTS**: When you need to investigate server execution history, diagnose runtime errors, audit past queries, track deleted/modified records, or inspect system performance, **ALWAYS query `db.syslogs`**. Do not search log files on disk manually when a database script query can answer it instantly.
+
+`db.syslogs` is a virtual, read-only collection that aggregates system request logs, error logs, and debug logs. It parses raw log files on demand into structured JSON documents with UUID v7 IDs (`_id`), so queries return results ordered with the newest logs first.
+
+#### Record Schema
+Each log record in `db.syslogs` contains the following fields:
+* `_id`: String (UUID v7, time-ordered)
+* `timestamp`: String (Format: `YYYY-MM-DD HH:mm:ss.fff`)
+* `type`: String (`"request"`, `"error"`, or `"debug"`)
+* `ip`: String (Client IP address)
+* `user`: String (Authenticated username)
+* `query`: String (Executed script payload, error message, or debug log)
+* `durationMs`: Number (Execution time in milliseconds)
+* `status`: String (`"Success"`, `"Failed: <message>"`, `"Error"`, or `"Debug"`)
+
+#### Practical AI Query Examples
+
+```javascript
+// 1. Get recent 50 system logs (newest first)
+db.syslogs.take(50);
+
+// 2. Search for queries referencing a specific collection or keyword (e.g. "sysvaults" or "delete")
+db.syslogs.findall(l => l.query.contains("sysvaults")).take(20);
+
+// 3. Find all failed request executions or error logs
+db.syslogs.findall(l => l.type == "error" || l.status.startsWith("Failed"));
+
+// 4. Inspect slow queries taking longer than 100ms
+db.syslogs.findall(l => l.durationMs > 100).take(20);
+
+// 5. Audit queries executed by a specific user
+db.syslogs.findall(l => l.user == "unlocker" && l.type == "request").take(20);
+
+// 6. Count total logged request entries
+db.syslogs.count(l => l.type == "request");
+```
+
+> **NOTE**: `db.syslogs` is strictly read-only. Calling `.insert()`, `.update()`, or `.delete()` will throw an `InvalidOperationException`.
 
 ### Authentication
 *   **Method**: HTTP Basic Auth
@@ -824,7 +866,7 @@ dotnet run -- --cors "http://localhost:3000,http://example.com"
 #
 # Sys-Prefix Protection:
 # Collection names starting with "sys" are reserved for system use.
-# Only sysusers, sysqueue, sysvaults, and sysconfig are allowed.
+# Only sysusers, sysqueue, sysvaults, sysconfig, and syslogs are allowed.
 # Creating db.sysnew or similar will throw InvalidOperationException.
 # This protection is enforced at Bridge, Engine, and Collection layers.
 
@@ -875,7 +917,7 @@ python compare.py
 
 | Mistake | Fix |
 |:---|:---|
-| `db.users.findall()` without `.toList()` | Always add `.toList()` when you need an array |
+| `db.users.findall()` | Returns a ResultSet (iterable directly) |
 | `db.view("name", { param: "value" })` for parameterless view | Omit the second argument: `db.view("name")` |
 | Forgetting `// @access public` in view | Always add access comment as the first line |
 | Using single `=` instead of `==` in predicates | Use `==` for comparison: `u => u.age == 25` |
@@ -927,8 +969,8 @@ var esenPlaces = bulk.postalcodes.findall(x => x.placeName.contains("esen"));
 
 ### Troubleshooting
 *   **401 Unauthorized**: Check credentials. Default is `unlocker:unlocker`.
-*   **Empty Result**: Did you forget `.toList()`? `findall()` returns ResultSet, not array.
-*   **Script Error**: Check JavaScript syntax. Use `console.log()` for debugging.
+*   **SyntaxError**: Missing closing parenthesis `)`, mismatched braces `{}`, or unclosed quotes.
+*   **Variable not found**: Check if you misspelled a property name in the predicate.
 *   **Case Sensitivity**: Use `.contains()` on string fields for case-insensitive substring search (AxarDB custom extension), or `db.collection.contains(predicate)` for case-insensitive exact match. Standard `.includes()` is case-sensitive.
 *   **View 404**: Verify view name exactly matches. Check spelling.
 *   **View returns error with parameters**: Ensure HTTP query string keys match `@param` names in the view script exactly.

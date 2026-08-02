@@ -453,6 +453,9 @@
                 <a class="nav-link" data-target="queue">
                     <i data-lucide="clock"></i> Queue Operations
                 </a>
+                <a class="nav-link" data-target="data-recovery">
+                    <i data-lucide="shield-alert"></i> Data Recovery
+                </a>
                 <a class="nav-link" data-target="system-config">
                     <i data-lucide="settings"></i> System Configuration
                 </a>
@@ -587,10 +590,10 @@
 <span class="keyword">var</span> user = db.users.<span class="function">find</span>(u => u.age > <span class="number">18</span>);
 
 <span class="comment">// List all matches (convert to array with toList())</span>
-<span class="keyword">var</span> admins = db.users.<span class="function">findall</span>(u => u.role == <span class="string">'admin'</span>).<span class="function">toList</span>();
+<span class="keyword">var</span> admins = db.users.<span class="function">findall</span>(u => u.role == <span class="string">'admin'</span>);
 
 <span class="comment">// Get the entire collection</span>
-<span class="keyword">var</span> allUsers = db.users.<span class="function">findall</span>().<span class="function">toList</span>();
+<span class="keyword">var</span> allUsers = db.users.<span class="function">findall</span>();
 
 <span class="comment">// Get the first record</span>
 <span class="keyword">var</span> first = db.users.<span class="function">findall</span>().<span class="function">first</span>();
@@ -600,16 +603,16 @@
 <span class="keyword">var</span> adults = db.users.<span class="function">findall</span>().<span class="function">count</span>(u => u.age > <span class="number">18</span>);
 
 <span class="comment">// Distinct unique values</span>
-<span class="keyword">var</span> roles = db.users.<span class="function">findall</span>().<span class="function">distinct</span>(u => u.role).<span class="function">toList</span>();
+<span class="keyword">var</span> roles = db.users.<span class="function">findall</span>().<span class="function">distinct</span>(u => u.role);
 
 <span class="comment">// Case-insensitive search</span>
 <span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);
 
 <span class="comment">// Pagination (skip and take)</span>
-<span class="keyword">var</span> page2 = db.users.<span class="function">findall</span>().<span class="function">skip</span>(<span class="number">10</span>).<span class="function">take</span>(<span class="number">10</span>).<span class="function">toList</span>();</code></pre>
+<span class="keyword">var</span> page2 = db.users.<span class="function">findall</span>().<span class="function">skip</span>(<span class="number">10</span>).<span class="function">take</span>(<span class="number">10</span>);</code></pre>
                 <div class="info-box">
-                    <strong>💡 Important:</strong> <code>findall()</code> returns a ResultSet. To use it as an array,
-                    <code>.toList()</code> must be called.
+                    <strong>💡 Important:</strong> <code>findall()</code> returns a ResultSet. To convert it into a standard JavaScript array,
+                    you can optionally call <code>.toList()</code>.
                 </div>
             </section>
 
@@ -664,7 +667,7 @@ memory.sessions.<span class="function">insert</span>({ userId: <span class="stri
 memory.sessions.<span class="function">insert</span>({ userId: <span class="string">"user_456"</span> }, <span class="number">2.5</span>);
 
 <span class="comment">// Query active memory records</span>
-<span class="keyword">var</span> active = memory.sessions.<span class="function">findall</span>(s => s.token != <span class="keyword">null</span>).<span class="function">toList</span>();
+<span class="keyword">var</span> active = memory.sessions.<span class="function">findall</span>(s => s.token != <span class="keyword">null</span>);
 
 <span class="comment">// Delete from memory</span>
 memory.sessions.<span class="function">findall</span>(s => s.userId == <span class="string">"user_123"</span>).<span class="function">delete</span>();</code></pre>
@@ -705,7 +708,7 @@ bulk.<span class="function">reload</span>(<span class="string">"countries"</span
     alias(db.users, <span class="string">"u"</span>), 
     alias(db.orders, <span class="string">"o"</span>)
 )
-.<span class="function">where</span>(x => x.u._id == x.o.userId).<span class="function">toList</span>();
+.<span class="function">where</span>(x => x.u._id == x.o.userId);
 
 <span class="comment">// Default: Join with indexed properties (j1, j2...)</span>
 <span class="keyword">var</span> data = db.<span class="function">join</span>(db.products, db.categories).<span class="function">select</span>(x => ({
@@ -786,11 +789,11 @@ db.users.<span class="function">insert</span>({...}).<span class="function">inde
                     <li><strong>String Prototype <code>.contains(str)</code> (Substring Search)</strong>: Custom method injected into all string instances for case-insensitive substring matching.</li>
                 </ul>
                 <pre><code><span class="comment">// 1. Collection-Level exact match (case-insensitive properties)</span>
-<span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>).<span class="function">toList</span>();
+<span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);
 <span class="comment">// Matches "Developer", "DEVELOPER", "developer"</span>
 
 <span class="comment">// 2. String Prototype case-insensitive substring search</span>
-<span class="keyword">var</span> matches = bulk.postalcodes.<span class="function">findall</span>(x => x.placeName.<span class="function">contains</span>(<span class="string">"esen"</span>)).<span class="function">toList</span>();
+<span class="keyword">var</span> matches = bulk.postalcodes.<span class="function">findall</span>(x => x.placeName.<span class="function">contains</span>(<span class="string">"esen"</span>));
 <span class="comment">// Matches "Esenler", "ESENYURT", "Büyükçekmece" (contains "esen")</span></code></pre>
 
                 <h3>String Prototype Extensions</h3>
@@ -846,9 +849,9 @@ db.users.<span class="function">insert</span>({...}).<span class="function">inde
                         </tr>
                         <tr>
                             <td>Array / Object</td>
-                            <td><code>.toList()</code></td>
+                            <td><code></code></td>
                             <td>Converts resultsets/iterables to standard arrays. Identity on arrays.</td>
-                            <td><code>db.users.findall().toList()</code></td>
+                            <td><code>db.users.findall()</code></td>
                         </tr>
                     </tbody>
                 </table>
@@ -864,14 +867,14 @@ db.users.<span class="function">insert</span>({...}).<span class="function">inde
                 <pre><code><span class="comment">// Accessible via HTTP GET /views/activeUsers (No Auth required)</span>
 db.<span class="function">saveView</span>(<span class="string">"activeUsers"</span>, <span class="string">`
 // @access public
-return db.users.findall(u => u.active == true).toList();
+return db.users.findall(u => u.active == true);
 `</span>);</code></pre>
 
                 <h3>Private View (Internal Use Only)</h3>
                 <pre><code><span class="comment">// Can only be called with db.view(), not accessible from HTTP</span>
 db.<span class="function">saveView</span>(<span class="string">"internalReport"</span>, <span class="string">`
 // @access private
-return db.orders.findall(o => o.status == "pending").toList();
+return db.orders.findall(o => o.status == "pending");
 `</span>);</code></pre>
 
                 <h3>View Usage</h3>
@@ -1043,6 +1046,19 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
                 </ul>
             </section>
 
+            <!-- Data Recovery -->
+            <section class="section" id="data-recovery">
+                <h2>Data Recovery (Fail-safe Backup)</h2>
+                <div class="info-box">
+                    AxarDB provides an automatic, zero-configuration fail-safe data recovery mechanism to protect against accidental data loss.
+                </div>
+                <p>Every state-changing operation (such as <code>insert</code>, <code>update</code>, <code>delete</code>, <code>drop</code>, <code>saveView</code>, <code>deleteTrigger</code>, etc.) across the <code>db</code>, <code>bulk</code>, and <code>sys</code> collections automatically generates a reverse query. For example, an <code>insert</code> operation will generate a corresponding <code>delete()</code> query to easily undo the addition.</p>
+                <p>These recovery queries are appended sequentially into a daily file located at <code>backup_queries/YYYY-MM-DD.txt</code>. If an accidental deletion or modification occurs, you can manually execute these queries to restore your data to its previous state.</p>
+                <div class="warning-box">
+                    The backup logging operates in a fail-safe wrapper. Any I/O errors that occur during the backup logging process are silently handled and will <strong>never</strong> interrupt the main database transaction.
+                </div>
+            </section>
+
             <!-- System Configuration -->
             <section class="section" id="system-config">
                 <h2>System Configuration (sysconfig)</h2>
@@ -1139,6 +1155,11 @@ db.sysconfig.<span class="function">findall</span>().<span class="function">upda
                             <td>Background task queue for deferred execution</td>
                             <td>Must use <code>queue()</code></td>
                         </tr>
+                        <tr>
+                            <td><code>syslogs</code></td>
+                            <td>Virtual read-only collection for querying system logs</td>
+                            <td>Read-only (modifications prohibited)</td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -1150,7 +1171,7 @@ db.sysconfig.<span class="function">findall</span>().<span class="function">upda
                     <li><strong>Collection Layer:</strong> <code>db.sysnew.insert(...)</code> → blocked by <code>Collection.Insert</code></li>
                 </ul>
                 <div class="info-box">
-                    <strong>💡 Only Pre-defined System Collections:</strong> <code>sysusers</code>, <code>sysqueue</code>, <code>sysvaults</code>, and <code>sysconfig</code> are the only allowed <code>sys</code>-prefixed collection names.
+                    <strong>💡 Only Pre-defined System Collections:</strong> <code>sysusers</code>, <code>sysqueue</code>, <code>sysvaults</code>, <code>sysconfig</code>, and <code>syslogs</code> are the only allowed <code>sys</code>-prefixed collection names.
                 </div>
             </section>
 
@@ -1260,7 +1281,7 @@ db.users.<span class="function">insert</span>({
 <span class="keyword">await</span> client.<span class="function">InsertAsync</span>(<span class="string">"users"</span>, <span class="keyword">new</span> { Name = <span class="string">"John"</span>, Age = <span class="number">30</span> });
 
 <span class="comment">// Query with Parameters</span>
-<span class="keyword">var</span> script = <span class="string">"db.users.findall(u => u.name == @name).toList()"</span>;
+<span class="keyword">var</span> script = <span class="string">"db.users.findall(u => u.name == @name)"</span>;
 <span class="keyword">var</span> users = <span class="keyword">await</span> client.<span class="function">QueryAsync</span>&lt;<span class="keyword">List</span>&lt;User&gt;&gt;(script, <span class="keyword">new</span> { name = <span class="string">"John"</span> });
 
 <span class="comment">// Update Documents</span>
@@ -1271,7 +1292,7 @@ db.users.<span class="function">insert</span>({
 <span class="keyword">var</span> first = <span class="keyword">await</span> client.<span class="function">Collection</span>&lt;User&gt;(<span class="string">"users"</span>).<span class="function">FirstAsync</span>();
 
 <span class="comment">// View Management</span>
-<span class="keyword">await</span> client.<span class="function">CreateViewAsync</span>(<span class="string">"ActiveUsers"</span>, <span class="string">"return db.users.findall(u => u.active).toList()"</span>);
+<span class="keyword">await</span> client.<span class="function">CreateViewAsync</span>(<span class="string">"ActiveUsers"</span>, <span class="string">"return db.users.findall(u => u.active)"</span>);
 <span class="keyword">var</span> list = <span class="keyword">await</span> client.<span class="function">CallViewAsync</span>&lt;<span class="keyword">List</span>&lt;User&gt;&gt;(<span class="string">"ActiveUsers"</span>);
 <span class="keyword">var</span> filtered = <span class="keyword">await</span> client.<span class="function">CallViewAsync</span>&lt;<span class="keyword">List</span>&lt;User&gt;&gt;(<span class="string">"myview"</span>, <span class="keyword">new</span> { minAge = <span class="number">18</span> });
 
@@ -1301,7 +1322,7 @@ count = client.<span class="function">collection</span>(<span class="string">"us
 client.<span class="function">collection</span>(<span class="string">"users"</span>).<span class="function">where</span>(<span class="string">"age"</span>, <span class="string">"<"</span>, <span class="number">18</span>).<span class="function">delete</span>()
 
 <span class="comment"># View Management</span>
-client.<span class="function">create_view</span>(<span class="string">"MyView"</span>, <span class="string">"return db.users.take(10).toList()"</span>)
+client.<span class="function">create_view</span>(<span class="string">"MyView"</span>, <span class="string">"return db.users.take(10)"</span>)
 res = client.<span class="function">call_view</span>(<span class="string">"MyView"</span>)
 res = client.<span class="function">call_view</span>(<span class="string">"MyView"</span>, {<span class="string">"minAge"</span>: <span class="number">18</span>})</code></pre>
             </section>

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text;
 using System.Diagnostics;
+using AxarDB.Definitions;
 
 namespace AxarDB.Bridges
 {
@@ -21,6 +22,7 @@ namespace AxarDB.Bridges
         }
 
         private readonly string _bulkPath;
+        private readonly string _basePath;
         private readonly ConcurrentDictionary<string, BulkCacheEntry> _cache = new();
         private readonly FileSystemWatcher _watcher;
         private readonly JsonSerializerOptions _jsonOptions;
@@ -31,6 +33,7 @@ namespace AxarDB.Bridges
 
         public BulkStore(string basePath, long maxCacheBytes)
         {
+            _basePath = basePath;
             _bulkPath = Path.Combine(basePath, "Bulk");
             if (!Directory.Exists(_bulkPath))
                 Directory.CreateDirectory(_bulkPath);
@@ -128,6 +131,18 @@ namespace AxarDB.Bridges
                 doc.Remove("_id");
                 doc["_id"] = AxarDB.Helpers.GuidV7.NewGuid().ToString();
                 lines.Add(JsonSerializer.Serialize(doc));
+
+                // --- Backup Query: Insert ---
+                try
+                {
+                    var query = $"bulk.{name}.findall(x => x._id == '{doc["_id"]}').delete()";
+                    AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                }
+                catch (Exception ex)
+                {
+                    AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for bulk insert: {ex.Message}");
+                }
+                // -----------------------------
             }
 
             // Append to file
@@ -157,10 +172,67 @@ namespace AxarDB.Bridges
         public void Delete(string name, Func<Dictionary<string, object>, bool> predicate)
         {
             var docs = GetDocuments(name).ToList();
+            var deletedDocs = docs.Where(predicate).ToList();
             var remaining = docs.Where(d => !predicate(d)).ToList();
+
+            // --- Backup Query: Delete ---
+            try
+            {
+                foreach (var doc in deletedDocs)
+                {
+                    var json = JsonSerializer.Serialize(doc);
+                    var query = $"bulk.{name}.insert([{json}])";
+                    AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                }
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for bulk delete: {ex.Message}");
+            }
+            // -----------------------------
+
             var path = GetFilePath(name);
             File.WriteAllLines(path, remaining.Select(d => JsonSerializer.Serialize(d)), Encoding.UTF8);
             InvalidateCache(name);
+        }
+
+        /// <summary>Update documents matching a predicate and rewrite the JSONL file.</summary>
+        public void Update(string name, Func<Dictionary<string, object>, bool> predicate, Dictionary<string, object> fields)
+        {
+            var docs = GetDocuments(name).ToList();
+            bool modified = false;
+            foreach (var doc in docs)
+            {
+                if (predicate(doc))
+                {
+                    // --- Backup Query: Update ---
+                    try
+                    {
+                        var idObj = doc.GetValueOrDefault("_id");
+                        var json = JsonSerializer.Serialize(doc);
+                        var query = $"bulk.{name}.findall(x => x._id == '{idObj}').update({json})";
+                        AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                    }
+                    catch (Exception ex)
+                    {
+                        AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for bulk update: {ex.Message}");
+                    }
+                    // -----------------------------
+
+                    foreach (var kv in fields)
+                    {
+                        if (kv.Key == "_id") continue; // Prevent altering _id
+                        doc[kv.Key] = kv.Value;
+                    }
+                    modified = true;
+                }
+            }
+            if (modified)
+            {
+                var path = GetFilePath(name);
+                File.WriteAllLines(path, docs.Select(d => JsonSerializer.Serialize(d)), Encoding.UTF8);
+                InvalidateCache(name);
+            }
         }
 
         /// <summary>
@@ -169,6 +241,23 @@ namespace AxarDB.Bridges
         /// </summary>
         public void DropCollection(string name)
         {
+            // --- Backup Query: DropCollection ---
+            try
+            {
+                var docs = GetDocuments(name).ToList();
+                if (docs.Count > 0)
+                {
+                    var jsonArray = JsonSerializer.Serialize(docs);
+                    var query = $"bulk.{name}.insert({jsonArray})";
+                    AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                }
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for bulk drop: {ex.Message}");
+            }
+            // -----------------------------
+
             var path = GetFilePath(name);
             if (File.Exists(path))
                 File.Delete(path);
@@ -212,7 +301,7 @@ namespace AxarDB.Bridges
                 var entry = new BulkCacheEntry
                 {
                     Documents = docs,
-                    LoadedAt = DateTime.UtcNow,
+                    LoadedAt = ServerTime.Now,
                     ApproximateBytes = bytes
                 };
 

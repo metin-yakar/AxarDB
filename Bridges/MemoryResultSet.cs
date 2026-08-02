@@ -64,6 +64,45 @@ namespace AxarDB.Bridges
                 action(new DocumentWrapper(doc));
         }
 
+        public AxarList distinct(Func<object, object>? selector = null)
+        {
+            if (selector == null) return new AxarList(_source.Select(d => (object)d).Distinct());
+            return new AxarList(_source.Select(d => selector(new DocumentWrapper(d))).Distinct());
+        }
+
+        public void update(object updateFields)
+        {
+            if (updateFields == null) return;
+
+            Dictionary<string, object>? fields = null;
+            if (updateFields is Dictionary<string, object> d) fields = d;
+            else if (updateFields is IDictionary<string, object> id) fields = new Dictionary<string, object>(id);
+            else if (updateFields is System.Dynamic.ExpandoObject ex) fields = ex.ToDictionary(k => k.Key, v => v.Value ?? new object());
+
+            if (fields == null) return;
+
+            var docsToUpdate = _source.ToList();
+            if (docsToUpdate.Count == 0)
+            {
+                throw new KeyNotFoundException("No documents found matching the update criteria.");
+            }
+
+            foreach (var doc in docsToUpdate)
+            {
+                string id = doc["_id"].ToString()!;
+                foreach (var kv in fields)
+                {
+                    if (kv.Key == "_id") continue; // Prevent altering _id
+                    doc[kv.Key] = kv.Value;
+                }
+                
+                // For memory store, since we update the object directly in memory, 
+                // we technically don't need a specific _store.Update() unless we need to reset TTL or indices.
+                // However, doing it safely:
+                _store.Update(_collectionName, id, doc);
+            }
+        }
+
         /// <summary>
         /// Deletes all documents in this result set from the MemoryStore.
         /// </summary>

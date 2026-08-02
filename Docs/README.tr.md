@@ -32,6 +32,7 @@
 | **🔗 Join Desteği** | Koleksiyonlar arası güçlü join ve alias (takma ad) desteği. |
 | **📄 Sayfalama (Pagination)** | `skip(n).take(n)` zinciriyle kolayca sayfalama yapın. |
 | **🛡️ Güvenli** | Basic Auth (SHA256 hash desteği ile), **Injection Koruması** ve `sys` ön ekli özel koleksiyon adlarını engelleyen **Sistem Koleksiyon Koruması**. |
+| **🛡️ Veri Kurtarma** | Olası kazalara karşı `insert`, `update`, `delete`, `drop` gibi durumu değiştiren işlemler için `backup_queries` klasöründe otomatik olarak kurtarma sorguları (fail-safe) üretir. |
 | **🔐 Kasa (Vaults)** | `$KEY` sözdizimi ile API anahtarları için güvenli anahtar-değer depolama. `db.sysvaults` koleksiyonuna doğrudan ekleme kısıtlanmıştır; `addVault()` kullanılmalıdır. |
 | **⏳ Görev Kuyruğu** | `queue("script", params, { priority: 1 })` ile arka plan görevi çalıştırma. `completedAt` zaman damgasıyla tamamlanma takibi sağlar. `db.sysqueue` koleksiyonuna doğrudan ekleme kısıtlanmıştır. |
 | **🖥️ Yönetim Paneli** | Monaco Editör, Sekme Sistemi (Tab), Sorgu Geçmişi, `@param` algılamalı Akıllı View Tıklama, Boyutlandırılabilir Grid ve Koyu Mod içeren Web Arayüzü. |
@@ -75,7 +76,7 @@ Ayarları değiştirmek için yetkili bir kullanıcı `sysconfig` koleksiyonunda
 
 ### Sistem Koleksiyon Koruması
 
-`sys` ile başlayan tüm koleksiyon adları **rezerve edilmiştir** ve iç altyapı için kullanılır. Yalnızca dört ön tanımlı sistem koleksiyonuna izin verilir: `sysusers`, `sysqueue`, `sysvaults` ve `sysconfig`. Herhangi bir özel `sys` ön ekli koleksiyon oluşturma veya erişme girişimi (örn. `db.sysnew`) `InvalidOperationException` hatası fırlatır. Bu koruma Bridge, Engine ve Collection katmanlarında uygulanır.
+`sys` ile başlayan tüm koleksiyon adları **rezerve edilmiştir** ve iç altyapı için kullanılır. Yalnızca ön tanımlı sistem koleksiyonlarına izin verilir: `sysusers`, `sysqueue`, `sysvaults`, `sysconfig` ve `syslogs`. Herhangi bir özel `sys` ön ekli koleksiyon oluşturma veya erişme girişimi (örn. `db.sysnew`) `InvalidOperationException` hatası fırlatır. Bu koruma Bridge, Engine ve Collection katmanlarında uygulanır.
 
 ### Kullanılabilir Parametreler
 
@@ -92,6 +93,14 @@ Sorgu konsolu üzerinden ayarları değiştirmek için (etkin olması için sunu
 ```javascript
 db.sysconfig.update(x => true, { queryTimeoutMinutes: 15 });
 ```
+
+---
+
+## 🛡️ Veri Kurtarma (Fail-safe Backup)
+
+AxarDB, verilerinizi kazara kayıplara karşı koruyan hataya dayanıklı (fail-safe) bir veri kurtarma mekanizmasına sahiptir. `db`, `bulk` veya `sys` koleksiyonları üzerinde gerçekleştirilen durumu değiştiren her işlem (`insert`, `update`, `delete`, `drop`, `saveView`, `deleteTrigger` vb.) otomatik olarak bir ters (reverse) sorgu üretir. Örneğin, bir veri ekleme (`insert`) işlemi, bu işlemin geri alınabilmesi için otomatik olarak bir `delete()` sorgusu oluşturur.
+
+Bu kurtarma sorguları günlük bir metin dosyasına (`backup_queries/YYYY-MM-DD.txt`) sıralı olarak eklenir. Yanlışlıkla bir silme veya değiştirme işlemi yapıldığında, bu sorguları çalıştırarak verilerinizi önceki haline döndürebilirsiniz. Bu özellik tamamen fail-safe bir yapı içerisinde sessiz çalışır; diske yazma sırasında bir I/O hatası oluşsa dahi ana veritabanı işleminiz asla kesintiye uğramaz.
 
 ---
 

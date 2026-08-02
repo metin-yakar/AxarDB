@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using AxarDB.Definitions;
 
 namespace AxarDB.Bridges
 {
@@ -47,7 +48,7 @@ namespace AxarDB.Bridges
             public Dictionary<string, object> Document { get; set; }
             public DateTime ExpiresAt { get; set; }
 
-            public bool IsExpired => DateTime.UtcNow > ExpiresAt;
+            public bool IsExpired => ServerTime.Now > ExpiresAt;
         }
 
         public IEnumerable<string> GetCollectionNames() => _collections.Keys;
@@ -82,13 +83,13 @@ namespace AxarDB.Bridges
             var entry = new MemoryEntry
             {
                 Document = document,
-                ExpiresAt = DateTime.UtcNow.AddHours(hours)
+                ExpiresAt = ServerTime.Now.AddHours(hours)
             };
 
             col[id] = entry;
             _activeCounts.AddOrUpdate(collectionName, 1, (_, c) => c + 1);
 
-            if (entry.ExpiresAt > DateTime.UtcNow)
+            if (entry.ExpiresAt > ServerTime.Now)
                 AddToCache(collectionName, document);
             else
                 MarkDirty(collectionName);
@@ -106,7 +107,7 @@ namespace AxarDB.Bridges
             var sw = Stopwatch.StartNew();
             var col = GetOrCreateCollection(collectionName);
             int count = 0;
-            var now = DateTime.UtcNow;
+            var now = ServerTime.Now;
             var added = new List<Dictionary<string, object>>();
             bool hasExpired = false;
             foreach (var document in documents)
@@ -162,7 +163,7 @@ namespace AxarDB.Bridges
             {
                 if (_cacheDirty.Contains(collectionName) || !_cache.TryGetValue(collectionName, out cached!))
                 {
-                    var now = DateTime.UtcNow;
+                    var now = ServerTime.Now;
                     cached = col.Values
                         .Where(v => v.ExpiresAt > now)
                         .Select(v => v.Document)
@@ -204,6 +205,16 @@ namespace AxarDB.Bridges
 
             sw.Stop();
             Log("Delete", $"{collectionName} removed={toDelete.Count}", sw.ElapsedMilliseconds, toDelete.Count);
+        }
+
+        public void Update(string collectionName, string id, Dictionary<string, object> document)
+        {
+            if (!_collections.TryGetValue(collectionName, out var col)) return;
+            if (col.TryGetValue(id, out var entry))
+            {
+                entry.Document = document;
+                col[id] = entry; // Update struct
+            }
         }
 
         /// <summary>
