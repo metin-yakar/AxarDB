@@ -112,7 +112,7 @@ namespace AxarDB.Core
              {
                  var logEntry = new 
                  {
-                     timestamp = DateTime.UtcNow,
+                     timestamp = ServerTime.Now,
                      ip = context.IpAddress,
                      user = context.User,
                      type = context.IsView ? "view_mysql" : "script_mysql",
@@ -126,7 +126,7 @@ namespace AxarDB.Core
                  };
                  
                  var json = System.Text.Json.JsonSerializer.Serialize(logEntry);
-                 var path = Path.Combine(_basePath, "request_logs", $"{DateTime.UtcNow:yyyy-MM-dd}_mysql.log"); // Separate or same? User said "standard log types".
+                 var path = Path.Combine(_basePath, "request_logs", $"{ServerTime.Now:yyyy-MM-dd}_mysql.log"); // Separate or same? User said "standard log types".
                  
                  //FOR AI TESTING PURPOSES
                  // Actually Logger.LogRequest format is specific pipe-delimited. 
@@ -514,8 +514,9 @@ namespace AxarDB.Core
             Console.WriteLine($"  - Max Recursion Depth: {Settings.MaxRecursionDepth}");
             Console.WriteLine($"  - Query Timeout Minutes: {Settings.QueryTimeoutMinutes} min");
             Console.WriteLine($"  - Queue Poll Interval: {Settings.QueuePollIntervalSeconds} sec");
+            Console.WriteLine($"  - Timezone Offset: {Settings.TimezoneOffset} (UTC{Settings.TimezoneOffset:+#;-#;+0})");
 
-            AxarDB.Logging.Logger.LogDebug($"[AxarDB] Settings: MemoryLimitPercentage={Settings.MemoryLimitPercentage}, BulkStoreMaxCacheBytes={Settings.BulkStoreMaxCacheBytes}, MaxRecursionDepth={Settings.MaxRecursionDepth}, QueryTimeoutMinutes={Settings.QueryTimeoutMinutes}, QueuePollIntervalSeconds={Settings.QueuePollIntervalSeconds}");
+            AxarDB.Logging.Logger.LogDebug($"[AxarDB] Settings: MemoryLimitPercentage={Settings.MemoryLimitPercentage}, BulkStoreMaxCacheBytes={Settings.BulkStoreMaxCacheBytes}, MaxRecursionDepth={Settings.MaxRecursionDepth}, QueryTimeoutMinutes={Settings.QueryTimeoutMinutes}, QueuePollIntervalSeconds={Settings.QueuePollIntervalSeconds}, TimezoneOffset={Settings.TimezoneOffset}");
 
             // Create default system collection
             GetCollection("sysusers");
@@ -536,16 +537,40 @@ namespace AxarDB.Core
 
             // Seed default configuration settings if empty
             var sysconfig = GetCollection("sysconfig");
-            if (!sysconfig.FindAll().Any())
+            var existingConfigs = sysconfig.FindAll().ToList();
+            var defaultConfigs = new Dictionary<string, object>
             {
-                sysconfig.Insert(new Dictionary<string, object>
+                { "memoryLimitPercentage", Settings.MemoryLimitPercentage },
+                { "bulkStoreMaxCacheBytes", Settings.BulkStoreMaxCacheBytes },
+                { "maxRecursionDepth", Settings.MaxRecursionDepth },
+                { "queryTimeoutMinutes", Settings.QueryTimeoutMinutes },
+                { "queuePollIntervalSeconds", Settings.QueuePollIntervalSeconds },
+                { "timezoneOffset", Settings.TimezoneOffset }
+            };
+
+            if (!existingConfigs.Any())
+            {
+                sysconfig.Insert(defaultConfigs, bypassSystemRules: true);
+            }
+            else
+            {
+                var currentConfig = existingConfigs.First();
+                var updatedConfig = new Dictionary<string, object>(currentConfig);
+                bool changed = false;
+
+                foreach (var kvp in defaultConfigs)
                 {
-                    { "memoryLimitPercentage", Settings.MemoryLimitPercentage },
-                    { "bulkStoreMaxCacheBytes", Settings.BulkStoreMaxCacheBytes },
-                    { "maxRecursionDepth", Settings.MaxRecursionDepth },
-                    { "queryTimeoutMinutes", Settings.QueryTimeoutMinutes },
-                    { "queuePollIntervalSeconds", Settings.QueuePollIntervalSeconds }
-                }, bypassSystemRules: true);
+                    if (!currentConfig.ContainsKey(kvp.Key))
+                    {
+                        updatedConfig[kvp.Key] = kvp.Value;
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    sysconfig.UpdateExisting(updatedConfig, currentConfig, bypassSystemRules: true);
+                }
             }
         }
 
@@ -806,7 +831,7 @@ namespace AxarDB.Core
                 col.Insert(new Dictionary<string, object> { 
                     { "key", key }, 
                     { "value", value },
-                    { "created", DateTime.UtcNow }
+                    { "created", ServerTime.Now }
                 });
             }
             return true;
@@ -823,7 +848,7 @@ namespace AxarDB.Core
                 { "queryTemplate", template },
                 { "parameters", parameters! }, // Stored as provided (Dict or Array)
                 { "options", options! },
-                { "createdAt", DateTime.UtcNow },
+                { "createdAt", ServerTime.Now },
                 { "executionTime", null! }, // null means pending
                 { "priority", 0 }, // Default priority
                 { "duration", 0 },
@@ -987,7 +1012,7 @@ namespace AxarDB.Core
                 {
                     clientIp,
                     user,
-                    timestamp = DateTime.UtcNow,
+                    timestamp = ServerTime.Now,
                     durationMs = sw.ElapsedMilliseconds,
                     error,
                     console = consoleLogs,
@@ -995,7 +1020,7 @@ namespace AxarDB.Core
                 };
                 
                 var logJson = System.Text.Json.JsonSerializer.Serialize(logEntry, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(Path.Combine(GetLogsPath(), $"{viewName}_{DateTime.UtcNow.Ticks}.json"), logJson, Encoding.UTF8);
+                File.WriteAllText(Path.Combine(GetLogsPath(), $"{viewName}_{ServerTime.Now.Ticks}.json"), logJson, Encoding.UTF8);
             }
             
             return result;
@@ -1187,7 +1212,7 @@ namespace AxarDB.Core
                     type,
                     collection = col,
                     documentId = docId,
-                    timestamp = DateTime.UtcNow
+                    timestamp = ServerTime.Now
                 });
 
                 engine.Evaluate(script);
@@ -1212,14 +1237,14 @@ namespace AxarDB.Core
                 var logEntry = new 
                 {
                     trigger = triggerName,
-                    timestamp = DateTime.UtcNow,
+                    timestamp = ServerTime.Now,
                     durationMs = duration,
                     error,
                     console = logs
                 };
                 
                 var line = System.Text.Json.JsonSerializer.Serialize(logEntry);
-                var filename = $"{DateTime.UtcNow:yyyy-MM-dd}.log";
+                var filename = $"{ServerTime.Now:yyyy-MM-dd}.log";
                 var path = Path.Combine(GetTriggerLogsPath(), filename);
                 
                 // Simple file append with lock to ensure thread safety

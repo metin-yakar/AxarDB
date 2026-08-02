@@ -7,6 +7,7 @@ using System.Linq;
 using AxarDB.Wrappers;
 using AxarDB.Core;
 using System.Text;
+using AxarDB.Definitions;
 
 namespace AxarDB.Bridges
 {
@@ -86,7 +87,7 @@ namespace AxarDB.Bridges
                             parsed = new Dictionary<string, object>
                             {
                                 { "_id", AxarDB.Helpers.GuidV7.NewGuid().ToString() },
-                                { "timestamp", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") },
+                                { "timestamp", ServerTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") },
                                 { "type", type },
                                 { "ip", "" },
                                 { "user", "" },
