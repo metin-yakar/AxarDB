@@ -592,6 +592,10 @@
 <span class="comment">// List all matches (convert to array with toList())</span>
 <span class="keyword">var</span> admins = db.users.<span class="function">findall</span>(u => u.role == <span class="string">'admin'</span>);
 
+<span class="comment">// Check if an item is in an array (like C# LINQ SequenceEqual/Contains)</span>
+<span class="keyword">var</span> targetCats = [<span class="number">66</span>, <span class="number">69</span>, <span class="number">74</span>];
+<span class="keyword">var</span> myCats = db.categories.<span class="function">findall</span>(x => x.rowNumber.<span class="function">includes</span>(targetCats));
+
 <span class="comment">// Get the entire collection</span>
 <span class="keyword">var</span> allUsers = db.users.<span class="function">findall</span>();
 

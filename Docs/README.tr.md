@@ -247,6 +247,10 @@ var esenYerler = bulk.postalcodes.findall(x => x.placeName.contains("esen"));
 // Büyük/küçük harf duyarsız ön ek kontrolü (AxarDB özel String.prototype.startsWith)
 var istanbulKodlari = bulk.postalcodes.findall(x => x.placeName.startsWith("istan"));
 
+// Dizi (Array) içinde öğe arama (C# LINQ SequenceEqual / Contains benzeri)
+var targetCats = [66, 69, 74];
+var myCats = bulk.categories.findall(x => x.rowNumber.includes(targetCats));
+
 // Önbelleği manuel yenile
 bulk.reload("countries");
 ```
