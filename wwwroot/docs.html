@@ -453,6 +453,9 @@
                 <a class="nav-link" data-target="queue">
                     <i data-lucide="clock"></i> Queue Operations
                 </a>
+                <a class="nav-link" data-target="data-recovery">
+                    <i data-lucide="shield-alert"></i> Data Recovery
+                </a>
                 <a class="nav-link" data-target="system-config">
                     <i data-lucide="settings"></i> System Configuration
                 </a>
@@ -1041,6 +1044,19 @@ event.timestamp   <span class="comment">// Server time (ISO format)</span></code
                     <li><code>successResult</code>: Execution result on success (object, <code>null</code> on failure)</li>
                     <li><code>errorMessage</code>: Error message on failure (string, <code>null</code> on success)</li>
                 </ul>
+            </section>
+
+            <!-- Data Recovery -->
+            <section class="section" id="data-recovery">
+                <h2>Data Recovery (Fail-safe Backup)</h2>
+                <div class="info-box">
+                    AxarDB provides an automatic, zero-configuration fail-safe data recovery mechanism to protect against accidental data loss.
+                </div>
+                <p>Every state-changing operation (such as <code>insert</code>, <code>update</code>, <code>delete</code>, <code>drop</code>, <code>saveView</code>, <code>deleteTrigger</code>, etc.) across the <code>db</code>, <code>bulk</code>, and <code>sys</code> collections automatically generates a reverse query. For example, an <code>insert</code> operation will generate a corresponding <code>delete()</code> query to easily undo the addition.</p>
+                <p>These recovery queries are appended sequentially into a daily file located at <code>backup_queries/YYYY-MM-DD.txt</code>. If an accidental deletion or modification occurs, you can manually execute these queries to restore your data to its previous state.</p>
+                <div class="warning-box">
+                    The backup logging operates in a fail-safe wrapper. Any I/O errors that occur during the backup logging process are silently handled and will <strong>never</strong> interrupt the main database transaction.
+                </div>
             </section>
 
             <!-- System Configuration -->
