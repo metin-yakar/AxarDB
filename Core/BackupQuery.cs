@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using AxarDB.Logging;
+using AxarDB.Definitions;
 
 namespace AxarDB.Core
 {
@@ -23,12 +24,12 @@ namespace AxarDB.Core
                     Directory.CreateDirectory(dir);
                 }
 
-                var fileName = $"{DateTime.UtcNow:yyyy-MM-dd}.txt";
+                var fileName = $"{ServerTime.Now:yyyy-MM-dd}.txt";
                 var path = Path.Combine(dir, fileName);
 
                 lock (_lock)
                 {
-                    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                    string timestamp = ServerTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     string user = CurrentUser.Value ?? "System";
                     string comment = $"// [{timestamp}] User: {user}";
                     

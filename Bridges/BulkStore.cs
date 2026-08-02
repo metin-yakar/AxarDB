@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text;
 using System.Diagnostics;
+using AxarDB.Definitions;
 
 namespace AxarDB.Bridges
 {
@@ -300,7 +301,7 @@ namespace AxarDB.Bridges
                 var entry = new BulkCacheEntry
                 {
                     Documents = docs,
-                    LoadedAt = DateTime.UtcNow,
+                    LoadedAt = ServerTime.Now,
                     ApproximateBytes = bytes
                 };
 

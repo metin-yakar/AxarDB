@@ -481,7 +481,7 @@ namespace AxarDB.Definitions
         {
             { "sysusers", new HashSet<string> { "_id", "username", "password" } },
             { "sysvaults", new HashSet<string> { "_id", "key", "value", "created" } },
-            { "sysconfig", new HashSet<string> { "_id", "memoryLimitPercentage", "bulkStoreMaxCacheBytes", "maxRecursionDepth", "queryTimeoutMinutes", "queuePollIntervalSeconds" } },
+            { "sysconfig", new HashSet<string> { "_id", "memoryLimitPercentage", "bulkStoreMaxCacheBytes", "maxRecursionDepth", "queryTimeoutMinutes", "queuePollIntervalSeconds", "timezoneOffset" } },
             { "sysqueue", new HashSet<string> { "_id", "queryTemplate", "parameters", "options", "createdAt", "executionTime", "priority", "duration", "successResult", "errorMessage", "completedAt" } },
             { "syslogs", new HashSet<string> { "_id", "timestamp", "type", "ip", "user", "query", "durationMs", "status" } }
         };
@@ -512,7 +512,8 @@ namespace AxarDB.Definitions
                     { "bulkStoreMaxCacheBytes", typeof(long) },
                     { "maxRecursionDepth", typeof(int) },
                     { "queryTimeoutMinutes", typeof(int) },
-                    { "queuePollIntervalSeconds", typeof(double) }
+                    { "queuePollIntervalSeconds", typeof(double) },
+                    { "timezoneOffset", typeof(double) }
                 }
             },
             {
