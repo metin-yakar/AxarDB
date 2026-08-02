@@ -179,6 +179,10 @@ var tr = bulk.countries.find(c => c.code == "TR");
 // Query with filtering
 var large = bulk.countries.findall(c => c.population > 1000000);
 
+// Check if an item is in an array (like C# LINQ SequenceEqual/Contains)
+var targetCats = [66, 69, 74];
+var myCats = bulk.categories.findall(x => x.rowNumber.includes(targetCats));
+
 // Manually reload cache
 bulk.reload("countries");
 ```

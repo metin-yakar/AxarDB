@@ -432,6 +432,33 @@ namespace AxarDB.Core
                     if (typeof str !== 'string') str = String(str);
                     return this.toLowerCase().indexOf(str.toLowerCase()) === 0;
                 };
+
+                // Array includes check (similar to LINQ Contains/SequenceEqual depending on usage)
+                Object.defineProperty(Object.prototype, 'includes', {
+                    value: function(arr) {
+                        if (Array.isArray(arr)) {
+                            // If the item itself is an array, we act like SequenceEqual
+                            if (Array.isArray(this.valueOf())) {
+                                let self = this.valueOf();
+                                if (self.length !== arr.length) return false;
+                                for (let i = 0; i < self.length; i++) {
+                                    if (self[i] !== arr[i]) return false;
+                                }
+                                return true;
+                            } else {
+                                // If it's a single element, act like Contains
+                                return arr.includes(this.valueOf());
+                            }
+                        }
+                        if (typeof this.valueOf() === 'string' && typeof arr === 'string') {
+                            return this.valueOf().includes(arr);
+                        }
+                        return false;
+                    },
+                    enumerable: false,
+                    configurable: true,
+                    writable: true
+                });
             ");
         }
 

@@ -222,6 +222,7 @@ These methods are available on **any JavaScript array**:
 | Method | Description |
 |:---|:---|
 | `.toList()` | Converts iterable objects (ResultSets, .NET enumerables) to plain JavaScript arrays. |
+| `.includes(arr)` | Checks if the object is contained in the specified array. If the object itself is an array, it performs a strict equality check (like C# LINQ `SequenceEqual`). Example: `x.rowNumber.includes([66,69,74])` |
 
 ## 4. Join Operations
 
