@@ -151,4 +151,6 @@ test*
 **/SDKs/**/.vscode/
 .playwright-mcp/
 /Properties/PublishProfiles/FolderProfile.pubxml
+release.md
 /release.md
+xplan.md
