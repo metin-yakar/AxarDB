@@ -118,6 +118,13 @@ function closeTab(id) {
     }
 }
 
+function closeOtherTabs() {
+    if (tabs.length <= 1) return;
+    tabs = [tabs[0]];
+    activeTabId = null;
+    switchTab(tabs[0].id);
+}
+
 function renderTabBar() {
     const list = document.getElementById('tabBarList');
     if (!list) return;
@@ -1366,6 +1373,11 @@ function initButtons() {
 
     // Tab management
     document.getElementById('btnAddTab').onclick = () => createTab();
+    
+    const btnCloseOther = document.getElementById('btnCloseOtherTabs');
+    if (btnCloseOther) {
+        btnCloseOther.onclick = () => closeOtherTabs();
+    }
 }
 
 // --- View Parameter Extraction ---

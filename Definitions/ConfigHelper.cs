@@ -7,6 +7,8 @@ namespace AxarDB.Definitions
 {
     public static class ConfigHelper
     {
+        public static double CurrentTimezoneOffset { get; set; } = 3.0;
+
         public static DatabaseSettings LoadSettings(string? targetPath)
         {
             var basePath = targetPath ?? AppDomain.CurrentDomain.BaseDirectory;
@@ -38,6 +40,9 @@ namespace AxarDB.Definitions
 
                             if (dict.TryGetValue("queuePollIntervalSeconds", out var pollVal) && pollVal != null)
                                 settings.QueuePollIntervalSeconds = Convert.ToDouble(pollVal, System.Globalization.CultureInfo.InvariantCulture);
+
+                            if (dict.TryGetValue("timezoneOffset", out var tzVal) && tzVal != null)
+                                settings.TimezoneOffset = Convert.ToDouble(tzVal, System.Globalization.CultureInfo.InvariantCulture);
                         }
                     }
                 }
@@ -46,6 +51,8 @@ namespace AxarDB.Definitions
                     Console.WriteLine($"[AxarDB Warning] Failed to load settings from sysconfig, using defaults: {ex.Message}");
                 }
             }
+            
+            CurrentTimezoneOffset = settings.TimezoneOffset;
             return settings;
         }
     }
