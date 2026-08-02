@@ -158,6 +158,18 @@ namespace AxarDB.Definitions
             // Ensure the collection directory exists on first write (lazy creation)
             _storage.EnsureCollection(Name);
 
+            // --- Backup Query: Insert ---
+            try
+            {
+                var query = $"db.{Name}.findall(x => x._id == '{id}').delete()";
+                AxarDB.Core.BackupQuery.LogRecoveryQuery(Directory.GetParent(_storage.BasePath)!.FullName, query);
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for insert: {ex.Message}");
+            }
+            // -----------------------------
+
             // 1. Disk Persist
             _storage.SaveDocument(Name, document);
 
@@ -304,6 +316,19 @@ namespace AxarDB.Definitions
 
             ValidateSystemCollectionStructure(document);
 
+            // --- Backup Query: Update ---
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(oldDocument);
+                var query = $"db.{Name}.update(x => x._id == '{id}', {json})";
+                AxarDB.Core.BackupQuery.LogRecoveryQuery(Directory.GetParent(_storage.BasePath)!.FullName, query);
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for update: {ex.Message}");
+            }
+            // -----------------------------
+
             // 1. Disk Persist
             _storage.SaveDocument(Name, document);
 
@@ -377,6 +402,20 @@ namespace AxarDB.Definitions
                 if (doc.TryGetValue("_id", out var idObj))
                 {
                     string id = idObj.ToString()!;
+
+                    // --- Backup Query: Delete ---
+                    try
+                    {
+                        var json = System.Text.Json.JsonSerializer.Serialize(doc);
+                        var query = $"db.{Name}.insert({json})";
+                        AxarDB.Core.BackupQuery.LogRecoveryQuery(Directory.GetParent(_storage.BasePath)!.FullName, query);
+                    }
+                    catch (Exception ex)
+                    {
+                        AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for delete: {ex.Message}");
+                    }
+                    // -----------------------------
+
                     // Update Disk
                     _storage.DeleteDocument(Name, id);
                     // Update Primary Index

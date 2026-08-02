@@ -38,6 +38,7 @@
 | **🔐 Vaults** | Secure key-value storage for API keys using `$KEY` syntax. Direct insertion to `db.sysvaults` is restricted; use `addVault()`. |
 | **🌐 Webhooks & HTTP** | HTTP POST with `webhook()` and HTTP GET with `httpGet()`, both with custom headers. |
 | **🛡️ Secure** | Basic Authentication (supports SHA256 hashing), **Injection Prevention** via `@placeholder` replacement, and **Sys-prefix Protection** blocking custom `sys*` collection names. |
+| **🛡️ Data Recovery** | Automatic reverse query generation in `backup_queries` for state-changing operations to prevent accidental data loss (Fail-safe). |
 | **🐳 Docker Ready** | Runs anywhere with a single `docker run` command. |
 | **🖥️ Management Console** | Web UI with Monaco Editor, **Tab System**, **Query History**, **Smart View Click** with `@param` detection, Resizable Grid, and Dark Mode. |
 | **📚 Documentation** | Built-in docs page (`/docs`) with sidebar navigation and search. |
@@ -144,6 +145,15 @@ To change settings via query console (requires server restart to apply):
 ```javascript
 db.sysconfig.update(x => true, { queryTimeoutMinutes: 15 });
 ```
+
+---
+
+## 🛡️ Data Recovery (Fail-safe Backup)
+
+AxarDB includes a fail-safe data recovery mechanism. Every state-changing operation (`insert`, `update`, `delete`, `drop`, `saveView`, `deleteTrigger`, etc.) across the `db`, `bulk`, and `sys` collections automatically generates a reverse query. For example, an `insert` operation will generate a corresponding `delete()` query to easily undo the addition.
+
+These recovery queries are appended sequentially into a daily file (`backup_queries/YYYY-MM-DD.txt`).
+If an accidental deletion or modification occurs, you can execute these queries to restore your data to its previous state. The feature operates in a silent fail-safe wrapper, ensuring that any I/O errors during backup logging never interrupt the main database transaction.
 
 ---
 

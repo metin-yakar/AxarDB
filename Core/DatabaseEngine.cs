@@ -442,6 +442,27 @@ namespace AxarDB.Core
                 throw new InvalidOperationException($"System collection '{name}' cannot be deleted.");
             }
 
+            // --- Backup Query: DeleteCollection ---
+            try
+            {
+                var collection = GetCollection(name);
+                var docs = collection.FindAll().ToList();
+                if (docs.Count > 0)
+                {
+                    foreach (var doc in docs)
+                    {
+                        var json = System.Text.Json.JsonSerializer.Serialize(doc);
+                        var query = $"db.{name}.insert({json})";
+                        AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for delete collection: {ex.Message}");
+            }
+            // -----------------------------
+
             if (_collections.TryRemove(name, out _))
             {
                 // Already removed from in-memory dictionary
@@ -995,11 +1016,42 @@ namespace AxarDB.Core
 
         public void SaveView(string name, string content)
         {
+            // --- Backup Query: SaveView ---
+            try
+            {
+                var oldContent = GetViewContent(name);
+                var query = oldContent != null 
+                    ? $"db.saveView('{name}', {System.Text.Json.JsonSerializer.Serialize(oldContent)})" 
+                    : $"db.deleteView('{name}')";
+                AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for SaveView: {ex.Message}");
+            }
+            // -----------------------------
+
             File.WriteAllText(Path.Combine(GetViewsPath(), name + ".js"), content, Encoding.UTF8);
         }
 
         public void DeleteView(string name)
         {
+            // --- Backup Query: DeleteView ---
+            try
+            {
+                var oldContent = GetViewContent(name);
+                if (oldContent != null)
+                {
+                    var query = $"db.saveView('{name}', {System.Text.Json.JsonSerializer.Serialize(oldContent)})";
+                    AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                }
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for DeleteView: {ex.Message}");
+            }
+            // -----------------------------
+
             var path = Path.Combine(GetViewsPath(), name + ".js");
             if (File.Exists(path)) File.Delete(path);
         }
@@ -1196,6 +1248,27 @@ namespace AxarDB.Core
 
         public void SaveTrigger(string name, string targetCollection, string content)
         {
+            // --- Backup Query: SaveTrigger ---
+            try
+            {
+                var oldContent = GetTriggerContent(name);
+                if (oldContent != null)
+                {
+                    var query = $"db.saveTrigger('{name}', '{targetCollection}', {System.Text.Json.JsonSerializer.Serialize(oldContent)})";
+                    AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                }
+                else
+                {
+                    var query = $"db.deleteTrigger('{name}')";
+                    AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                }
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for SaveTrigger: {ex.Message}");
+            }
+            // -----------------------------
+
             if (!content.Contains("@target"))
             {
                 content = $"// @target {targetCollection}\n" + content;
@@ -1207,6 +1280,22 @@ namespace AxarDB.Core
 
         public void DeleteTrigger(string name)
         {
+            // --- Backup Query: DeleteTrigger ---
+            try
+            {
+                var oldContent = GetTriggerContent(name);
+                if (oldContent != null)
+                {
+                    var query = $"db.saveTrigger('{name}', '*', {System.Text.Json.JsonSerializer.Serialize(oldContent)})";
+                    AxarDB.Core.BackupQuery.LogRecoveryQuery(_basePath, query);
+                }
+            }
+            catch (Exception ex)
+            {
+                AxarDB.Logging.Logger.LogError($"[BackupQuery Error] Failed to create backup query for DeleteTrigger: {ex.Message}");
+            }
+            // -----------------------------
+
             var path = Path.Combine(GetTriggersPath(), name + ".js");
             if (File.Exists(path)) File.Delete(path);
         }
