@@ -1015,7 +1015,11 @@ function renderGrid() {
             <td>
                 <div class="row-action-btn" onclick="handleRowAction(event, ${idx})">${idx + 1}</div>
             </td>
-            ${keys.map(k => `<td ondblclick="makeEditable(this, ${idx}, '${k.replace(/'/g, "\\'")}')">${formatValue(row[k], k, idx)}</td>`).join('')}
+            ${keys.map(k => {
+                const valStr = row[k] === null || row[k] === undefined ? '' : (typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k]));
+                const encodedVal = encodeURIComponent(valStr);
+                return `<td ondblclick="makeEditable(this, ${idx}, '${k.replace(/'/g, "\\'")}')" onclick="copyToClipboard(decodeURIComponent('${encodedVal}'), event)" title="Click to copy, Double click to edit" style="cursor: pointer;">${formatValue(row[k], k, idx)}</td>`;
+            }).join('')}
         </tr>
     `).join('');
     initIcons();
@@ -1180,10 +1184,11 @@ function renderNestedJsonModal() {
                 const val = card.obj[k];
                 const isObj = typeof val === 'object' && val !== null;
                 const valStr = isObj ? (Array.isArray(val) ? `[Array(${val.length})]` : '{Object}') : escapeHtml(String(val));
-                itemsHtml += `<div class="nested-json-item" ${isObj ? `onclick="pushNestedJsonCard(${idx}, '${escapeHtml(k).replace(/'/g, "\\'")}')"` : ''} style="padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; ${isObj ? 'cursor:pointer;' : ''}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-                    <span style="font-weight: 500; color: var(--accent); margin-right: 12px; font-size: 0.85rem;">${escapeHtml(k)}</span>
-                    <span style="color: ${isObj ? 'var(--text-secondary)' : 'var(--text-primary)'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; font-size: 0.85rem;" title="${!isObj ? escapeHtml(String(val)) : ''}">${valStr}</span>
-                    ${isObj ? '<i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--text-secondary);margin-left:8px;flex-shrink:0;"></i>' : ''}
+                const encodedVal = !isObj ? encodeURIComponent(String(val)) : '';
+                itemsHtml += `<div class="nested-json-item" ${isObj ? `onclick="pushNestedJsonCard(${idx}, '${escapeHtml(k).replace(/'/g, "\\'")}')"` : `onclick="copyToClipboard(decodeURIComponent('${encodedVal}'))"`} style="padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; transition: background 0.2s; cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="${!isObj ? 'Click to copy' : 'Click to view details'}">
+                    <span style="font-weight: 500; color: var(--accent); margin-right: 12px; font-size: 0.85rem; flex-shrink: 0; padding-top: 2px;">${escapeHtml(k)}</span>
+                    <span style="color: ${isObj ? 'var(--text-secondary)' : 'var(--text-primary)'}; word-break: break-word; font-size: 0.85rem; text-align: left; flex: 1;">${valStr}</span>
+                    ${isObj ? '<i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--text-secondary);margin-left:8px;flex-shrink:0;margin-top:2px;"></i>' : ''}
                 </div>`;
             });
         }
@@ -1297,13 +1302,38 @@ async function fetchWithAuth(url, options = {}) {
         document.getElementById('loginModal').style.display = 'flex';
         throw new Error('Auth failed');
     }
-    const res = await fetch(url, { ...options, headers: { 'Authorization': `Basic ${auth} `, ...options.headers } });
+    const res = await fetch(url, { ...options, headers: { 'Authorization': `Basic ${auth}`, ...options.headers } });
     if (res.status === 401) {
         localStorage.removeItem('AxarDB_auth');
         document.getElementById('loginModal').style.display = 'flex';
         throw new Error('Auth failed');
     }
     return res;
+}
+
+window.copyToClipboard = function(text, event) {
+    if (event) {
+        if (event.target.closest('input, select, .badge-json')) return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        const toast = document.createElement('div');
+        toast.textContent = 'Copied to clipboard';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.right = '20px';
+        toast.style.background = 'var(--accent)';
+        toast.style.color = 'white';
+        toast.style.padding = '8px 16px';
+        toast.style.borderRadius = '4px';
+        toast.style.zIndex = '10000';
+        toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        toast.style.transition = 'opacity 0.3s';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
+    }).catch(err => console.error('Copy failed', err));
 }
 
 function initColResize(e, resizer) {
