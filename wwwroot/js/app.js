@@ -1017,7 +1017,7 @@ function renderGrid() {
             </td>
             ${keys.map(k => {
                 const valStr = row[k] === null || row[k] === undefined ? '' : (typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k]));
-                const encodedVal = encodeURIComponent(valStr);
+                const encodedVal = encodeURIComponent(valStr).replace(/'/g, "%27");
                 return `<td ondblclick="makeEditable(this, ${idx}, '${k.replace(/'/g, "\\'")}')" onclick="copyToClipboard(decodeURIComponent('${encodedVal}'), event)" title="Click to copy, Double click to edit" style="cursor: pointer;">${formatValue(row[k], k, idx)}</td>`;
             }).join('')}
         </tr>
@@ -1184,7 +1184,7 @@ function renderNestedJsonModal() {
                 const val = card.obj[k];
                 const isObj = typeof val === 'object' && val !== null;
                 const valStr = isObj ? (Array.isArray(val) ? `[Array(${val.length})]` : '{Object}') : escapeHtml(String(val));
-                const encodedVal = !isObj ? encodeURIComponent(String(val)) : '';
+                const encodedVal = !isObj ? encodeURIComponent(String(val)).replace(/'/g, "%27") : '';
                 itemsHtml += `<div class="nested-json-item" ${isObj ? `onclick="pushNestedJsonCard(${idx}, '${escapeHtml(k).replace(/'/g, "\\'")}')"` : `onclick="copyToClipboard(decodeURIComponent('${encodedVal}'))"`} style="padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; transition: background 0.2s; cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="${!isObj ? 'Click to copy' : 'Click to view details'}">
                     <span style="font-weight: 500; color: var(--accent); margin-right: 12px; font-size: 0.85rem; flex-shrink: 0; padding-top: 2px;">${escapeHtml(k)}</span>
                     <span style="color: ${isObj ? 'var(--text-secondary)' : 'var(--text-primary)'}; word-break: break-word; font-size: 0.85rem; text-align: left; flex: 1;">${valStr}</span>
@@ -1315,25 +1315,57 @@ window.copyToClipboard = function(text, event) {
     if (event) {
         if (event.target.closest('input, select, .badge-json')) return;
     }
-    navigator.clipboard.writeText(text).then(() => {
+    
+    const showToast = () => {
         const toast = document.createElement('div');
-        toast.textContent = 'Copied to clipboard';
+        const shortText = text.length > 30 ? text.substring(0, 30) + '...' : text;
+        toast.textContent = 'Panoya kopyalanan: ' + shortText;
         toast.style.position = 'fixed';
         toast.style.bottom = '20px';
         toast.style.right = '20px';
-        toast.style.background = 'var(--accent)';
+        toast.style.background = '#10b981'; // Green toast
         toast.style.color = 'white';
-        toast.style.padding = '8px 16px';
-        toast.style.borderRadius = '4px';
+        toast.style.padding = '10px 20px';
+        toast.style.borderRadius = '6px';
         toast.style.zIndex = '10000';
-        toast.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-        toast.style.transition = 'opacity 0.3s';
+        toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        toast.style.transition = 'opacity 0.3s, transform 0.3s';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.opacity = '0';
+        toast.style.fontWeight = '500';
         document.body.appendChild(toast);
+        
+        void toast.offsetWidth; // trigger reflow
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+        
         setTimeout(() => {
             toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
             setTimeout(() => toast.remove(), 300);
-        }, 2000);
-    }).catch(err => console.error('Copy failed', err));
+        }, 3000);
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(showToast).catch(err => console.error('Copy failed', err));
+    } else {
+        // Fallback for non-HTTPS or unsupported browsers
+        let textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast();
+        } catch (err) {
+            console.error('Fallback copy failed', err);
+        }
+        textArea.remove();
+    }
 }
 
 function initColResize(e, resizer) {
