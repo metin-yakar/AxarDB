@@ -57,7 +57,8 @@
             <div class="tab-content" id="tabContent">
                 <!-- Query Section -->
                 <section class="query-section" id="querySection">
-                    <div class="toolbar">
+                    <div class="toolbar" style="position: relative;">
+                        <div id="alertContainer" style="position: absolute; left: 1.5rem; top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; z-index: 1000; align-items: flex-start;"></div>
                         <button class="btn-history" id="btnAiQuery" title="AI Query">
                             <i data-lucide="bot"></i>
                             AI Query
@@ -92,13 +93,25 @@
                             </button>
                         </div>
                     </div>
-                    <div class="grid-container" id="gridContainer">
-                        <table id="resultsTable">
-                            <thead id="tableHead"></thead>
-                            <tbody id="tableBody"></tbody>
-                        </table>
-                        <div id="noResults" style="padding: 2rem; color: var(--text-secondary); text-align: center;">
-                            Execute a query to see results
+                    <div style="display: flex; flex: 1; overflow: hidden; width: 100%;">
+                        <div class="grid-container" id="gridContainer" style="flex: 1;">
+                            <table id="resultsTable">
+                                <thead id="tableHead"></thead>
+                                <tbody id="tableBody"></tbody>
+                            </table>
+                            <div id="noResults" style="padding: 2rem; color: var(--text-secondary); text-align: center;">
+                                Execute a query to see results
+                            </div>
+                        </div>
+                        <div class="resizer-json" id="resizerJsonView" style="display: none;"></div>
+                        <div id="jsonViewPanel" style="display: none; width: 400px; flex-direction: column; border-left: 1px solid var(--border); background: var(--bg-primary);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); background: var(--bg-secondary);">
+                                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary);"><i data-lucide="file-json" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> JsonView</span>
+                                <button class="btn-icon" onclick="closeJsonView()" title="Close">
+                                    <i data-lucide="x"></i>
+                                </button>
+                            </div>
+                            <div id="jsonViewEditorContainer" style="flex: 1; overflow: hidden;"></div>
                         </div>
                     </div>
                 </section>

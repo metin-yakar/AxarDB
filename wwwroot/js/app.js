@@ -1,5 +1,6 @@
 // AxarDB Web Interface
 let editor;
+let jsonViewEditor = null;
 let currentCollections = [];
 let currentMemoryCollections = [];
 let currentBulkCollections = [];
@@ -17,6 +18,88 @@ let activeHistoryId = null;
 let _historyDebounceTimer = null;
 let _suppressHistorySync = false;
 let activeQueryController = null;
+
+// --- Custom Alert System ---
+window.showAlert = function(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('alertContainer');
+    if (!container) {
+        console.warn("Alert container not found for message:", message);
+        return;
+    }
+    
+    const alertEl = document.createElement('div');
+    const isError = type === 'error' || String(message).toLowerCase().includes('error') || String(message).toLowerCase().includes('failed');
+    
+    // Bootstrap-like styling
+    const bgColor = isError ? 'rgba(220, 53, 69, 0.95)' : 'rgba(25, 135, 84, 0.95)';
+    const borderColor = isError ? 'rgba(220, 53, 69, 1)' : 'rgba(25, 135, 84, 1)';
+    
+    alertEl.style.background = bgColor;
+    alertEl.style.color = 'white';
+    alertEl.style.padding = '0.75rem 1.25rem';
+    alertEl.style.borderRadius = '0.375rem';
+    alertEl.style.fontWeight = '500';
+    alertEl.style.fontSize = '0.875rem';
+    alertEl.style.boxShadow = '0 0.5rem 1rem rgba(0, 0, 0, 0.15)';
+    alertEl.style.border = `1px solid ${borderColor}`;
+    alertEl.style.backdropFilter = 'blur(4px)';
+    alertEl.style.pointerEvents = 'auto'; // allow clicking
+    alertEl.style.cursor = 'pointer';
+    alertEl.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    alertEl.style.opacity = '0';
+    alertEl.style.transform = 'translateY(-10px)';
+    alertEl.style.wordBreak = 'break-word';
+    alertEl.style.minWidth = '250px';
+    alertEl.style.maxWidth = '400px';
+    
+    // Inner structure to look like a toast
+    alertEl.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    ${isError ? '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>' : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>'}
+                </svg>
+                <span>${escapeHtml(String(message))}</span>
+            </div>
+            <button type="button" style="background: none; border: none; color: white; opacity: 0.8; cursor: pointer; padding: 0; margin-left: 12px; line-height: 1;" aria-label="Close">
+                <span style="font-size: 1.25rem;">&times;</span>
+            </button>
+        </div>
+    `;
+    
+    // Add click to dismiss on the close button
+    alertEl.querySelector('button').onclick = (e) => {
+        e.stopPropagation();
+        alertEl.style.opacity = '0';
+        alertEl.style.transform = 'translateY(-10px)';
+        setTimeout(() => alertEl.remove(), 300);
+    };
+    
+    container.appendChild(alertEl);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        alertEl.style.opacity = '1';
+        alertEl.style.transform = 'translateY(0)';
+    });
+    
+    // Auto dismiss
+    if (duration > 0) {
+        setTimeout(() => {
+            if (alertEl.parentElement) {
+                alertEl.style.opacity = '0';
+                alertEl.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    if (alertEl.parentElement) alertEl.remove();
+                }, 300);
+            }
+        }, duration);
+    }
+};
+
+window.alert = function(message) {
+    window.showAlert(message);
+};
 
 // --- Tab System ---
 let tabs = [];
@@ -386,6 +469,31 @@ function initResizers() {
         document.addEventListener('mousemove', move);
         document.addEventListener('mouseup', up);
     });
+
+    const resizerJson = document.getElementById('resizerJsonView');
+    const jsonPanel = document.getElementById('jsonViewPanel');
+    if (resizerJson && jsonPanel) {
+        resizerJson.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resizerJson.classList.add('active');
+            startResizing('col-resize');
+            const startX = e.pageX;
+            const startWidth = jsonPanel.offsetWidth;
+            const move = (ev) => {
+                const newWidth = startWidth - (ev.pageX - startX);
+                if (newWidth > 150 && newWidth < window.innerWidth * 0.85) jsonPanel.style.width = newWidth + 'px';
+            };
+            const up = () => {
+                resizerJson.classList.remove('active');
+                stopResizing();
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('mouseup', up);
+            };
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', up);
+        });
+    }
 }
 
 async function loadCollections() {
@@ -1235,7 +1343,10 @@ function handleRowAction(e, rowIdx) {
     if (!row) return;
     const id = row._id;
 
-    const actions = [];
+    // JsonView is the first action in the context menu
+    const actions = [
+        { label: 'JsonView', action: () => openJsonView(rowIdx) }
+    ];
     
     if (lastCollectionName && id !== undefined) {
         let prefix = 'db';
@@ -1262,6 +1373,39 @@ function handleRowAction(e, rowIdx) {
 
     showContextMenu(e, actions);
 }
+
+window.openJsonView = function (rowIdx) {
+    if (rowIdx < 0 || rowIdx >= queryResults.length) return;
+    const data = queryResults[rowIdx];
+    const formattedJson = JSON.stringify(data, null, 2);
+
+    document.getElementById('resizerJsonView').style.display = 'block';
+    document.getElementById('jsonViewPanel').style.display = 'flex';
+
+    if (!jsonViewEditor) {
+        require(['vs/editor/editor.main'], function () {
+            jsonViewEditor = monaco.editor.create(document.getElementById('jsonViewEditorContainer'), {
+                value: formattedJson,
+                language: 'json',
+                theme: 'vs-dark',
+                readOnly: true,
+                automaticLayout: true,
+                minimap: { enabled: false },
+                fontSize: 14,
+                padding: { top: 16 },
+                scrollBeyondLastLine: false,
+                wordWrap: 'on'
+            });
+        });
+    } else {
+        jsonViewEditor.setValue(formattedJson);
+    }
+};
+
+window.closeJsonView = function () {
+    document.getElementById('resizerJsonView').style.display = 'none';
+    document.getElementById('jsonViewPanel').style.display = 'none';
+};
 
 function exportData(data, format) {
     if (!data || data.length === 0) return;
