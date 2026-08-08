@@ -1121,7 +1121,7 @@ function renderGrid() {
     tableBody.innerHTML = displayData.map((row, idx) => `
         <tr>
             <td>
-                <div class="row-action-btn" onclick="handleRowAction(event, ${idx})">${idx + 1}</div>
+                <div class="row-action-btn" onclick="handleRowAction(event)" data-row-id="${row._id !== undefined ? escapeHtml(JSON.stringify(row._id)) : ''}">${idx + 1}</div>
             </td>
             ${keys.map(k => {
                 const valStr = row[k] === null || row[k] === undefined ? '' : (typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k]));
@@ -1337,15 +1337,22 @@ function showContextMenu(e, items) {
     setTimeout(() => document.addEventListener('click', closeHandler), 10);
 }
 
-function handleRowAction(e, rowIdx) {
+function handleRowAction(e) {
     e.preventDefault(); e.stopPropagation();
-    const row = queryResults[rowIdx];
+    const btn = e.target.closest('.row-action-btn');
+    if (!btn) return;
+    const tr = btn.closest('tr');
+    if (!tr) return;
+
+    const rawId = btn.getAttribute('data-row-id');
+    if (!rawId) return;
+    const id = JSON.parse(rawId);
+    const row = currentDisplayData.find(r => r._id === id);
     if (!row) return;
-    const id = row._id;
 
     // JsonView is the first action in the context menu
     const actions = [
-        { label: 'JsonView', action: () => openJsonView(rowIdx) }
+        { label: 'JsonView', action: () => openJsonView(row) }
     ];
     
     if (lastCollectionName && id !== undefined) {
@@ -1355,7 +1362,7 @@ function handleRowAction(e, rowIdx) {
         if (lastCollectionType !== 'memory' && lastCollectionType !== 'bulk' && lastCollectionName !== 'syslogs' && lastCollectionName !== 'sysconfig') {
             actions.push({
                 label: 'Edit Record', action: () => {
-                    enableInlineEdit(rowIdx);
+                    enableInlineEdit(tr, row);
                 }
             });
 
@@ -1374,9 +1381,9 @@ function handleRowAction(e, rowIdx) {
     showContextMenu(e, actions);
 }
 
-window.openJsonView = function (rowIdx) {
-    if (rowIdx < 0 || rowIdx >= queryResults.length) return;
-    const data = queryResults[rowIdx];
+window.openJsonView = function (rowData) {
+    if (!rowData) return;
+    const data = rowData;
     const formattedJson = JSON.stringify(data, null, 2);
 
     document.getElementById('resizerJsonView').style.display = 'block';
@@ -1754,15 +1761,12 @@ function escapeHtml(str) {
 
 // --- Inline Edit Logic ---
 
-function enableInlineEdit(rowIdx) {
+function enableInlineEdit(tr, rowData) {
     if (lastCollectionType === 'memory' || lastCollectionType === 'bulk' || lastCollectionName === 'syslogs' || lastCollectionName === 'sysconfig') return;
+    if (!tr || !rowData) return;
 
-    const tbody = document.getElementById('tableBody');
-    const tr = tbody ? tbody.children[rowIdx] : null;
-    if (!tr) return;
-
-    const rowData = currentDisplayData[rowIdx];
-    if (!rowData) return;
+    // Store the _id on the tr so updateInlineEdit can find the row by identity
+    tr.setAttribute('data-edit-id', JSON.stringify(rowData._id));
 
     currentGridKeys.forEach((key, colIdx) => {
         // Skip ID fields
@@ -1777,22 +1781,22 @@ function enableInlineEdit(rowIdx) {
 
         let inputHtml = '';
         if (typeof val === 'boolean') {
-            inputHtml = `<select class="inline-edit-input" data-key="${escapeHtml(key)}" onchange="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">
+            inputHtml = `<select class="inline-edit-input" data-key="${escapeHtml(key)}" onchange="updateInlineEdit(this.closest('tr'))" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">
                 <option value="true" ${val ? 'selected' : ''}>true</option>
                 <option value="false" ${!val ? 'selected' : ''}>false</option>
             </select>`;
         } else if (typeof val === 'number') {
-            inputHtml = `<input type="number" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${val}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
+            inputHtml = `<input type="number" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${val}" oninput="updateInlineEdit(this.closest('tr'))" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
         } else if (typeof val === 'object' && val !== null) {
             const strVal = JSON.stringify(val);
-            inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="json" value="${escapeHtml(strVal)}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;" title="Edit as JSON">`;
+            inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="json" value="${escapeHtml(strVal)}" oninput="updateInlineEdit(this.closest('tr'))" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;" title="Edit as JSON">`;
         } else if (typeof val === 'string' && val.length >= 19 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
             const dateStr = val.substring(0, 19);
             const originalTail = val.substring(19);
-            inputHtml = `<input type="datetime-local" step="1" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="datetime" data-tail="${escapeHtml(originalTail)}" value="${escapeHtml(dateStr)}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
+            inputHtml = `<input type="datetime-local" step="1" class="inline-edit-input" data-key="${escapeHtml(key)}" data-type="datetime" data-tail="${escapeHtml(originalTail)}" value="${escapeHtml(dateStr)}" oninput="updateInlineEdit(this.closest('tr'))" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
         } else {
             const strVal = val === null || val === undefined ? '' : String(val);
-            inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${escapeHtml(strVal)}" oninput="updateInlineEdit(${rowIdx})" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
+            inputHtml = `<input type="text" class="inline-edit-input" data-key="${escapeHtml(key)}" value="${escapeHtml(strVal)}" oninput="updateInlineEdit(this.closest('tr'))" style="width: 100%; padding: 4px; box-sizing: border-box; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">`;
         }
 
         td.innerHTML = inputHtml;
@@ -1803,7 +1807,7 @@ function enableInlineEdit(rowIdx) {
         input.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
-                updateInlineEdit(rowIdx);
+                updateInlineEdit(tr);
                 executeSelectedQuery();
             }
         });
@@ -1813,15 +1817,16 @@ function enableInlineEdit(rowIdx) {
         rowInputs[0].focus();
     }
 
-    updateInlineEdit(rowIdx);
+    updateInlineEdit(tr);
 }
 
-function updateInlineEdit(rowIdx) {
-    const tbody = document.getElementById('tableBody');
-    const tr = tbody ? tbody.children[rowIdx] : null;
+function updateInlineEdit(tr) {
     if (!tr) return;
 
-    const originalRow = currentDisplayData[rowIdx];
+    const rawId = tr.getAttribute('data-edit-id');
+    if (!rawId) return;
+    const editId = JSON.parse(rawId);
+    const originalRow = currentDisplayData.find(r => r._id === editId);
     if (!originalRow) return;
 
     const updateObj = { ...originalRow };
