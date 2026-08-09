@@ -220,39 +220,44 @@ namespace AxarDB.Definitions
                  if (idx != null)
                  {
                      var ids = idx.Search(analysis.Value.Val!, analysis.Value.Op);
-                     
-                     var docs = ids.AsParallel().WithCancellation(cancellationToken)
+
+                     // Index results are already a small set; return lazily so downstream
+                     // Take(N) can short-circuit without materializing the full list.
+                     return ids.AsParallel()
+                               .WithCancellation(cancellationToken)
+                               .WithMergeOptions(ParallelMergeOptions.NotBuffered)
                                .Select(id => GetDocument(id))
                                .Where(doc => doc != null)
-                               .Select(doc => doc!)
-                               .ToList();
-                     return docs;
+                               .Select(doc => doc!);
                  }
 
-                 // Full Scan with Parallelism (C# Optimized Evaluator Fallback)
+                 // Full scan — C# optimized evaluator (no Jint, no engine lock needed).
+                 // NotBuffered lets downstream Take(N) stop the parallel pipeline early.
                  string[] allIds2;
                  lock (_indexLock) { allIds2 = _primaryIndex.ToArray(); }
 
-                 var allDocs2 = allIds2.AsParallel().WithCancellation(cancellationToken)
-                              .Select(id => GetDocument(id))
-                              .Where(doc => doc != null)
-                              .Select(doc => doc!)
-                              .Where(doc => AxarDB.Query.QueryOptimizer.Evaluate(doc, analysis.Value))
-                              .ToList();
-                 return allDocs2;
+                 return allIds2.AsParallel()
+                               .WithCancellation(cancellationToken)
+                               .WithMergeOptions(ParallelMergeOptions.NotBuffered)
+                               .Select(id => GetDocument(id))
+                               .Where(doc => doc != null)
+                               .Select(doc => doc!)
+                               .Where(doc => AxarDB.Query.QueryOptimizer.Evaluate(doc, analysis.Value));
              }
 
-             // Full Scan with Parallelism (Jint execution)
+             // Full scan — Jint JS evaluator (slow path).
+             // lock(_engine) in the predicate lambda already serializes evaluation across
+             // threads, so AsParallel() was adding thread-pool overhead with zero benefit.
+             // A sequential lazy LINQ chain lets Take(N) terminate after N matches.
              string[] allIds;
              lock (_indexLock) { allIds = _primaryIndex.ToArray(); }
 
-             var allDocs = allIds.AsParallel().WithCancellation(cancellationToken)
-                          .Select(id => GetDocument(id))
-                          .Where(doc => doc != null)
-                          .Select(doc => doc!)
-                          .Where(predicate)
-                          .ToList();
-             return allDocs;
+             return allIds
+                    .TakeWhile(_ => !cancellationToken.IsCancellationRequested)
+                    .Select(id => GetDocument(id))
+                    .Where(doc => doc != null)
+                    .Select(doc => doc!)
+                    .Where(predicate);
         }
 
         public void CreateIndex(string propertyName, string type)
