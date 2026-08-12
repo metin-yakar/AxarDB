@@ -102,13 +102,13 @@ namespace AxarDB.Bridges
 
         public BulkResultSet orderBy(Func<object, object> selector)
         {
-            var ordered = _source.OrderBy(d => selector(new DocumentWrapper(d)));
+            var ordered = _source.OrderBy(d => selector(new DocumentWrapper(d)), AxarDB.Helpers.UniversalComparer.Instance);
             return new BulkResultSet(ordered, _store, _collectionName);
         }
 
         public BulkResultSet orderByDesc(Func<object, object> selector)
         {
-            var ordered = _source.OrderByDescending(d => selector(new DocumentWrapper(d)));
+            var ordered = _source.OrderByDescending(d => selector(new DocumentWrapper(d)), AxarDB.Helpers.UniversalComparer.Instance);
             return new BulkResultSet(ordered, _store, _collectionName);
         }
 

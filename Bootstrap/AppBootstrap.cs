@@ -90,6 +90,11 @@ namespace AxarDB.Bootstrap
             builder.Services.AddSingleton(settings);
             builder.Services.AddHostedService<AxarDB.BackgroundServices.QueueProcessor>();
 
+            builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+            {
+                options.SerializerOptions.Converters.Add(new AxarDB.Helpers.BigIntegerConverter());
+            });
+
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>

@@ -120,13 +120,13 @@ namespace AxarDB.Bridges
 
         public MemoryResultSet orderBy(Func<object, object> selector)
         {
-            var ordered = _source.OrderBy(d => selector(new DocumentWrapper(d)));
+            var ordered = _source.OrderBy(d => selector(new DocumentWrapper(d)), AxarDB.Helpers.UniversalComparer.Instance);
             return new MemoryResultSet(ordered, _store, _collectionName);
         }
 
         public MemoryResultSet orderByDesc(Func<object, object> selector)
         {
-            var ordered = _source.OrderByDescending(d => selector(new DocumentWrapper(d)));
+            var ordered = _source.OrderByDescending(d => selector(new DocumentWrapper(d)), AxarDB.Helpers.UniversalComparer.Instance);
             return new MemoryResultSet(ordered, _store, _collectionName);
         }
 
