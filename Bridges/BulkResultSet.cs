@@ -99,5 +99,41 @@ namespace AxarDB.Bridges
             _store.Update(_collectionName, d =>
                 d.TryGetValue("_id", out var id) && ids.Contains(id.ToString()!), fields);
         }
+
+        public BulkResultSet orderBy(Func<object, object> selector)
+        {
+            var ordered = _source.OrderBy(d => selector(new DocumentWrapper(d)));
+            return new BulkResultSet(ordered, _store, _collectionName);
+        }
+
+        public BulkResultSet orderByDesc(Func<object, object> selector)
+        {
+            var ordered = _source.OrderByDescending(d => selector(new DocumentWrapper(d)));
+            return new BulkResultSet(ordered, _store, _collectionName);
+        }
+
+        public object max(Func<object, object> selector)
+        {
+            var values = _source.Select(d => selector(new DocumentWrapper(d))).Where(v => v != null);
+            object maxVal = null;
+            var comparer = AxarDB.Helpers.UniversalComparer.Instance;
+            foreach (var val in values)
+            {
+                if (maxVal == null || comparer.Compare(val, maxVal) > 0) maxVal = val;
+            }
+            return maxVal;
+        }
+
+        public object min(Func<object, object> selector)
+        {
+            var values = _source.Select(d => selector(new DocumentWrapper(d))).Where(v => v != null);
+            object minVal = null;
+            var comparer = AxarDB.Helpers.UniversalComparer.Instance;
+            foreach (var val in values)
+            {
+                if (minVal == null || comparer.Compare(val, minVal) < 0) minVal = val;
+            }
+            return minVal;
+        }
     }
 }

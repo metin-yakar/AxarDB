@@ -99,6 +99,10 @@ After `findall()`, you can chain these methods:
 | `.take(n)` | Limit results to first N items | `findall().take(5)` |
 | `.skip(n)` | Skip the first N items | `findall().skip(10)` |
 | `.select(fn)` | Project/transform each document | `findall().select(u => u.name)` |
+| `.orderBy(fn)` | Order results ascending | `findall().orderBy(u => u.age)` |
+| `.orderByDesc(fn)` | Order results descending | `findall().orderByDesc(u => u.age)` |
+| `.max(selector)` | Get maximum value of a field | `findall().max(u => u.age)` |
+| `.min(selector)` | Get minimum value of a field | `findall().min(u => u.age)` |
 | `.count(predicate?)` | Get total count or conditionally count matches | `findall().count(x => x.age > 18)` |
 | `.distinct(selector?)`| Get a list of unique values or objects | `findall().distinct(x => x.role)` |
 | `.first()` | Get first matching item | `findall().first()` |
