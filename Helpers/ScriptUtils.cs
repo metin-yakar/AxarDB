@@ -169,7 +169,7 @@ namespace AxarDB.Helpers
 
         // --- Date Utilities ---
 
-        private static DateTime ConvertToDateTime(object dateObj)
+        public static DateTime ConvertToDateTime(object dateObj)
         {
             if (dateObj == null) return ServerTime.Now;
             if (dateObj is DateTime dt) return dt;

@@ -1079,25 +1079,30 @@ function renderGrid() {
             return 0;
         });
     } else {
-        // Default sort: UUIDv7 latest first, ignore others but keep v7 on top
-        displayData.sort((a, b) => {
-            const idA = a._id !== undefined && a._id !== null ? String(a._id) : '';
-            const idB = b._id !== undefined && b._id !== null ? String(b._id) : '';
+        const currentScript = editor ? editor.getValue().toLowerCase() : '';
+        const hasOrderBy = currentScript.includes('.orderby');
 
-            const isV7A = idA.length === 36 && idA.charAt(14) === '7' && idA.charAt(8) === '-';
-            const isV7B = idB.length === 36 && idB.charAt(14) === '7' && idB.charAt(8) === '-';
+        if (!hasOrderBy) {
+            // Default sort: UUIDv7 latest first, ignore others but keep v7 on top
+            displayData.sort((a, b) => {
+                const idA = a._id !== undefined && a._id !== null ? String(a._id) : '';
+                const idB = b._id !== undefined && b._id !== null ? String(b._id) : '';
 
-            if (isV7A && !isV7B) return -1;
-            if (!isV7A && isV7B) return 1;
+                const isV7A = idA.length === 36 && idA.charAt(14) === '7' && idA.charAt(8) === '-';
+                const isV7B = idB.length === 36 && idB.charAt(14) === '7' && idB.charAt(8) === '-';
 
-            if (isV7A && isV7B) {
-                if (idA < idB) return 1;
-                if (idA > idB) return -1;
+                if (isV7A && !isV7B) return -1;
+                if (!isV7A && isV7B) return 1;
+
+                if (isV7A && isV7B) {
+                    if (idA < idB) return 1;
+                    if (idA > idB) return -1;
+                    return 0;
+                }
+
                 return 0;
-            }
-
-            return 0;
-        });
+            });
+        }
     }
 
     Object.keys(filters).forEach(key => {

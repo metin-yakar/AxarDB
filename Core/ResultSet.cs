@@ -131,13 +131,13 @@ namespace AxarDB.Core
 
         public ResultSet orderBy(Func<object, object> selector)
         {
-            var ordered = _source.OrderBy(d => selector(new DocumentWrapper(d)));
+            var ordered = _source.OrderBy(d => selector(new DocumentWrapper(d)), AxarDB.Helpers.UniversalComparer.Instance);
             return new ResultSet(ordered, _collection);
         }
 
         public ResultSet orderByDesc(Func<object, object> selector)
         {
-            var ordered = _source.OrderByDescending(d => selector(new DocumentWrapper(d)));
+            var ordered = _source.OrderByDescending(d => selector(new DocumentWrapper(d)), AxarDB.Helpers.UniversalComparer.Instance);
             return new ResultSet(ordered, _collection);
         }
 
