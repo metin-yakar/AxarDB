@@ -617,7 +617,15 @@
 <span class="keyword">var</span> devs = db.users.<span class="function">contains</span>(x => x.title == <span class="string">"developer"</span>);
 
 <span class="comment">// Pagination (skip and take)</span>
-<span class="keyword">var</span> page2 = db.users.<span class="function">findall</span>().<span class="function">skip</span>(<span class="number">10</span>).<span class="function">take</span>(<span class="number">10</span>);</code></pre>
+<span class="keyword">var</span> page2 = db.users.<span class="function">findall</span>().<span class="function">skip</span>(<span class="number">10</span>).<span class="function">take</span>(<span class="number">10</span>);
+
+<span class="comment">// Sorting (orderBy and orderByDesc)</span>
+<span class="keyword">var</span> oldestFirst = db.users.<span class="function">findall</span>().<span class="function">orderBy</span>(u => u.age);
+<span class="keyword">var</span> youngestFirst = db.users.<span class="function">findall</span>().<span class="function">orderByDesc</span>(u => u.age);
+
+<span class="comment">// Min and Max values</span>
+<span class="keyword">var</span> maxAge = db.users.<span class="function">findall</span>().<span class="function">max</span>(u => u.age);
+<span class="keyword">var</span> minAge = db.users.<span class="function">findall</span>().<span class="function">min</span>(u => u.age);</code></pre>
                 <div class="info-box">
                     <strong>💡 Important:</strong> <code>findall()</code> returns a ResultSet. To convert it into a standard JavaScript array,
                     you can optionally call <code>.toList()</code>.

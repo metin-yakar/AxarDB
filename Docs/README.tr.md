@@ -23,7 +23,7 @@
 
 | Özellik | Açıklama |
 |:---|:---|
-| **📜 JavaScript Sorguları** | Tam JavaScript sözdizimi kullanın: `db.users.findall(x => x.active)`. Uzantıları (`count()`, `distinct()`) destekler. |
+| **📜 JavaScript Sorguları** | Tam JavaScript sözdizimi kullanın: `db.users.findall(x => x.active)`. Uzantıları (`count()`, `distinct()`, `orderBy()`, `orderByDesc()`, `max()`, `min()`) destekler. |
 | **🆔 UUID v7 Desteği** | Varsayılan `_id` düzeni olarak native RFC 9562 UUID v7 kullanılır. Zaman sıralı ID'ler üretir ve `guidv7()`, `guidv7(datetime)`, `guidv7CreatedAt(id)` fonksiyonlarını sunar. |
 | **⚡ Yüksek Performans** | `ConcurrentDictionary`, PLINQ ile Tembel Değerlendirme (Lazy Eval) ve katı %40 RAM kapasite limitli Dinamik Önbellek Yönetimi. |
 | **🧠 Bellek İçi Depo (Memory Store)** | `memory.sessions.insert({...})` ile TTL destekli geçici depolama. Oturum, önbellek ve kısa ömürlü veriler için idealdir. |

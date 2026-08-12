@@ -371,7 +371,11 @@ function initEditor() {
                                 { label: 'count', insertText: 'count(${1:x} => $2)', detail: 'Count documents', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
                                 { label: 'distinct', insertText: 'distinct(${1:x} => x.$2)', detail: 'Distinct values', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
                                 { label: 'foreach', insertText: 'foreach(${1:x} => $2)', detail: 'Iterate over documents', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
-                                { label: 'where', insertText: 'where(${1:x} => $2)', detail: 'Filter records', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet }
+                                { label: 'where', insertText: 'where(${1:x} => $2)', detail: 'Filter records', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'orderBy', insertText: 'orderBy(${1:x} => x.$2)', detail: 'Order records ascending', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'orderByDesc', insertText: 'orderByDesc(${1:x} => x.$2)', detail: 'Order records descending', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'max', insertText: 'max(${1:x} => x.$2)', detail: 'Get maximum value', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet },
+                                { label: 'min', insertText: 'min(${1:x} => x.$2)', detail: 'Get minimum value', kind: monaco.languages.CompletionItemKind.Method, insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet }
                             ];
                             return {
                                 suggestions: methods.map(m => ({ ...m, range: range }))

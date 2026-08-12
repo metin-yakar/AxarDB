@@ -22,7 +22,7 @@
 
 | Feature | Description |
 |:---|:---|
-| **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active)`. Supports prototype extensions like `count()` and `distinct()`. |
+| **📜 JavaScript Querying** | Use full JS structure: `db.users.findall(x => x.active)`. Supports prototype extensions like `count()`, `distinct()`, `orderBy()`, `orderByDesc()`, `max()`, and `min()`. |
 | **🆔 UUID v7 Support** | Native RFC 9562 UUID v7 is the default `_id` scheme. Generates sortable IDs and supports `guidv7()`, `guidv7(datetime)` and `guidv7CreatedAt(id)`. |
 | **⚡ High Performance** | In-memory storage with `ConcurrentDictionary`, lazy evaluation using PLINQ, and strictly-capped dynamic 40% Memory Cache expiration. |
 | **🧠 Memory Store** | `memory.sessions.insert({...})` with TTL support for sessions, caches, and short-lived data. |
