@@ -1,0 +1,9 @@
+[Unit]
+Description=AxarDB Daily Automated Update Check
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/axardb/Update/ubuntu/update.sh --dir /opt/axardb --service axardb
+StandardOutput=append:/var/log/axardb-update.log
+StandardError=append:/var/log/axardb-update.log
