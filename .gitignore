@@ -135,13 +135,15 @@ session_history.md
 build*
 test*
 
-# AxarDB SDKs
+# Python & SDKs
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
+venv/
+.venv/
 **/SDKs/**/bin/
 **/SDKs/**/obj/
-**/SDKs/**/__pycache__/
-**/SDKs/**/*.pyc
-**/SDKs/**/venv/
-**/SDKs/**/.venv/
 **/SDKs/**/dist/
 **/SDKs/**/build/
 **/SDKs/**/*.egg-info/
