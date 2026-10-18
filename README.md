@@ -14,9 +14,11 @@
 | [English](README.md) | [Türkçe](Docs/README.tr.md) | [Русский](Docs/README.ru.md) | [中文](Docs/README.zh.md) | [Deutsch](Docs/README.de.md) | [日本語](Docs/README.ja.md) | [العربية](Docs/README.ar.md) | [Nederlands](Docs/README.nl.md) | [Български](Docs/README.bg.md) | [Italiano](Docs/README.it.md) | [Español](Docs/README.es.md) |
 |---|---|---|---|---|---|---|---|---|---|---|
 
----
+### 🎨 Web Management Console
 
-![AxarDB Web UI](./image.png)
+| Dark Theme (Nordic Aurora) | Light Theme (Alpine Fresh Emerald) |
+|:---:|:---:|
+| [![AxarDB Dark Theme](./preview-dark.png)](./preview-dark.png) | [![AxarDB Light Theme](./preview-light.png)](./preview-light.png) |
 
 ## 🚀 Key Features
 

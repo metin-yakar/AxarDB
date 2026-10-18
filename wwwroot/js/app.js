@@ -101,6 +101,194 @@ window.alert = function(message) {
     window.showAlert(message);
 };
 
+// --- Theme System (dark: Nordic Aurora, light: Alpine Fresh Emerald) ---
+function getTheme() {
+    return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
+
+function getMonacoTheme() {
+    return getTheme() === 'light' ? 'axar-light' : 'axar-dark';
+}
+
+function defineAxarMonacoThemes() {
+    monaco.editor.defineTheme('axar-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [
+            { token: 'comment', foreground: '6c749c', fontStyle: 'italic' },
+            { token: 'keyword', foreground: 'c084fc' },
+            { token: 'string', foreground: 'fdba74' },
+            { token: 'number', foreground: '2dd4bf' },
+            { token: 'regexp', foreground: 'f0abfc' },
+            { token: 'type.identifier', foreground: '7dd3fc' },
+            { token: 'delimiter', foreground: '9aa3c9' },
+            { token: 'string.key.json', foreground: 'a5b4fc' },
+            { token: 'string.value.json', foreground: 'fdba74' },
+            { token: 'number.json', foreground: '2dd4bf' },
+            { token: 'keyword.json', foreground: 'c084fc' }
+        ],
+        colors: {
+            'editor.background': '#0b0e1f',
+            'editor.foreground': '#e8eaf8',
+            'editorLineNumber.foreground': '#4b5580',
+            'editorLineNumber.activeForeground': '#a855f7',
+            'editor.lineHighlightBackground': '#151a38',
+            'editor.selectionBackground': '#4c2a8599',
+            'editorCursor.foreground': '#2dd4bf',
+            'editorWidget.background': '#11142a',
+            'editorSuggestWidget.background': '#11142a',
+            'scrollbarSlider.background': '#a855f733'
+        }
+    });
+    monaco.editor.defineTheme('axar-light', {
+        base: 'vs',
+        inherit: true,
+        rules: [
+            { token: 'comment', foreground: '64748b', fontStyle: 'italic' },
+            { token: 'keyword', foreground: '047857' },
+            { token: 'string', foreground: 'b45309' },
+            { token: 'number', foreground: '0369a1' },
+            { token: 'regexp', foreground: '7c3aed' },
+            { token: 'type.identifier', foreground: '0f766e' },
+            { token: 'delimiter', foreground: '475569' },
+            { token: 'string.key.json', foreground: '0f766e' },
+            { token: 'string.value.json', foreground: 'b45309' },
+            { token: 'number.json', foreground: '0369a1' },
+            { token: 'keyword.json', foreground: '047857' }
+        ],
+        colors: {
+            'editor.background': '#ffffff',
+            'editor.foreground': '#0f172a',
+            'editorLineNumber.foreground': '#94a3b8',
+            'editorLineNumber.activeForeground': '#059669',
+            'editor.lineHighlightBackground': '#f1f5f9',
+            'editor.selectionBackground': '#10b98133',
+            'editorCursor.foreground': '#059669',
+            'editorWidget.background': '#ffffff',
+            'editorSuggestWidget.background': '#ffffff'
+        }
+    });
+}
+
+function updateThemeToggleButton() {
+    const btn = document.getElementById('btnThemeToggle');
+    if (!btn) return;
+    const isLight = getTheme() === 'light';
+    btn.innerHTML = `<i data-lucide="${isLight ? 'moon' : 'sun'}"></i>`;
+    btn.title = isLight ? 'Switch to dark theme' : 'Switch to light theme';
+    initIcons();
+}
+
+function applyTheme(theme, persist) {
+    document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+    if (persist) localStorage.setItem('AxarDB_theme', getTheme());
+    if (window.monaco && monaco.editor) monaco.editor.setTheme(getMonacoTheme());
+    updateThemeToggleButton();
+}
+
+function initThemeToggle() {
+    const btn = document.getElementById('btnThemeToggle');
+    if (!btn) return;
+    btn.onclick = () => applyTheme(getTheme() === 'light' ? 'dark' : 'light', true);
+    updateThemeToggleButton();
+}
+
+// --- Category tree (DB, SYS, LOG, MEMORY, BULK, VIEW, TRIGGER) ---
+const TREE_GROUPS = [
+    { key: 'DB', icon: 'database' },
+    { key: 'SYS', icon: 'shield' },
+    { key: 'LOG', icon: 'file-text' },
+    { key: 'MEMORY', icon: 'cpu' },
+    { key: 'BULK', icon: 'archive' },
+    { key: 'VIEW', icon: 'eye' },
+    { key: 'TRIGGER', icon: 'zap' }
+];
+const TREE_DEFAULT_COLLAPSED = ['SYS', 'LOG'];
+
+function getCollapsedTreeGroups() {
+    try {
+        const raw = localStorage.getItem('AxarDB_treeCollapsed');
+        if (raw) return JSON.parse(raw);
+    } catch (e) { }
+    return TREE_DEFAULT_COLLAPSED.slice();
+}
+
+function createTreePlaceholder(text) {
+    const el = document.createElement('div');
+    el.className = 'tree-item';
+    el.style.opacity = '0.5';
+    el.style.fontStyle = 'italic';
+    el.innerHTML = `<i data-lucide="info"></i> <span>${text}</span>`;
+    return el;
+}
+
+// Regroups the flat section list built by loadCollections into collapsible category groups.
+// Items are moved (not recreated), so their click and context menu handlers keep working.
+function buildCategoryTree(tree) {
+    const sectionKey = (title) => {
+        const t = title.trim().toUpperCase();
+        if (t.startsWith('DATABASE')) return 'DB';
+        if (t.startsWith('SYSTEM')) return 'SYS';
+        if (t.startsWith('MEMORY')) return 'MEMORY';
+        if (t.startsWith('BULK')) return 'BULK';
+        if (t.startsWith('VIEW')) return 'VIEW';
+        if (t.startsWith('TRIGGER')) return 'TRIGGER';
+        return null;
+    };
+    const isPlaceholder = (el) => el.style.opacity === '0.5';
+    const isAction = (el) => el.style.opacity === '0.7';
+
+    const sections = {};
+    let current = null;
+    Array.from(tree.children).forEach(el => {
+        if (el.classList.contains('tree-item')) {
+            if (current) current.push(el);
+        } else {
+            const key = sectionKey(el.textContent);
+            current = key ? (sections[key] = []) : null;
+        }
+    });
+
+    // Log collections belong to the sys* family but get their own category
+    const sysItems = sections.SYS || [];
+    const logItems = sysItems.filter(el => !isPlaceholder(el) && /^syslog/i.test(el.textContent.trim()));
+    sections.LOG = logItems;
+    sections.SYS = sysItems.filter(el => !logItems.includes(el));
+    if (!sections.SYS.some(el => !isPlaceholder(el))) {
+        sections.SYS = [createTreePlaceholder('No system collections')];
+    }
+    if (logItems.length === 0) sections.LOG = [createTreePlaceholder('No log collections')];
+
+    const collapsed = getCollapsedTreeGroups();
+    tree.innerHTML = '';
+    TREE_GROUPS.forEach(g => {
+        const items = sections[g.key] || [];
+        const realCount = items.filter(el => !isPlaceholder(el) && !isAction(el)).length;
+
+        const group = document.createElement('div');
+        group.className = 'tree-group' + (collapsed.includes(g.key) ? ' collapsed' : '');
+        group.dataset.group = g.key;
+
+        const header = document.createElement('div');
+        header.className = 'tree-group-header';
+        header.innerHTML = `<i data-lucide="chevron-down" class="tg-chevron"></i><i data-lucide="${g.icon}" class="tg-icon"></i><span class="tg-label">${g.key}</span><span class="tg-count">${realCount}</span>`;
+        header.onclick = () => {
+            const isCollapsed = group.classList.toggle('collapsed');
+            const list = getCollapsedTreeGroups().filter(k => k !== g.key);
+            if (isCollapsed) list.push(g.key);
+            localStorage.setItem('AxarDB_treeCollapsed', JSON.stringify(list));
+        };
+
+        const body = document.createElement('div');
+        body.className = 'tree-group-body';
+        items.forEach(el => body.appendChild(el));
+
+        group.appendChild(header);
+        group.appendChild(body);
+        tree.appendChild(group);
+    });
+}
+
 // --- Tab System ---
 let tabs = [];
 let activeTabId = null;
@@ -229,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuthAndLoad();
     initIcons();
     initSysconfigBanner();
+    initThemeToggle();
     initAiQuery();
     createTab('Query 1');
 });
@@ -275,10 +464,11 @@ function checkAuthAndLoad() {
 function initEditor() {
     require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs' } });
     require(['vs/editor/editor.main'], function () {
+        defineAxarMonacoThemes();
         editor = monaco.editor.create(document.getElementById('editorContainer'), {
             value: "// Type your JavaScript query here\n// Use 'db.collection' to access data\n",
             language: 'javascript',
-            theme: 'vs-dark',
+            theme: getMonacoTheme(),
             automaticLayout: true,
             minimap: { enabled: false },
             fontSize: 14,
@@ -465,8 +655,9 @@ function initResizers() {
     resizerH.addEventListener('mousedown', (e) => {
         resizerH.classList.add('active');
         startResizing('row-resize');
+        const paneTop = querySection.getBoundingClientRect().top;
         const move = (e) => {
-            const height = e.clientY - sidebar.offsetTop;
+            const height = e.clientY - paneTop;
             if (height > 100 && height < window.innerHeight - 100) querySection.style.height = height + 'px';
         };
         const up = () => { stopResizing(); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
@@ -606,7 +797,7 @@ db.${name}
         sysCollections.forEach(name => {
             const item = document.createElement('div');
             item.className = 'tree-item';
-            item.style.color = 'var(--accent)';
+            item.style.color = 'var(--g-sys)';
             item.innerHTML = `<i data-lucide="shield"></i> <span>${name}</span>`;
 
             item.onclick = () => {
@@ -651,7 +842,7 @@ db.${name}
         memoryCollections.forEach(mc => {
             const item = document.createElement('div');
             item.className = 'tree-item';
-            item.style.color = '#c084fc';
+            item.style.color = 'var(--g-memory)';
             item.innerHTML = `<i data-lucide="cpu"></i> <span>${mc.name} (${mc.count})</span>`;
             item.onclick = () => {
                 setEditorValue(`// Query Temporary Memory Store
@@ -685,7 +876,7 @@ memory.${mc.name}.findall().take(10).toList()`);
         bulkCollections.forEach(bc => {
             const item = document.createElement('div');
             item.className = 'tree-item';
-            item.style.color = '#34d399';
+            item.style.color = 'var(--g-bulk)';
             item.innerHTML = `<i data-lucide="archive"></i> <span>${bc.name} (${bc.recordCount})</span>`;
             item.onclick = () => {
                 setEditorValue(`// Query Bulk (JSONL) collection
@@ -820,7 +1011,7 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
         triggers.forEach(tName => {
             const item = document.createElement('div');
             item.className = 'tree-item';
-            item.innerHTML = `<i data-lucide="zap" style="color:red"></i> <span>${tName}</span>`;
+            item.innerHTML = `<i data-lucide="zap"></i> <span>${tName}</span>`;
             item.onclick = async () => {
                 // View Code
                 try {
@@ -861,21 +1052,26 @@ db.saveTrigger("NotifyAdminOnUserChange", "sysusers", \`
             tree.appendChild(item);
         });
 
+        // 8.5 GROUP FLAT SECTIONS INTO CATEGORY TREE (DB, SYS, LOG, MEMORY, BULK, VIEW, TRIGGER)
+        buildCategoryTree(tree);
+
         // 9. FILTER LOGIC
         const filterInput = document.getElementById('sidebarFilter');
         filterInput.oninput = () => {
             const val = filterInput.value.toLowerCase();
             const items = tree.querySelectorAll('.tree-item');
-            const headers = tree.querySelectorAll('.tree-header');
 
             items.forEach(el => {
                 const txt = el.textContent.toLowerCase();
                 el.style.display = txt.includes(val) ? 'flex' : 'none';
             });
 
-            // Optional: Hide headers if all children are hidden? 
-            // That's complex because we flattened structure. 
-            // Simple version: just hide items.
+            // While filtering: expand groups to show matches and hide groups without any
+            tree.classList.toggle('filtering', !!val);
+            tree.querySelectorAll('.tree-group').forEach(group => {
+                const anyVisible = Array.from(group.querySelectorAll('.tree-item')).some(el => el.style.display !== 'none');
+                group.style.display = (!val || anyVisible) ? '' : 'none';
+            });
         };
 
         // Re-apply filter if value exists (e.g. after refresh)
@@ -1253,17 +1449,36 @@ window.makeEditable = function(td, rowIdx, key) {
     });
 };
 
+// Status words that get a colored pill in the grid (case-insensitive)
+const STATUS_OK_RE = /^(success|succeeded|ok|active|completed|complete|done|shipped|delivered|paid|enabled|healthy|online|ready)$/i;
+const STATUS_WARN_RE = /^(pending|processing|waiting|queued|warning|warn|in[ _-]?progress|draft|paused)$/i;
+const STATUS_ERR_RE = /^(error|failed|fail|failure|inactive|disabled|cancell?ed|rejected|denied|offline|deleted|expired|blocked|critical|fatal)$/i;
+const STATUS_INFO_RE = /^(info|information|new|created|updated|changed|open|running)$/i;
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+
+function getStatusClass(s) {
+    if (STATUS_OK_RE.test(s)) return 'st-ok';
+    if (STATUS_WARN_RE.test(s)) return 'st-warn';
+    if (STATUS_ERR_RE.test(s)) return 'st-err';
+    if (STATUS_INFO_RE.test(s)) return 'st-info';
+    return '';
+}
+
 function formatValue(v, key, rowIdx = -1) {
     if (v === null || v === undefined) return '';
     if (key === '_id' || key.toLowerCase().endsWith('id')) return `<span class="badge badge-id">${escapeHtml(String(v))}</span>`;
-    if (typeof v === 'boolean') return `<span class="badge badge-bool">${v}</span>`;
+    if (typeof v === 'boolean') return `<span class="badge badge-bool ${v ? 'is-true' : 'is-false'}">${v}</span>`;
     if (typeof v === 'number') return `<span class="badge badge-number">${v}</span>`;
     if (typeof v === 'object') {
         const str = JSON.stringify(v);
         const shortStr = str.length > 40 ? str.substring(0, 40) + '...' : str;
-        return `<div class="badge badge-json" onclick="openNestedJsonModal(${rowIdx}, '${key}')" style="cursor:pointer; border: 1px solid var(--accent); background: rgba(99, 102, 241, 0.1); color: var(--text-primary); text-transform:none; font-family:monospace; display:inline-flex; align-items:center; gap:4px;" title="Click to view details"><i data-lucide="braces" style="width:12px;height:12px;"></i>${escapeHtml(shortStr)}</div>`;
+        return `<div class="badge badge-json" onclick="openNestedJsonModal(${rowIdx}, '${key}')" style="cursor:pointer; text-transform:none; font-family:monospace; display:inline-flex; align-items:center; gap:4px;" title="Click to view details"><i data-lucide="braces" style="width:12px;height:12px;"></i>${escapeHtml(shortStr)}</div>`;
     }
-    return `<span class="badge badge-string">${escapeHtml(String(v))}</span>`;
+    const s = String(v);
+    const statusClass = s.length <= 24 ? getStatusClass(s) : '';
+    if (statusClass) return `<span class="badge badge-status ${statusClass}">${escapeHtml(s)}</span>`;
+    if (ISO_DATE_RE.test(s)) return `<span class="badge badge-date">${escapeHtml(s)}</span>`;
+    return `<span class="badge badge-string">${escapeHtml(s)}</span>`;
 }
 
 // --- Nested JSON Modal Logic ---
@@ -1302,7 +1517,7 @@ function renderNestedJsonModal() {
                 const isObj = typeof val === 'object' && val !== null;
                 const valStr = isObj ? (Array.isArray(val) ? `[Array(${val.length})]` : '{Object}') : escapeHtml(String(val));
                 const encodedVal = !isObj ? encodeURIComponent(String(val)).replace(/'/g, "%27") : '';
-                itemsHtml += `<div class="nested-json-item" ${isObj ? `onclick="pushNestedJsonCard(${idx}, '${escapeHtml(k).replace(/'/g, "\\'")}')"` : `onclick="copyToClipboard(decodeURIComponent('${encodedVal}'))"`} style="padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; transition: background 0.2s; cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="${!isObj ? 'Click to copy' : 'Click to view details'}">
+                itemsHtml += `<div class="nested-json-item" ${isObj ? `onclick="pushNestedJsonCard(${idx}, '${escapeHtml(k).replace(/'/g, "\\'")}')"` : `onclick="copyToClipboard(decodeURIComponent('${encodedVal}'))"`} style="padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; transition: background 0.2s; cursor:pointer;" onmouseover="this.style.background='var(--hover-bg)'" onmouseout="this.style.background='transparent'" title="${!isObj ? 'Click to copy' : 'Click to view details'}">
                     <span style="font-weight: 500; color: var(--accent); margin-right: 12px; font-size: 0.85rem; flex-shrink: 0; padding-top: 2px;">${escapeHtml(k)}</span>
                     <span style="color: ${isObj ? 'var(--text-secondary)' : 'var(--text-primary)'}; word-break: break-word; font-size: 0.85rem; text-align: left; flex: 1;">${valStr}</span>
                     ${isObj ? '<i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--text-secondary);margin-left:8px;flex-shrink:0;margin-top:2px;"></i>' : ''}
@@ -1311,7 +1526,7 @@ function renderNestedJsonModal() {
         }
         return `
             <div class="nested-json-card" style="min-width: 300px; width: 300px; height: 100%; border-right: 1px solid var(--border); display: flex; flex-direction: column;">
-                <div class="card-header" style="padding: 12px 16px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); font-weight: 600; font-size:0.9rem; position: sticky; top: 0; color: var(--text-primary); display:flex; align-items:center; gap:8px;">
+                <div class="card-header" style="padding: 12px 16px; background: var(--panel-head); border-bottom: 1px solid var(--border); font-weight: 600; font-size:0.9rem; position: sticky; top: 0; color: var(--text-primary); display:flex; align-items:center; gap:8px;">
                     ${escapeHtml(card.title)}
                 </div>
                 <div class="card-body" style="flex: 1; overflow-y: auto;">
@@ -1403,7 +1618,7 @@ window.openJsonView = function (rowData) {
             jsonViewEditor = monaco.editor.create(document.getElementById('jsonViewEditorContainer'), {
                 value: formattedJson,
                 language: 'json',
-                theme: 'vs-dark',
+                theme: getMonacoTheme(),
                 readOnly: true,
                 automaticLayout: true,
                 minimap: { enabled: false },
