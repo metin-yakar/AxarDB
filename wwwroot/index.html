@@ -6,11 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AxarDB - Management Console</title>
     <link rel="icon" type="image/png" href="logo.png">
+    <!-- Apply the saved theme before first paint to avoid a flash -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('AxarDB_theme');
+                document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="css/style.css">
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts: Inter + JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Monaco Editor -->
@@ -24,22 +35,21 @@
             <div class="sidebar-header">
                 <div class="brand">
                     <img src="logo.png" alt="AxarDB" class="logo-img">
-                    <h2>Collections</h2>
+                    <h2>Axar<span class="brand-accent">DB</span></h2>
                 </div>
                 <button class="btn-add" id="btnAddDb" title="Add Database">
                     <i data-lucide="plus"></i>
                 </button>
             </div>
-            <div style="padding: 0 1rem 0.5rem 1rem;">
-                <input type="text" id="sidebarFilter" placeholder="Filter..." class="filter-input"
-                    style="width: 100%; border: 1px solid #333; background: #252526; color: white; padding: 4px 8px; border-radius: 4px;">
+            <div class="sidebar-filter-wrap">
+                <input type="text" id="sidebarFilter" placeholder="Filter..." class="filter-input">
             </div>
             <div class="tree-container" id="collectionTree">
                 <!-- Tree items will be injected here -->
                 <div class="loading">Loading collections...</div>
             </div>
             <div class="sidebar-footer">
-                <a href="/monitor" target="_blank" class="btn-docs" style="margin-bottom: 0.5rem;">
+                <a href="/monitor" target="_blank" class="btn-docs">
                     <i data-lucide="activity"></i>
                     <span>Monitoring</span>
                 </a>
@@ -67,6 +77,9 @@
                             <i data-lucide="history"></i>
                             History
                         </button>
+                        <button class="btn-theme" id="btnThemeToggle" title="Switch theme">
+                            <i data-lucide="sun"></i>
+                        </button>
                         <button class="btn-execute" id="btnExecute">
                             <i data-lucide="play"></i>
                             Execute (Ctrl+Enter)
@@ -85,17 +98,19 @@
                     <div class="results-toolbar">
                         <span class="results-title">Results</span>
                         <div class="results-actions">
-                            <button class="btn-icon" id="btnExportJson" title="Export to JSON">
+                            <button class="btn-icon btn-export" id="btnExportJson" title="Export to JSON">
                                 <i data-lucide="file-json"></i>
+                                <span>Export JSON</span>
                             </button>
-                            <button class="btn-icon" id="btnExportCsv" title="Export to CSV">
+                            <button class="btn-icon btn-export" id="btnExportCsv" title="Export to CSV">
                                 <i data-lucide="file-spreadsheet"></i>
+                                <span>Export CSV</span>
                             </button>
                         </div>
                     </div>
                     <div style="display: flex; flex: 1; overflow: hidden; width: 100%;">
                         <div class="grid-container" id="gridContainer" style="flex: 1;">
-                            <table id="resultsTable">
+                            <table id="resultsTable" class="results-table">
                                 <thead id="tableHead"></thead>
                                 <tbody id="tableBody"></tbody>
                             </table>
@@ -138,7 +153,7 @@
         <div class="nested-json-box"
             style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; width: 90%; height: 80%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
             <div class="modal-header"
-                style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2);">
+                style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: var(--panel-head);">
                 <h3 style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="braces"></i> Object
                     Viewer</h3>
                 <button class="btn-icon" onclick="closeNestedJsonModal()" title="Close">
@@ -200,7 +215,7 @@
 
     <!-- AI Query Modal -->
     <div id="aiQueryModal" class="ai-modal" style="display: none; position: absolute; top: 60px; right: 20px; z-index: 1000; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); resize: both; overflow: hidden; min-width: 300px; min-height: 200px; flex-direction: column;">
-        <div class="modal-header" id="aiQueryModalHeader" style="cursor: move; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2);">
+        <div class="modal-header" id="aiQueryModalHeader" style="cursor: move; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); background: var(--panel-head);">
             <h3 style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-primary);"><i data-lucide="bot"></i> AI Query</h3>
             <button class="btn-icon" id="btnCloseAiQuery" title="Close">
                 <i data-lucide="x"></i>
